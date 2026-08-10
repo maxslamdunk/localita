@@ -130,7 +130,7 @@ internal enum PrefillProjectionDispatchPolicy {
     }
 }
 
-public final class RealForwardRunner: ChunkedPrefillRunner, ContextWindowReporting, ContinuableLogitProducer, ExpertIOReporting, @unchecked Sendable {
+public final class RealForwardRunner: ChunkedPrefillRunner, ContextWindowReporting, ContinuableLogitProducer, ExpertIOReporting, DecodePhaseTimingReporting, @unchecked Sendable {
     private struct LayerSharedExpertProjections {
         let gate: SharedExpertInt8Proj
         let up: SharedExpertInt8Proj
@@ -410,6 +410,26 @@ public final class RealForwardRunner: ChunkedPrefillRunner, ContextWindowReporti
     public private(set) var totalCb2Nanos: UInt64 = 0
     public private(set) var totalHeadNanos: UInt64 = 0
     public private(set) var totalHeadFusedNanos: UInt64 = 0
+    /// The GPU execution `totalCb1Nanos` and `totalCb2Nanos` exclude: those two
+    /// count CPU encode cost only, so without these a phase breakdown accounts
+    /// for none of the time a forward spends waiting on Metal.
+    public private(set) var totalCb1WaitNanos: UInt64 = 0
+    public private(set) var totalRoutedDrainNanos: UInt64 = 0
+
+    /// The decode phase breakdown as one snapshot, for `runRawCompletion` to
+    /// difference across the prefill/decode boundary. Head is reported as one
+    /// figure because the fused and logits paths are alternatives — a token
+    /// runs one or the other, never both.
+    public var decodePhaseTimings: DecodePhaseTimings {
+        var timings = DecodePhaseTimings()
+        timings.cb1Nanos = totalCb1Nanos
+        timings.cb1WaitNanos = totalCb1WaitNanos
+        timings.ioNanos = totalIoNanos
+        timings.cb2Nanos = totalCb2Nanos
+        timings.routedDrainNanos = totalRoutedDrainNanos
+        timings.headNanos = totalHeadNanos &+ totalHeadFusedNanos
+        return timings
+    }
     public private(set) var lastGreedyToken: UInt32 = 0
     public var usesFusedGreedyHead: Bool { useFusedGreedyHead }
     /// Routed-expert I/O totals. Unlike the counters above these are not owned
@@ -1276,6 +1296,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, ContextWindowReporti
         func finishPendingRoutedCommand(_ pending: PendingRoutedCommand,
                                         waitIfNeeded: Bool) throws {
             if waitIfNeeded {
+                let tDrain = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
                 if let sharedCB = pending.sharedCB {
                     waitUntilCompleted(sharedCB)
                 }
@@ -1283,6 +1304,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, ContextWindowReporti
                     waitUntilCompleted(phase1HitCB)
                 }
                 waitUntilCompleted(pending.cb)
+                totalRoutedDrainNanos &+= clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - tDrain
             }
             if let sharedCB = pending.sharedCB {
                 try checkCommandBufferError(sharedCB.error)
@@ -1487,6 +1509,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, ContextWindowReporti
             }
             try checkCommandBufferError(cb.error)
             totalCb1Nanos &+= clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - tCb1Start - waitNanos
+            totalCb1WaitNanos &+= waitNanos
 
             // CPU readback to fetch routed-expert blobs from disk.
             let idxPtr = outIndices.contents().bindMemory(to: UInt32.self,

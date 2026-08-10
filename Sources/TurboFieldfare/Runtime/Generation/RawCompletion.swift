@@ -34,6 +34,11 @@ public struct RawDecodeResult: Sendable {
     /// Both are `.zero` when the producer does not report expert I/O.
     public let prefillExpertIO: ExpertIOStats
     public let decodeExpertIO: ExpertIOStats
+    /// Per-phase decode timings over the decode window only. There is no
+    /// prefill counterpart: the production chunked-prefill path does not drive
+    /// the cb1/io/cb2 handoff and never touches these counters. `.zero` when
+    /// the producer does not report them.
+    public let decodePhaseTimings: DecodePhaseTimings
 
     /// Explicit rather than memberwise so the expert-I/O fields can default:
     /// callers that only care about timing keep compiling unchanged.
@@ -48,7 +53,8 @@ public struct RawDecodeResult: Sendable {
                 kvBackedTokenIDs: [Int32],
                 uncommittedBoundaryTokenIDs: [Int32],
                 prefillExpertIO: ExpertIOStats = .zero,
-                decodeExpertIO: ExpertIOStats = .zero) {
+                decodeExpertIO: ExpertIOStats = .zero,
+                decodePhaseTimings: DecodePhaseTimings = .zero) {
         self.prefillTokens = prefillTokens
         self.cachedPromptTokens = cachedPromptTokens
         self.computedPrefillTokens = computedPrefillTokens
@@ -61,6 +67,7 @@ public struct RawDecodeResult: Sendable {
         self.uncommittedBoundaryTokenIDs = uncommittedBoundaryTokenIDs
         self.prefillExpertIO = prefillExpertIO
         self.decodeExpertIO = decodeExpertIO
+        self.decodePhaseTimings = decodePhaseTimings
     }
 
     /// Forwards run during decode. One less than `newTokens`: each loop
@@ -220,6 +227,12 @@ public func runRawCompletion(producer: any LogitProducer,
 
     let decodeStart = Date()
     let expertIOAtDecodeStart = expertIOReporter?.expertIOStats ?? .zero
+    // Differenced rather than read at the end even though chunked prefill does
+    // not touch these counters: the `.off` prefill path replays through the
+    // same `produce` call the decode loop uses, and would otherwise land its
+    // phase time in the decode window.
+    let phaseTimingReporter = producer as? any DecodePhaseTimingReporting
+    let phasesAtDecodeStart = phaseTimingReporter?.decodePhaseTimings ?? .zero
     let prefillSeconds = decodeStart.timeIntervalSince(prefillStart)
     var stopMatcher = StreamingStopMatcher(stops: config.stopStrings)
     var generated = 0
@@ -291,7 +304,9 @@ public func runRawCompletion(producer: any LogitProducer,
                            kvBackedTokenIDs: history,
                            uncommittedBoundaryTokenIDs: uncommittedBoundaryTokenIDs,
                            prefillExpertIO: expertIOAtDecodeStart.delta(since: expertIOAtPrefillStart),
-                           decodeExpertIO: expertIOAtEnd.delta(since: expertIOAtDecodeStart))
+                           decodeExpertIO: expertIOAtEnd.delta(since: expertIOAtDecodeStart),
+                           decodePhaseTimings: (phaseTimingReporter?.decodePhaseTimings ?? .zero)
+                               .delta(since: phasesAtDecodeStart))
 }
 
 private func sampleOnce(scratch: RawCompletionScratch, context: MetalContext,

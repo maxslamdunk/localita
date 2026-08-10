@@ -98,6 +98,7 @@ public func run(args: Args,
             let footer = "\n[stop=\(String(describing: stats.reason)) prefill=\(stats.prefillTokens)tok new=\(stats.newTokens)tok decode=\(String(format: "%.2f", stats.decodeSeconds))s tok/s=\(String(format: "%.3f", tokensPerSecond))]\n"
             stderr.write(Data(footer.utf8))
             stderr.write(Data(expertIOFooter(stats).utf8))
+            stderr.write(Data(phaseTimeFooter(stats).utf8))
         }
         return RunResult(exitCode: 0)
     } catch is CancellationError {
@@ -138,6 +139,40 @@ func expertIOFooter(_ stats: RawDecodeResult) -> String {
         + " | prefill bytes=\(megabytes(prefill.bytesRead))MB"
         + " hit-rate=\(percent(prefill.cacheHitRate))"
         + " reads=\(prefill.reads)]\n"
+}
+
+/// Third stderr footer line: where a decode forward's time goes, in
+/// milliseconds per forward, alongside the wall time of a forward so each phase
+/// can be read as a fraction of it.
+///
+/// The trailing marker is not decoration. `cb1` and `cb2` are CPU encode cost
+/// with GPU execution excluded, `cb1-wait` and `routed-drain` are that excluded
+/// GPU execution, and `io` overlaps the shared-expert branch — so the six
+/// columns do not partition `wall` and adding them up produces a number that
+/// corresponds to nothing. Quote the columns, never a total.
+///
+/// Decode only: the production chunked-prefill path does not drive the
+/// cb1/io/cb2 handoff, so there is no prefill half to report.
+func phaseTimeFooter(_ stats: RawDecodeResult) -> String {
+    let forwards = stats.decodeForwards
+    func perForward(_ nanos: UInt64) -> String {
+        guard let ms = DecodePhaseTimings.millisecondsPerForward(nanos, forwards: forwards) else {
+            return "n/a"
+        }
+        return String(format: "%.2f", ms)
+    }
+    let phases = stats.decodePhaseTimings
+    let wall = forwards > 0
+        ? String(format: "%.2f", stats.decodeSeconds * 1000 / Double(forwards))
+        : "n/a"
+    return "[phase-time decode ms/fwd cb1=\(perForward(phases.cb1Nanos))"
+        + " cb1-wait=\(perForward(phases.cb1WaitNanos))"
+        + " io=\(perForward(phases.ioNanos))"
+        + " cb2=\(perForward(phases.cb2Nanos))"
+        + " routed-drain=\(perForward(phases.routedDrainNanos))"
+        + " head=\(perForward(phases.headNanos))"
+        + " wall=\(wall)"
+        + " forwards=\(forwards) | phases overlap, do not sum]\n"
 }
 
 private func errored(_ stderr: FileHandle, _ message: String, _ code: Int32) -> RunResult {

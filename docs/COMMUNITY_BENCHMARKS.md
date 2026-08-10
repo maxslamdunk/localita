@@ -106,7 +106,7 @@ for case_seed in \
     2> "benchmark-results/measured/${case_id}.stderr"
 done
 
-grep -hE '^\[(stop|expert-io)=?' benchmark-results/measured/*.stderr |
+grep -hE '^\[(stop|expert-io|phase-time)=?' benchmark-results/measured/*.stderr |
   tee benchmark-results/summary.txt
 ```
 
@@ -121,6 +121,15 @@ prefill totals. Report it with the timing footer — the decode rate on a given
 host is largely a consequence of those bytes, so a tok/s number without them
 cannot be compared across hosts with different memory. Decode and prefill
 figures are not comparable to each other.
+
+A third line, `[phase-time …]`, breaks a decode forward down by phase in
+milliseconds per forward, against the wall time of a forward. Report it too:
+it is what distinguishes a host that is waiting on its SSD from one that is
+waiting on its GPU, and those two need different fixes. **Do not sum the
+columns or report a total** — `cb1` and `cb2` are CPU encode cost with GPU
+execution excluded, `cb1-wait` and `routed-drain` are that excluded execution,
+and `io` overlaps the shared-expert branch, so the columns do not partition
+`wall`. Compare each column to `wall` individually.
 
 ## Report the result
 
