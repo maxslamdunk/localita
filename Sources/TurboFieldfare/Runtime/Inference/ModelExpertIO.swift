@@ -18,6 +18,11 @@ public struct RoutedExpertFetchPlan: Sendable {
 }
 
 extension Model {
+    /// Routed-expert bytes read and cache hits/misses since the model was
+    /// loaded, summed over every layer. Difference two snapshots to get a
+    /// phase — prefill and decode share these streamers and are not comparable.
+    public var expertIOStats: ExpertIOStats { expertIOCounters.snapshot() }
+
     public func routedExpertOffsets(layer: Int) -> MoEExpertOffsets {
         let expert = packedExpertsLayout.expert(layer: layer, expert: 0)
         func offset(_ role: String) -> UInt32 {

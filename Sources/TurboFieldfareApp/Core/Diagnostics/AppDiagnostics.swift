@@ -21,6 +21,15 @@ public struct AppRunnerDiagnostics: Equatable, Sendable {
     public var rdadviseMegabytesPerToken: Double
     public var rdadviseSkippedPerToken: Double
     public var rdadviseFailures: UInt64
+    /// Routed-expert bytes actually read per decode forward — bytes/token, the
+    /// binding constraint. Unlike `rdadviseMegabytesPerToken` this counts real
+    /// `pread` traffic and is live under production defaults.
+    public var expertMegabytesPerToken: Double
+    /// Fraction of routed-expert requests served from a resident slot; `nil`
+    /// when the window requested none.
+    public var expertCacheHitRate: Double?
+    public var expertCacheRequestsPerToken: Double
+    public var expertReadsPerToken: Double
 
     public init(cb1MillisecondsPerToken: Double = 0,
                 ioMillisecondsPerToken: Double = 0,
@@ -30,7 +39,11 @@ public struct AppRunnerDiagnostics: Equatable, Sendable {
                 rdadviseCallsPerToken: Double = 0,
                 rdadviseMegabytesPerToken: Double = 0,
                 rdadviseSkippedPerToken: Double = 0,
-                rdadviseFailures: UInt64 = 0) {
+                rdadviseFailures: UInt64 = 0,
+                expertMegabytesPerToken: Double = 0,
+                expertCacheHitRate: Double? = nil,
+                expertCacheRequestsPerToken: Double = 0,
+                expertReadsPerToken: Double = 0) {
         self.cb1MillisecondsPerToken = cb1MillisecondsPerToken
         self.ioMillisecondsPerToken = ioMillisecondsPerToken
         self.cb2MillisecondsPerToken = cb2MillisecondsPerToken
@@ -40,6 +53,10 @@ public struct AppRunnerDiagnostics: Equatable, Sendable {
         self.rdadviseMegabytesPerToken = rdadviseMegabytesPerToken
         self.rdadviseSkippedPerToken = rdadviseSkippedPerToken
         self.rdadviseFailures = rdadviseFailures
+        self.expertMegabytesPerToken = expertMegabytesPerToken
+        self.expertCacheHitRate = expertCacheHitRate
+        self.expertCacheRequestsPerToken = expertCacheRequestsPerToken
+        self.expertReadsPerToken = expertReadsPerToken
     }
 }
 

@@ -130,7 +130,7 @@ internal enum PrefillProjectionDispatchPolicy {
     }
 }
 
-public final class RealForwardRunner: ChunkedPrefillRunner, ContextWindowReporting, ContinuableLogitProducer, @unchecked Sendable {
+public final class RealForwardRunner: ChunkedPrefillRunner, ContextWindowReporting, ContinuableLogitProducer, ExpertIOReporting, @unchecked Sendable {
     private struct LayerSharedExpertProjections {
         let gate: SharedExpertInt8Proj
         let up: SharedExpertInt8Proj
@@ -412,6 +412,16 @@ public final class RealForwardRunner: ChunkedPrefillRunner, ContextWindowReporti
     public private(set) var totalHeadFusedNanos: UInt64 = 0
     public private(set) var lastGreedyToken: UInt32 = 0
     public var usesFusedGreedyHead: Bool { useFusedGreedyHead }
+    /// Routed-expert I/O totals. Unlike the counters above these are not owned
+    /// by the runner: they live on the model's shared `ExpertIOCounters` and
+    /// count reads issued by prefill and decode alike, including those the
+    /// prefill tile path issues without going through `produceToken`.
+    public var expertIOStats: ExpertIOStats { model.expertIOStats }
+    public var totalExpertBytesRead: UInt64 { expertIOStats.bytesRead }
+    public var totalExpertReads: UInt64 { expertIOStats.reads }
+    public var totalExpertCacheHits: UInt64 { expertIOStats.cacheHits }
+    public var totalExpertCacheMisses: UInt64 { expertIOStats.cacheMisses }
+
     public private(set) var totalRDAdviseNanos: UInt64 = 0
     public private(set) var totalRDAdviseCalls: UInt64 = 0
     public private(set) var totalRDAdviseBytes: UInt64 = 0

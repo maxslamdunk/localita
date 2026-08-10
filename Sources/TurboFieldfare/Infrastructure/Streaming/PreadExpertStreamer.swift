@@ -61,6 +61,9 @@ public final class PreadExpertStreamer: @unchecked Sendable {
     public let layout: StreamLayout
     public let slotCount: Int
     public let cachePolicy: ExpertCachePolicy
+    /// Cumulative read and cache counters. Shared across a model's per-layer
+    /// streamers when one is injected; otherwise private to this streamer.
+    public let counters: ExpertIOCounters
 
     private let fd: Int32
     private let slotPointers: [UnsafeMutableRawPointer]
@@ -83,6 +86,24 @@ public final class PreadExpertStreamer: @unchecked Sendable {
                       device: device,
                       slotCount: slotCount,
                       cachePolicy: cachePolicy,
+                      counters: ExpertIOCounters(),
+                      fileDescriptor: nil)
+    }
+
+    /// Streams into shared counters. Kept as a separate initializer rather than
+    /// a defaulted parameter on the one above so that initializer's unapplied
+    /// function type is unchanged — `PublicAPISignatureCompatibilityTests`
+    /// pins it.
+    public convenience init(layout: StreamLayout,
+                            device: MTLDevice,
+                            slotCount: Int,
+                            cachePolicy: ExpertCachePolicy = .lfu,
+                            counters: ExpertIOCounters) throws {
+        try self.init(layout: layout,
+                      device: device,
+                      slotCount: slotCount,
+                      cachePolicy: cachePolicy,
+                      counters: counters,
                       fileDescriptor: nil)
     }
 
@@ -90,11 +111,13 @@ public final class PreadExpertStreamer: @unchecked Sendable {
                  device: MTLDevice,
                  slotCount: Int,
                  cachePolicy: ExpertCachePolicy = .lfu,
+                 counters: ExpertIOCounters = ExpertIOCounters(),
                  fileDescriptor: Int32?) throws {
         precondition(slotCount > 0, "slotCount must be positive")
         self.layout = layout
         self.slotCount = slotCount
         self.cachePolicy = cachePolicy
+        self.counters = counters
         let pageSize = Int(getpagesize())
 
         let openedFD = fileDescriptor.map { fcntl($0, F_DUPFD_CLOEXEC, 0) }
@@ -260,6 +283,12 @@ public final class PreadExpertStreamer: @unchecked Sendable {
             slotLastUse[slot] = clock
         }
 
+        // Counted here rather than at execution: this is the point where the
+        // plan is adopted and slots are reserved. A plan that could not be
+        // placed returned above and is not a request the cache answered.
+        counters.recordCachePlan(hits: experts.count - misses.count,
+                                 misses: misses.count)
+
         return ExpertCachePlan(
             experts: experts,
             assignedSlots: assignedSlots,
@@ -392,9 +421,13 @@ public final class PreadExpertStreamer: @unchecked Sendable {
             maxCallNanos: maxCallNanos)
     }
 
+    /// The single funnel every routed-expert byte passes through, and therefore
+    /// where bytes/token is counted. Bytes are recorded per syscall so a read
+    /// that fails partway still accounts for what it pulled.
     private func readFull(into destination: UnsafeMutableRawPointer,
                           fileOffset: UInt64,
                           count: Int) throws {
+        counters.recordReadIssued()
         var filled = 0
         while filled < count {
             let readCount = pread(
@@ -408,6 +441,7 @@ public final class PreadExpertStreamer: @unchecked Sendable {
             if readCount == 0 {
                 throw StreamerError.sizeMismatch(expected: UInt64(count), actual: UInt64(filled))
             }
+            counters.recordBytesRead(UInt64(readCount))
             filled += readCount
         }
     }

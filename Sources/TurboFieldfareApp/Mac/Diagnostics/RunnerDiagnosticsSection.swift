@@ -28,6 +28,16 @@ struct RunnerDiagnosticsSection: View {
                 DiagnosticRow("Peak memory", MetricFormat.memory(diagnostics.peakMemoryBytes))
                 DiagnosticRow("I/O / token",
                               MetricFormat.milliseconds(diagnostics.runner?.ioMillisecondsPerToken))
+                if let runner = diagnostics.runner {
+                    DiagnosticRow(
+                        "Expert bytes / token",
+                        MetricFormat.megabytesPerToken(runner.expertMegabytesPerToken),
+                        help: "Routed-expert bytes read from disk per decoded token. This is the runtime's binding constraint: the SSD, not the GPU, sets the decode rate. A cache hit is a read that did not happen, so this falls as the hit rate rises.")
+                    DiagnosticRow(
+                        "Expert cache hit rate",
+                        runner.expertCacheHitRate.map { MetricFormat.percent($0 * 100) } ?? "\u{2014}",
+                        help: "Share of routed-expert requests served from a resident cache slot over the decode window, across all layers.")
+                }
 
                 if hasIssues(diagnostics) {
                     groupLabel("Issues")
@@ -105,6 +115,8 @@ private struct AdvancedRunnerDiagnosticsView: View {
             DiagnosticRow("cb1 / token", MetricFormat.milliseconds(runner.cb1MillisecondsPerToken))
             DiagnosticRow("cb2 / token", MetricFormat.milliseconds(runner.cb2MillisecondsPerToken))
             DiagnosticRow("Head / token", MetricFormat.milliseconds(runner.headMillisecondsPerToken))
+            DiagnosticRow("Expert requests", MetricFormat.perToken(runner.expertCacheRequestsPerToken))
+            DiagnosticRow("Expert slot fills", MetricFormat.perToken(runner.expertReadsPerToken))
             if hasRDAdviceActivity {
                 DiagnosticRow("RDADVISE / token",
                               MetricFormat.milliseconds(runner.rdadviseMillisecondsPerToken))

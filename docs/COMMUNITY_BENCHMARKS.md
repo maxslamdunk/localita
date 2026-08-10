@@ -106,7 +106,7 @@ for case_seed in \
     2> "benchmark-results/measured/${case_id}.stderr"
 done
 
-grep -h '^\[stop=' benchmark-results/measured/*.stderr |
+grep -hE '^\[(stop|expert-io)=?' benchmark-results/measured/*.stderr |
   tee benchmark-results/summary.txt
 ```
 
@@ -114,6 +114,13 @@ Every measured footer must say `stop=endOfTurn`. Read the three output files as
 well: reject the result if an answer loops, repeats a block, or ends incomplete.
 Report the prompt and generated token counts from each footer because different
 output tokens create a different routing workload.
+
+Each run writes a second footer line, `[expert-io …]`, carrying the routed-expert
+byte profile: decode bytes/token and cache hit rate per forward pass, then
+prefill totals. Report it with the timing footer — the decode rate on a given
+host is largely a consequence of those bytes, so a tok/s number without them
+cannot be compared across hosts with different memory. Decode and prefill
+figures are not comparable to each other.
 
 ## Report the result
 

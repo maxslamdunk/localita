@@ -94,6 +94,14 @@ public struct DecodeRunnerDiagnostics: Codable, Sendable, Equatable {
     public var rdadviseMegabytesPerToken: Double
     public var rdadviseSkippedPerToken: Double
     public var rdadviseFailures: UInt64
+    /// Routed-expert bytes read per decode forward, and the cache behaviour
+    /// behind it. The UI and decode service are built and shipped together, so
+    /// these are required on the wire; the init defaults are for constructing
+    /// diagnostics in tests, not for decoding older payloads.
+    public var expertMegabytesPerToken: Double
+    public var expertCacheHitRate: Double?
+    public var expertCacheRequestsPerToken: Double
+    public var expertReadsPerToken: Double
 
     public init(cb1MillisecondsPerToken: Double,
                 ioMillisecondsPerToken: Double,
@@ -103,7 +111,11 @@ public struct DecodeRunnerDiagnostics: Codable, Sendable, Equatable {
                 rdadviseCallsPerToken: Double,
                 rdadviseMegabytesPerToken: Double,
                 rdadviseSkippedPerToken: Double,
-                rdadviseFailures: UInt64) {
+                rdadviseFailures: UInt64,
+                expertMegabytesPerToken: Double = 0,
+                expertCacheHitRate: Double? = nil,
+                expertCacheRequestsPerToken: Double = 0,
+                expertReadsPerToken: Double = 0) {
         self.cb1MillisecondsPerToken = cb1MillisecondsPerToken
         self.ioMillisecondsPerToken = ioMillisecondsPerToken
         self.cb2MillisecondsPerToken = cb2MillisecondsPerToken
@@ -113,6 +125,10 @@ public struct DecodeRunnerDiagnostics: Codable, Sendable, Equatable {
         self.rdadviseMegabytesPerToken = rdadviseMegabytesPerToken
         self.rdadviseSkippedPerToken = rdadviseSkippedPerToken
         self.rdadviseFailures = rdadviseFailures
+        self.expertMegabytesPerToken = expertMegabytesPerToken
+        self.expertCacheHitRate = expertCacheHitRate
+        self.expertCacheRequestsPerToken = expertCacheRequestsPerToken
+        self.expertReadsPerToken = expertReadsPerToken
     }
 }
 

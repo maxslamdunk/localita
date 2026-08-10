@@ -97,6 +97,7 @@ public func run(args: Args,
                 : 0
             let footer = "\n[stop=\(String(describing: stats.reason)) prefill=\(stats.prefillTokens)tok new=\(stats.newTokens)tok decode=\(String(format: "%.2f", stats.decodeSeconds))s tok/s=\(String(format: "%.3f", tokensPerSecond))]\n"
             stderr.write(Data(footer.utf8))
+            stderr.write(Data(expertIOFooter(stats).utf8))
         }
         return RunResult(exitCode: 0)
     } catch is CancellationError {
@@ -105,6 +106,38 @@ public func run(args: Args,
     } catch {
         return errored(stderr, "\(error)", 1)
     }
+}
+
+/// Second stderr footer line carrying the routed-expert byte profile. Kept on
+/// its own line so the existing timing footer stays byte-for-byte what
+/// `docs/COMMUNITY_BENCHMARKS.md` tells reporters to quote.
+///
+/// Decode is reported per forward pass, prefill in totals: prefill reads are
+/// amortized over a whole prompt in tiles and a per-token figure there would
+/// invite comparison with the decode number, which is the one thing it is not.
+func expertIOFooter(_ stats: RawDecodeResult) -> String {
+    func megabytes(_ bytes: UInt64) -> String {
+        String(format: "%.2f", Double(bytes) / 1_048_576.0)
+    }
+    func percent(_ fraction: Double?) -> String {
+        guard let fraction else { return "n/a" }
+        return String(format: "%.1f%%", fraction * 100)
+    }
+    func perForward(_ total: UInt64) -> String {
+        guard stats.decodeForwards > 0 else { return "n/a" }
+        return String(format: "%.2f", Double(total) / Double(stats.decodeForwards))
+    }
+    let decode = stats.decodeExpertIO
+    let prefill = stats.prefillExpertIO
+    let bytesPerToken = stats.decodeMegabytesPerToken.map { String(format: "%.2fMB", $0) } ?? "n/a"
+    return "[expert-io decode bytes/tok=\(bytesPerToken)"
+        + " hit-rate=\(percent(decode.cacheHitRate))"
+        + " req/tok=\(perForward(decode.cacheRequests))"
+        + " reads/tok=\(perForward(decode.reads))"
+        + " forwards=\(stats.decodeForwards)"
+        + " | prefill bytes=\(megabytes(prefill.bytesRead))MB"
+        + " hit-rate=\(percent(prefill.cacheHitRate))"
+        + " reads=\(prefill.reads)]\n"
 }
 
 private func errored(_ stderr: FileHandle, _ message: String, _ code: Int32) -> RunResult {

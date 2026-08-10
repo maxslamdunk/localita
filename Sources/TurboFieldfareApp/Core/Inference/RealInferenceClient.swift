@@ -434,6 +434,7 @@ actor RealInferenceSession {
         func ms(_ end: UInt64, _ start: UInt64) -> Double {
             Double(end &- start) / 1_000_000 / forwards
         }
+        let expertIO = now.expertIO.delta(since: base.expertIO)
         return AppRunnerDiagnostics(
             cb1MillisecondsPerToken: ms(now.cb1, base.cb1),
             ioMillisecondsPerToken: ms(now.io, base.io),
@@ -443,7 +444,11 @@ actor RealInferenceSession {
             rdadviseCallsPerToken: Double(now.rdadviseCalls &- base.rdadviseCalls) / forwards,
             rdadviseMegabytesPerToken: Double(now.rdadviseBytes &- base.rdadviseBytes) / 1_048_576.0 / forwards,
             rdadviseSkippedPerToken: Double(now.rdadviseSkipped &- base.rdadviseSkipped) / forwards,
-            rdadviseFailures: now.rdadviseFailures &- base.rdadviseFailures)
+            rdadviseFailures: now.rdadviseFailures &- base.rdadviseFailures,
+            expertMegabytesPerToken: Double(expertIO.bytesRead) / 1_048_576.0 / forwards,
+            expertCacheHitRate: expertIO.cacheHitRate,
+            expertCacheRequestsPerToken: Double(expertIO.cacheRequests) / forwards,
+            expertReadsPerToken: Double(expertIO.reads) / forwards)
     }
 
     private static func stopReason(_ reason: StopReason) -> AppStopReason {
@@ -498,6 +503,7 @@ private struct RunnerCounterSnapshot {
     let rdadviseBytes: UInt64
     let rdadviseFailures: UInt64
     let rdadviseSkipped: UInt64
+    let expertIO: ExpertIOStats
 
     init(_ runner: RealForwardRunner) {
         cb1 = runner.totalCb1Nanos
@@ -509,5 +515,6 @@ private struct RunnerCounterSnapshot {
         rdadviseBytes = runner.totalRDAdviseBytes
         rdadviseFailures = runner.totalRDAdviseFailures
         rdadviseSkipped = runner.totalRDAdviseSkipped
+        expertIO = runner.expertIOStats
     }
 }

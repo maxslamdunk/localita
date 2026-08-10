@@ -66,8 +66,20 @@ name the changed setting.
   during the request. The HUD shows the service's current memory instead of the
   much smaller foreground UI process.
 - **I/O / token** reports routed-expert read time per generated token.
+- **Expert bytes / token** reports routed-expert bytes actually read from disk
+  per generated token — the binding constraint. It counts real `pread` traffic
+  and is live under production defaults, unlike the RDADVISE data figure, which
+  is zero whenever RDADVISE is off.
+- **Expert cache hit rate** is the share of routed-expert requests served from a
+  resident slot over the decode window, across all layers. A hit is a read that
+  did not happen, so it and the bytes figure are the same lever seen twice. An
+  em dash means no routed-expert requests were observed.
 - **Advanced** shows decode duration and per-token cb1, cb2, and output-head
-  time. When RDADVISE runs, it also shows time, calls, data, and skipped advice.
+  time, plus routed-expert requests and slot fills per token. When RDADVISE
+  runs, it also shows time, calls, data, and skipped advice.
+
+Both expert figures cover **decode only**; prefill reads are excluded. The CLI
+reports the same counters, plus prefill totals, on its own footer line.
 
 During chunked prefill, the phase label reports exact progress, for example
 `Prefill (128/514)`. Errors and unsupported configurations appear only when

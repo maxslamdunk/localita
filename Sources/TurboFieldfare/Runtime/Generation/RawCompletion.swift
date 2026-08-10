@@ -28,6 +28,50 @@ public struct RawDecodeResult: Sendable {
     public let kvPosition: Int
     public let kvBackedTokenIDs: [Int32]
     public let uncommittedBoundaryTokenIDs: [Int32]
+    /// Routed-expert I/O over the prefill phase, and over the decode phase.
+    /// Reported apart because their byte profiles are not comparable: prefill
+    /// streams experts in tiles over a chunk of tokens, decode reads per token.
+    /// Both are `.zero` when the producer does not report expert I/O.
+    public let prefillExpertIO: ExpertIOStats
+    public let decodeExpertIO: ExpertIOStats
+
+    /// Explicit rather than memberwise so the expert-I/O fields can default:
+    /// callers that only care about timing keep compiling unchanged.
+    public init(prefillTokens: Int,
+                cachedPromptTokens: Int,
+                computedPrefillTokens: Int,
+                prefillSeconds: Double,
+                newTokens: Int,
+                decodeSeconds: Double,
+                reason: StopReason,
+                kvPosition: Int,
+                kvBackedTokenIDs: [Int32],
+                uncommittedBoundaryTokenIDs: [Int32],
+                prefillExpertIO: ExpertIOStats = .zero,
+                decodeExpertIO: ExpertIOStats = .zero) {
+        self.prefillTokens = prefillTokens
+        self.cachedPromptTokens = cachedPromptTokens
+        self.computedPrefillTokens = computedPrefillTokens
+        self.prefillSeconds = prefillSeconds
+        self.newTokens = newTokens
+        self.decodeSeconds = decodeSeconds
+        self.reason = reason
+        self.kvPosition = kvPosition
+        self.kvBackedTokenIDs = kvBackedTokenIDs
+        self.uncommittedBoundaryTokenIDs = uncommittedBoundaryTokenIDs
+        self.prefillExpertIO = prefillExpertIO
+        self.decodeExpertIO = decodeExpertIO
+    }
+
+    /// Forwards run during decode. One less than `newTokens`: each loop
+    /// iteration that continues ends with one `produce`, and the final sampled
+    /// token never runs a forward. This is the divisor for bytes/token.
+    public var decodeForwards: Int { max(newTokens - 1, 0) }
+
+    /// Decode bytes per forward pass — the project's binding unit.
+    public var decodeMegabytesPerToken: Double? {
+        decodeExpertIO.megabytesPerForward(decodeForwards)
+    }
 }
 
 /// Preallocated per-generation buffers (two 512 KiB vocab buffers plus a token
@@ -133,6 +177,8 @@ public func runRawCompletion(producer: any LogitProducer,
         let continuable = producer as! any ContinuableLogitProducer
         try continuable.prepareForContinuation(expectedPosition: cachedPromptTokens)
     }
+    let expertIOReporter = producer as? any ExpertIOReporting
+    let expertIOAtPrefillStart = expertIOReporter?.expertIOStats ?? .zero
     let prefillStart = Date()
     var position = cachedPromptTokens
     var prefillSeed: PrefillSeed?
@@ -173,6 +219,7 @@ public func runRawCompletion(producer: any LogitProducer,
     }
 
     let decodeStart = Date()
+    let expertIOAtDecodeStart = expertIOReporter?.expertIOStats ?? .zero
     let prefillSeconds = decodeStart.timeIntervalSince(prefillStart)
     var stopMatcher = StreamingStopMatcher(stops: config.stopStrings)
     var generated = 0
@@ -232,6 +279,7 @@ public func runRawCompletion(producer: any LogitProducer,
         uncommittedBoundaryTokenIDs.removeAll(keepingCapacity: true)
     }
 
+    let expertIOAtEnd = expertIOReporter?.expertIOStats ?? .zero
     return RawDecodeResult(prefillTokens: promptIds.count,
                            cachedPromptTokens: cachedPromptTokens,
                            computedPrefillTokens: computedPrefillTokens,
@@ -241,7 +289,9 @@ public func runRawCompletion(producer: any LogitProducer,
                            reason: reason,
                            kvPosition: position,
                            kvBackedTokenIDs: history,
-                           uncommittedBoundaryTokenIDs: uncommittedBoundaryTokenIDs)
+                           uncommittedBoundaryTokenIDs: uncommittedBoundaryTokenIDs,
+                           prefillExpertIO: expertIOAtDecodeStart.delta(since: expertIOAtPrefillStart),
+                           decodeExpertIO: expertIOAtEnd.delta(since: expertIOAtDecodeStart))
 }
 
 private func sampleOnce(scratch: RawCompletionScratch, context: MetalContext,

@@ -48,6 +48,11 @@ public struct Model {
     let streamersBox: StreamersBox
     let streamersQueue: DispatchQueue
 
+    /// One counter set shared by every per-layer streamer this model opens, so
+    /// a snapshot is a whole-model byte and hit-rate total. Reference type on
+    /// purpose: copies of the struct must count into the same place.
+    let expertIOCounters = ExpertIOCounters()
+
     final class StreamersBox: @unchecked Sendable {
         var streamers: [PreadExpertStreamer?]
         var layerVerified: [Bool]
@@ -316,6 +321,7 @@ public struct Model {
             device: device,
             slotCount: slotCount,
             cachePolicy: expertCachePolicy,
+            counters: expertIOCounters,
             fileDescriptor: layerFD)
         streamersBox.layerVerified[L] = true
     }

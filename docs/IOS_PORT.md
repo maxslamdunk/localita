@@ -9,18 +9,28 @@ derived from it.
 
 ## The constraint the port inherits
 
-Decode demands a derived ceiling of **806.1 MB/token** at zero cache hits
-(`numLayers 30 × topKExperts 8 × expertStride 3358720`). On the 8 GB macOS
-validation host that is serviced at the measured 2.7–3.2 GB/s SSD roof, giving
-3.340 tok/s — about 95% of the roof.
+Decode demand is **measured** as of 2026-08-10: **261.9–305.6 MB/token**, rising
+with prompt length, at a 16-slot LFU hit rate of 62–68%. The zero-hit ceiling is
+806.1 MB/token (`numLayers 30 × topKExperts 8 × expertStride 3358720`); measured
+demand is that ceiling times (1 − hit rate). Quote the measured figure, not the
+ceiling.
 
-The 16 GB hosts are faster only because the macOS unified buffer cache holds the
-whole 12.01 GiB routed-expert corpus. **iOS has no equivalent tier to rely on.**
-The 8 GB row is the honest predictor for the port and, per `CLAUDE.md`, is if
-anything optimistic.
+At 261.9 MB/token the 8 GB validation host demands only 0.83 GB/s — about 29% of
+its measured 2.7–3.2 GB/s SSD roof. **Decode on that host is not
+SSD-bandwidth-bound**, which retracts the earlier claim that it runs at 95% of
+its roof, and with it the argument that 16 GB hosts must be page-cache-served.
+See the retraction in `CLAUDE.md`.
 
-Consequence: the memory ceiling caps the expert cache, and the expert cache is
-the only thing that can replace the page cache iOS will not provide.
+What this changes for the port: the expert cache is still the lever that matters
+— a hit is a read that did not happen, and two-thirds of requests already are
+one — but the port can no longer assume bandwidth is the thing that will bind on
+device. It may be latency, memory pressure, or GPU time. The device I/O probe
+(step B1) therefore has to be read alongside a per-phase time split, not on its
+own.
+
+Consequence that survives unchanged: iOS has no page-cache tier and a tighter
+memory ceiling, so the memory ceiling caps the expert cache, and the expert
+cache is the only second tier the port will have.
 
 ## Two tracks
 
@@ -31,11 +41,15 @@ phases of one goal.
 
 Ship a correct port at any speed, with **no quality sacrifice**.
 
-Floor: **0.5 tok/s**. Derived: 0.5 × 806.1 MB = **403 MB/s sustained**, roughly
-14% of the Mac's measured SSD roof. Bandwidth is therefore not expected to be
-the risk — this needs confirming on device, but it means Track A's real risk is
-the **memory ceiling**: ~1.35 GB of residents plus the FP16 KV cache plus Metal
-plus app overhead, under jetsam.
+Floor: **0.5 tok/s**. Derived from measured demand: 0.5 × 261.9 MB = **131 MB/s
+sustained**, roughly 5% of the Mac's measured SSD roof (0.5 × 806.1 MB = 403
+MB/s if the port's cache were sized so small it never hit). Bandwidth is
+therefore even less likely to be the risk than previously stated, which makes
+Track A's real risk the **memory ceiling**: ~1.35 GB of residents plus the FP16
+KV cache plus Metal plus app overhead, under jetsam. Note the coupling — the
+ceiling sets the cache size, the cache size sets the hit rate, and the hit rate
+sets demand. A port forced down to a much smaller cache moves toward the 806.1
+MB figure, not the 261.9 MB one.
 
 Definition of done — reuse the project's existing standard, do not invent a new
 one:
@@ -65,11 +79,15 @@ Push bytes/token as hard as possible, accepting quality cost where it is worth
 it. The balance point is decided later, against real numbers — and the ordering
 below makes that deferral structural rather than a matter of remembering to.
 
-0. **Mac-side instrumentation** (prerequisite, no dependency on Track A, can
-   start immediately). `CLAUDE.md` lists bytes/token and expert-cache hit rate as
-   `_TBD_`; the only byte counter in the streaming path is on the RDADVISE
-   advisory branch, which is off under production defaults. Add counters on the
-   `pread` path and on cache hit/miss. Do this on macOS, where it is debuggable.
+0. **Mac-side instrumentation — DONE 2026-08-10.** `ExpertIOCounters` counts
+   bytes on the `pread` path and hits/misses in the cache planner; the CLI
+   prints an `[expert-io …]` footer line and the HUD shows decode bytes/token
+   and hit rate. First measured values are in `CLAUDE.md` and `MEASUREMENTS.md`.
+   Two follow-ups this exposed: the CLI footer does not print the per-phase
+   `cb1`/`io`/`cb2` split the runtime already tracks, which is what would show
+   whether decode time is actually going into reads; and **prefill runs at 0.0%
+   hit rate**, reading 192.6 GB for a 3,015-token prompt — about half of all
+   bytes that run touched.
 1. **Device I/O probe.** Sustained random-read bandwidth at the production
    3,358,720 B block size over 5–10 minutes (not a burst — thermal and NAND
    controller behavior is the real number), swept by working-set size to find
