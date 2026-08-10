@@ -314,10 +314,17 @@ The implementation labels this handoff as three phases:
 | `cb2` | Metal finishes the routed top-8 branch, reduces it with the router weights, combines it with the shared branch, and applies the post-FFN norms, residual, and layer scalar. |
 
 Work overlaps across these phases. The command-buffer pipeline can delay
-waiting for `cb2` while the CPU encodes and queues the next layer. The
-diagnostic counters also use different clocks: `cb1` and `cb2` record CPU
-encode-and-commit overhead, while `io` records awaited read time. They are not
-three serial or directly comparable durations.
+waiting for `cb2` while the CPU encodes and queues the next layer.
+
+The diagnostic counters differ in scope, not in timebase — all use
+`CLOCK_UPTIME_RAW`. `cb1` and `cb2` record CPU encode-and-commit overhead with
+GPU execution excluded; `cb1-wait` and `routed-drain` record that excluded GPU
+execution; `io` records awaited read time, during which the shared-expert branch
+is running on the GPU. `DecodePhaseTimings` carries all six, and the CLI's
+`[phase-time …]` footer prints them per forward. Taken together they covered
+98.2–98.5% of measured wall time on the 8 GB validation host, the remainder
+being per-token sampling outside the layer loop; the first three alone account
+for almost none of it, which is why a breakdown built from them is misleading.
 
 ```mermaid
 flowchart TD

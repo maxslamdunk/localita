@@ -1,0 +1,3 @@
+
+[stop=endOfTurn prefill=430tok new=669tok decode=235.09s tok/s=2.846]
+[expert-io decode bytes/tok=265.90MB hit-rate=65.4% req/tok=240.00 reads/tok=83.01 forwards=668 | prefill bytes=25496.88MB hit-rate=0.0% reads=7960]

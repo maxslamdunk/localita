@@ -1,18 +1,19 @@
 /// Cumulative per-phase decode timings, in nanoseconds, off the forward runner.
 ///
-/// **These are not a timeline and must never be summed.** The phases overlap by
-/// design — `io` runs while Metal executes the resident shared-expert branch —
-/// and they measure deliberately different things: `cb1Nanos` and `cb2Nanos` are
-/// CPU encode cost with GPU execution excluded, while the wait fields are the
-/// GPU execution a forward actually blocked on. A total over all six describes
-/// nothing that happened.
+/// The six run in sequence within a layer, and all six come from the same
+/// monotonic clock (`CLOCK_UPTIME_RAW`), so unlike the three counters they were
+/// built from they can be read against each other and against wall time. The
+/// 2026-08-10 runs put them at 98.2–98.5% of measured wall on all three
+/// benchmark cases, with a flat ~5.9 ms residual: per-token sampling, which
+/// runs outside the layer loop and is counted by none of these.
 ///
-/// What they are for is comparison against the measured token time: a phase that
-/// is a small fraction of it cannot be what a token is spending its time on, and
-/// that is a conclusion the individual figures support without any addition.
-///
-/// All six come from the same monotonic clock (`CLOCK_UPTIME_RAW`); the reason
-/// they are not comparable is scope, not timebase.
+/// Two things still have to be said out loud, because the field names do not
+/// say them. `cb1Nanos` and `cb2Nanos` are CPU encode cost with GPU execution
+/// excluded — that execution is `cb1WaitNanos` and `routedDrainNanos`, which is
+/// why a breakdown built from the first three alone accounted for almost none
+/// of a token. And `ioNanos` is a window during which the resident
+/// shared-expert branch is executing on the GPU: that work is real, is counted
+/// nowhere, and is hidden inside `io` rather than added to it.
 public struct DecodePhaseTimings: Sendable, Equatable {
     /// CPU cost of encoding and committing the attention + router command
     /// buffer, with the block on its completion excluded.

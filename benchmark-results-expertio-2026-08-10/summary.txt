@@ -1,0 +1,6 @@
+[stop=endOfTurn prefill=3015tok new=604tok decode=232.81s tok/s=2.594]
+[expert-io decode bytes/tok=291.42MB hit-rate=62.1% req/tok=240.00 reads/tok=90.98 forwards=603 | prefill bytes=183663.98MB hit-rate=0.0% reads=57339]
+[stop=endOfTurn prefill=430tok new=669tok decode=235.09s tok/s=2.846]
+[expert-io decode bytes/tok=265.90MB hit-rate=65.4% req/tok=240.00 reads/tok=83.01 forwards=668 | prefill bytes=25496.88MB hit-rate=0.0% reads=7960]
+[stop=endOfTurn prefill=61tok new=511tok decode=161.24s tok/s=3.169]
+[expert-io decode bytes/tok=249.72MB hit-rate=67.5% req/tok=240.00 reads/tok=77.96 forwards=510 | prefill bytes=6944.38MB hit-rate=0.0% reads=2168]

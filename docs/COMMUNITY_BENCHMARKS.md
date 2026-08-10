@@ -125,11 +125,12 @@ figures are not comparable to each other.
 A third line, `[phase-time …]`, breaks a decode forward down by phase in
 milliseconds per forward, against the wall time of a forward. Report it too:
 it is what distinguishes a host that is waiting on its SSD from one that is
-waiting on its GPU, and those two need different fixes. **Do not sum the
-columns or report a total** — `cb1` and `cb2` are CPU encode cost with GPU
-execution excluded, `cb1-wait` and `routed-drain` are that excluded execution,
-and `io` overlaps the shared-expert branch, so the columns do not partition
-`wall`. Compare each column to `wall` individually.
+waiting on its GPU, and those two need different fixes. The columns run in
+sequence within a layer and covered 98.2–98.5% of `wall` on the 8 GB validation
+host, the remainder being per-token sampling, so they can be read as fractions
+of a forward. One caveat: `io` is the routed-expert fetch window, and the
+resident shared-expert branch runs on the GPU throughout it — `io` is not time
+the machine spent idle.
 
 ## Report the result
 

@@ -21,12 +21,25 @@ SSD-bandwidth-bound**, which retracts the earlier claim that it runs at 95% of
 its roof, and with it the argument that 16 GB hosts must be page-cache-served.
 See the retraction in `CLAUDE.md`.
 
-What this changes for the port: the expert cache is still the lever that matters
-— a hit is a read that did not happen, and two-thirds of requests already are
-one — but the port can no longer assume bandwidth is the thing that will bind on
-device. It may be latency, memory pressure, or GPU time. The device I/O probe
-(step B1) therefore has to be read alongside a per-phase time split, not on its
-own.
+The phase split (step B0b, 2026-08-10) says where that time actually goes:
+**`io` is 59–63% of a decode forward**, so reads bind, and the expert cache
+remains the lever that matters — a hit is a read that did not happen, and
+two-thirds of requests already are one.
+
+But two things it found reshape the track ordering below:
+
+- **The fetch path achieves 41–50% of the device's bandwidth roof** (1.30–1.34
+  GB/s against a probed 2.7–3.2 GB/s at the same block size). Time is being lost
+  between the SSD and the runtime, not to the number of bytes. This is a
+  quality-free win that no cache-policy change can reach, and it is not
+  bytes/token work at all.
+- **GPU attention (`cb1-wait`) is 29–35% of a forward and rises with prompt
+  length** — 95 ms at a 61-token prompt, 133 ms at 3,015. On device, with long
+  context, this only grows. Nothing in either track currently touches it.
+
+So the device I/O probe (step B1) has to be read alongside a device phase split,
+not on its own: a phone that is attention-bound needs different work than one
+that is fetch-bound, and the Mac is measurably both.
 
 Consequence that survives unchanged: iOS has no page-cache tier and a tighter
 memory ceiling, so the memory ceiling caps the expert cache, and the expert
@@ -88,24 +101,34 @@ below makes that deferral structural rather than a matter of remembering to.
    whether decode time is actually going into reads; and **prefill runs at 0.0%
    hit rate**, reading 192.6 GB for a 3,015-token prompt — about half of all
    bytes that run touched.
-0b. **Per-phase time split on the Mac — the immediate next step.** Print the
-   `cb1`/`io`/`cb2` nanoseconds the runtime already tracks on the CLI footer and
-   re-run one benchmark case. This is plumbing, not new instrumentation, and it
-   answers whether decode time on this host actually goes into expert reads.
-   It gates the rest of Track B: every lever in steps 2 and 3 attacks
-   bytes/token, and if `io` is a minority of the 315.6 ms token then the whole
-   list has a low ceiling and some of it costs quality for that ceiling.
-   Predicted bytes/token delta: **0** — no read added, removed, or coalesced;
-   justified on measurement grounds, exactly as step 0 was.
+0b. **Per-phase time split on the Mac — DONE 2026-08-10, `ce287b6`.** The CLI
+   prints a `[phase-time …]` footer. Printing the three counters the runtime
+   already had would not have answered the question — `cb1` and `cb2` exclude
+   GPU execution by construction — so the two waits that were being computed and
+   discarded were added with them. Predicted 0 bytes/token; measured bytes/token
+   came back identical to the digit against the previous session, confirming it.
+   Findings are in `CLAUDE.md`; the two that change this plan are quoted above.
 1. **Device I/O probe.** Sustained random-read bandwidth at the production
    3,358,720 B block size over 5–10 minutes (not a burst — thermal and NAND
    controller behavior is the real number), swept by working-set size to find
    whether a page-cache knee exists at all.
 2. **Quality-neutral levers** — exhaust these before spending any accuracy:
+   - **Close the fetch-path gap.** The largest known quality-free win and the
+     only one measured rather than assumed: `io` runs at 41–50% of the device
+     roof, so roughly half of 202 ms/forward is going somewhere other than
+     moving bytes. Candidates not yet distinguished: per-read latency the probe
+     did not model (30 open layer files vs. one; ~2.6 reads per layer issued and
+     awaited per layer rather than streamed), planning cost counted inside the
+     `io` window, queue depth. Diagnose before optimizing — this is not a
+     bytes/token change and does not get justified as one.
    - Expert cache sizing against the ceiling from A1. The Mac's 16 slots are
      **54 MB**; a phone may afford 1 GB+ of explicit cache.
    - Routing locality, prefetch, router lookahead.
    - Disk layout, expert co-location, read coalescing.
+   - **Attention over long context**, which is not a bytes lever at all but is
+     29–35% of a forward and growing with prompt length. Listed here because it
+     is quality-neutral and because ignoring it means the port optimizes two
+     thirds of a forward and calls it done.
 3. **Quality-spending levers** — only once 2 is exhausted: expert quantization,
    top-K reduction, layer-selective routing, smaller variant.
 4. **Floor / kill criterion**, if wanted, set here against measured numbers.

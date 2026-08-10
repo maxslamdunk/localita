@@ -65,12 +65,14 @@ import Foundation
         #expect(footer.contains("forwards=0"))
     }
 
-    @Test func footerCarriesTheDoNotSumMarker() {
-        // The columns do not partition wall: cb1/cb2 exclude GPU execution,
-        // the waits are that execution, and io overlaps the shared branch. A
-        // reader who adds them gets a number describing nothing, so the line
-        // says so on its face rather than in a document they may not have read.
+    @Test func footerNamesTheOverlapThatSurvives() {
+        // The columns are sequential within a layer, so they do add up — the
+        // 2026-08-10 runs put them at 98.2–98.5% of wall. The one overlap left
+        // is that the shared-expert branch executes on the GPU throughout the
+        // io window, so io is not time spent idle on disk. That is the part a
+        // reader can get wrong from the column names alone, so the line carries
+        // it rather than leaving it in a document they may not have read.
         let footer = phaseTimeFooter(result(newTokens: 4))
-        #expect(footer.contains("phases overlap, do not sum"))
+        #expect(footer.contains("sequential per layer; io hides the shared-expert branch"))
     }
 }

@@ -25,18 +25,19 @@ iOS has no page-cache tier to fall back on. The binding constraint is **bytes re
 
 Corollaries that follow from it, and that should shape proposals before compute ever enters the discussion: expert-cache hit rate is a first-class metric because a hit is a read that did not happen; routing locality across consecutive tokens is worth more than kernel throughput; quantization and layout changes matter mainly for how many bytes they pull per routed expert; prefill and decode have different byte profiles and must be reported separately.
 
-**Open as of 2026-08-10: this rule is not currently established on the 8 GB
-validation host.** The section above used to end its first paragraph with "the
-GPU is not the bottleneck; the SSD is"; that sentence is removed because the
-first measurement of bytes/token contradicted the argument behind it. Arithmetic
-on the table below: 261.9 MB/token at the measured 2.7–3.2 GB/s roof is ~90 ms of
-byte movement inside a 315.6 ms token, and reads overlap GPU work, so the true
-read cost is that or less. Where the other ~225 ms goes is unmeasured. Keep
-following the rule — it is what the whole design is built on, it is what gets
-stricter on iOS, and no competing explanation has been measured either — but
-treat it as the project's operating assumption rather than a demonstrated fact
-about this host, and do not defend it by re-asserting it. The measurement that
-would settle it is named at the end of the retraction below.
+**Established by measurement on 2026-08-10, after a day of being briefly in
+doubt:** the routed-expert fetch is **59–63% of a decode forward** on the 8 GB
+host, about twice the next-largest phase. Reads are where the time goes.
+
+Two qualifications that came with that measurement and that any proposal has to
+respect. First, the fetch runs at **41–50% of the device's bandwidth roof**, so
+"bytes/token is the constraint" does not mean "the SSD is saturated" — closing
+that gap moves time without moving a single byte, and it is the largest known
+quality-free win. Second, GPU attention (`cb1-wait`) is **29–35% of a forward
+and rises with prompt length**; it is not bytes, no lever in the port plan
+addresses it, and on a long-context device workload it will matter. The rule
+still ranks proposals, but a change justified purely on bytes/token now needs to
+say which of these two it is not making worse.
 
 ## Measured facts
 
@@ -47,16 +48,18 @@ would settle it is named at the end of the retraction below.
 | Disk read bandwidth (sequential) | _TBD_ | _TBD_ | _TBD_ |
 | Disk read bandwidth (routed-expert random reads) | 2.7–3.2 GB/s from SSD; 15.0–17.4 GB/s when served by the OS page cache | 2026-08-10, `417f389` | Standalone probe, model untouched: random `pread` of 3,358,720 B blobs (production slot size) into one 2 MiB-aligned buffer, plain `O_RDONLY` as in `PreadExpertStreamer`; 6 GiB non-sparse file on the model's volume. Two runs. See `MEASUREMENTS.md`. |
 | Page-cache capacity for expert reads (8 GB host) | Knee at 256 MiB–1 GiB working set; ~1.44 GB file cache system-wide at idle | 2026-08-10, `417f389` | Same probe swept by working-set size; `vm_stat` File-backed pages at idle. Above ~4 GiB working set the cache contributes nothing (cold ≈ warm). |
-| Current decode rate (tok/s) | 3.340 / 3.053 / 2.642 (short / medium / long) on `417f389`; **3.169 / 2.846 / 2.594 on `d271628`+counters**, 1.8–6.8% lower | 2026-08-09 and 2026-08-10 | Community protocol `real-generation-v1`, defaults, warmup discarded; all six `stop=endOfTurn`, identical token counts. The two sessions are not a controlled A/B: the 2026-08-10 warmups are also 4.4–9.2% below the 2026-08-09 warmups, so the shift is session-level and unattributed. Quote whichever binary you are comparing against and say which. See `MEASUREMENTS.md`. |
+| Current decode rate (tok/s) | 3.340 / 3.053 / 2.642 (short / medium / long) on `417f389`; 3.169 / 2.846 / 2.594 on `d271628`+counters; **3.102 / 2.890 / 2.592 on `ce287b6`** | 2026-08-09 and 2026-08-10 (two sessions) | Community protocol `real-generation-v1`, defaults, warmup discarded; all nine `stop=endOfTurn`, identical token counts throughout. The two instrumented binaries are within ±1.6% of each other, so neither counter set costs measurable throughput; both sit 1.8–6.8% below 2026-08-09, and the 2026-08-10 warmups are down by a similar margin, so that shift is session-level and remains unattributed — no interleaved A/B against a counter-free build has been run. Quote whichever binary you are comparing against and say which. See `MEASUREMENTS.md`. |
 | Bytes/token (decode, steady state) | **261.9 / 278.8 / 305.6 MB** (249.72 / 265.90 / 291.42 MiB) for short / medium / long. Rises with prompt length. Zero-hit ceiling is **806.1 MB**; measured = ceiling × (1 − hit rate) | 2026-08-10, `d271628`+counters | Community protocol `real-generation-v1`, defaults, `ExpertIOCounters` on the `pread` path. Ceiling is layout arithmetic: `numLayers: 30` × `topKExperts: 8` × `expertStride: 3358720` from the installed `manifest.json`; each of the 30 `packed_experts/layer_NN.bin` is 429,916,160 B = 128 × 3,358,720. Counter validated by the run reporting exactly 240.00 requests/token = 30 × 8, and by warmup and measured processes agreeing to the digit. See `MEASUREMENTS.md`. |
 | Expert-cache hit rate (decode, 16 slots, LFU) | **67.5% / 65.4% / 62.1%** (short / medium / long). Falls as prompt length rises | 2026-08-10, `d271628`+counters | Same runs. Counted where the cache planner adopts a plan; a plan it cannot place is not counted. Prefill hit rate is separately **0.0%** on all three cases. |
+| Decode phase split (ms per forward) | `io` **202.1 / 209.7 / 228.4** — 59–63% of wall, the largest consumer. `cb1-wait` (GPU attention + router) 95.3 / 111.2 / 133.3, rising with prompt length. `head` 15.4 / 15.5 / 14.4. CPU encode (`cb1` + `cb2` + `routed-drain`) ~4.3 total. Wall 323.0 / 346.6 / 386.4 | 2026-08-10, `ce287b6` | Community protocol `real-generation-v1`, defaults. CLI `[phase-time …]` footer. Columns are sequential within a layer and cover 98.2–98.5% of wall; the flat ~5.9 ms residual is per-token sampling, outside the layer loop. See `MEASUREMENTS.md`. |
+| Achieved routed-expert fetch bandwidth (decode) | **1.30–1.34 GB/s**, i.e. 2,511–2,592 µs per 3,358,720 B read — **41–50% of the 2.7–3.2 GB/s device roof** measured by the standalone probe at the same block size | 2026-08-10, `ce287b6` | Derived from the two rows above: decode bytes ÷ `io` ms, and `io` ms ÷ `reads/tok` from the `[expert-io …]` footer. Same-run arithmetic, not a separate probe. The gap between this and the device roof is unexplained and is the largest known quality-free opportunity. |
 | Memory ceiling (working set budget) | _TBD_ | _TBD_ | _TBD_ |
 
 Host and target these apply to: macOS validation host = M1 MacBook Air, 8 GB, macOS 26.6.1 (25G76), Swift 6.3.3, internal SSD 256 GB (`APPLE SSD AP0256Q`). iOS device target: _TBD_ — record separately once it exists.
 
 Record storage capacity, not just the model, for every host quoted here. Base-capacity units can ship fewer NAND chips than higher tiers and lose the read parallelism that goes with them — a real effect on base-storage M2/M3 Macs, and the same class of effect exists on base-capacity iPhones. It does not appear to bite this host (256 GB M1 Airs are dual-chip, and the measured 2.7–3.2 GB/s is consistent with that), but it makes any SSD roof carried over from another machine capacity-dependent, including the 16 GB roof assumed equal to ours above.
 
-Where these come from: the runtime instruments bytes/token and cache hit rate via `ExpertIOCounters` on the `pread` path and the expert-cache planner. A defaults CLI run prints them on a second stderr footer line, `[expert-io …]`, decode per forward and prefill as totals; the Mac HUD shows the decode figures. Prefill and decode are bracketed separately and are not comparable. (Historic note: `rdadviseMegabytesPerToken` is *not* this metric — it counts advisory bytes on a branch that is off under production defaults and reads zero in a valid benchmark.)
+Where these come from: the runtime instruments bytes/token and cache hit rate via `ExpertIOCounters` on the `pread` path and the expert-cache planner. A defaults CLI run prints them on a second stderr footer line, `[expert-io …]`, decode per forward and prefill as totals; the Mac HUD shows the decode figures. Prefill and decode are bracketed separately and are not comparable. A third line, `[phase-time …]`, prints the decode phase split from `DecodePhaseTimings` — decode only, since chunked prefill does not drive the cb1/io/cb2 handoff. (Historic note: `rdadviseMegabytesPerToken` is *not* this metric — it counts advisory bytes on a branch that is off under production defaults and reads zero in a valid benchmark.)
 
 **Do not quote the 806.1 MB ceiling as the demand figure.** It is the zero-hit ceiling. Real demand is 3.1× lower because the cache hits about two-thirds of requests, and conflating the two is what produced the retracted analysis below.
 
@@ -66,12 +69,27 @@ An earlier version of this section argued that our host runs at 95% of its SSD r
 
 What broke it: that argument used the **806.1 MB zero-hit ceiling as the demand figure**. Measured demand is 261.9 MB/token, because the 16-slot LFU cache hits 62–68% of requests. Redoing both sides with measured bytes:
 
-- **Ours (8 GB):** 261.9 MB per 315.6 ms token = **0.83 GB/s, ~29% of the measured 2.7–3.2 GB/s SSD roof.** This host is *not* SSD-bandwidth-bound during decode. Roughly 230–280 ms of each token is spent somewhere other than moving expert bytes.
+- **Ours (8 GB):** 261.9 MB per 315.6 ms token = **0.83 GB/s, ~29% of the measured 2.7–3.2 GB/s SSD roof.** This host is *not* bound by the *device's* bandwidth ceiling during decode. (The inference drawn here on 2026-08-10 — that ~230–280 ms of each token therefore goes somewhere other than expert bytes — was wrong, and is corrected in the resolution below: it goes into the fetch path, which does not reach the device roof.)
 - **16 GB M1 Air (7.802 tok/s, issue #76):** identical token counts, so identical routing and — by the same-policy argument — the same hit rate and the same 261.9 MB/token. That needs **2.04 GB/s, which is inside the SSD roof.** No DRAM-speed tier is required to explain it.
 
 So the page cache is not *forced* by bandwidth arithmetic on either host, and the 2.3× gap is now **unexplained**. Do not fill the gap with a new story until it is measured. What is still true and unaffected: `PreadExpertStreamer` sets no `F_NOCACHE`, so the buffer cache is live; this host holds ~1.44 GB of file cache against a 12.01 GiB routed-expert corpus, and the 2026-08-10 probe knee at 256 MiB–1 GiB is real. Those facts permit a page-cache contribution on 16 GB hosts; they no longer demonstrate one.
 
-**Next measurement that would settle it,** and it needs no new instrumentation on the decode side: the runtime already tracks per-phase `cb1`/`io`/`cb2` nanoseconds and the Mac HUD shows `io` ms/token, but the CLI footer does not print them. If `io` is a minority of the 315 ms, the bottleneck is not expert reads at all and the binding constraint needs restating for this host. Note the phases overlap and use different clocks — they cannot be summed into a timeline.
+### RESOLVED in part (2026-08-10, `ce287b6`): decode is expert-read-bound, but not at the device roof
+
+The phase split above was taken and it answers the question the retraction left open. **`io` is 59–63% of a decode forward** — the largest consumer by a wide margin, roughly twice the next one. The binding constraint holds on this host: bytes/token is where the time goes, and the "operating assumption" caveat in [The binding constraint](#the-binding-constraint) is discharged for the Mac host.
+
+What is *new* and was not visible before: `io` moves those bytes at **1.30–1.34 GB/s, 41–50% of the device roof for the same 3,358,720 B block size.** So both of these are true at once, and neither alone describes the host —
+
+- the earlier arithmetic (261.9 MB ÷ 315.6 ms = 0.83 GB/s, 29% of roof) was correct, and
+- decode is nevertheless read-bound, because the fetch path achieves only about half the device's bandwidth.
+
+The bullet above concluded from the first that 230–280 ms/token had to be going elsewhere. It is not: only ~120 ms is. That inference is withdrawn.
+
+**Still unexplained, and not to be filled in with a story:** why the fetch path runs at half the roof. Candidates not yet distinguished — per-read latency the probe did not model (30 open layer files vs. the probe's one; ~2.6 reads per layer issued and awaited per layer rather than streamed), planning cost counted inside the `io` window, or queue depth. The probe measured 1,065–1,245 µs per read against 2,511–2,592 µs here for the same block size, and that ~2.2× is the whole gap.
+
+**The 2.3× gap vs. the 16 GB M1 Air is still unexplained, but is now localized:** that host completes a whole forward in ~128 ms while ours spends ~202 ms in `io` alone. Its expert bytes therefore cannot be arriving the way ours do. A page-cache contribution is a live candidate again — but only a candidate; nothing here measures it, and the earlier version of this argument was retracted for exactly this kind of inference.
+
+Second finding, unrelated to bytes: **`cb1-wait` is 95–133 ms per forward (29–35%) and grows with prompt length** — GPU attention and router over a lengthening KV cache. It is the second-largest consumer, it is compute rather than I/O, and no lever in the port plan currently addresses it.
 
 **Consequence for the port, revised:** the claim that 16 GB+ community numbers are partly a page-cache measurement is now unproven, so it cannot be used to dismiss them. The 8 GB row remains the right predictor for iOS on the separate ground that iOS has no comparable page-cache tier and a tighter memory ceiling — but "our host is at its SSD roof, so iOS will be too" is no longer an argument anyone should repeat. Caveats that still stand: the 16 GB host's SSD roof is assumed equal to ours, not measured; community rows are single runs.
 
@@ -129,7 +147,9 @@ No install, load, test, or benchmark path may put a whole model, shard, expert, 
 
 ### Decode: the cb1 / io / cb2 handoff
 
-Per layer, `cb1` (Metal) runs norm → QKV → RoPE + KV write → attention → output projection → router, stopping when the top-8 expert IDs are readable by the CPU. `io` plans against the layer's 16-slot LFU cache and `pread`s only the misses, while Metal runs the resident shared-expert branch concurrently. `cb2` finishes the routed branch, reduces by router weights, combines with the shared branch, and applies the layer tail. Phases overlap and their counters use different clocks — they are not three serial durations.
+Per layer, `cb1` (Metal) runs norm → QKV → RoPE + KV write → attention → output projection → router, stopping when the top-8 expert IDs are readable by the CPU. `io` plans against the layer's 16-slot LFU cache and `pread`s only the misses, while Metal runs the resident shared-expert branch concurrently. `cb2` finishes the routed branch, reduces by router weights, combines with the shared branch, and applies the layer tail.
+
+The phases run in sequence within a layer; `DecodePhaseTimings` carries the six figures the CLI's `[phase-time …]` footer prints, and they account for ~98% of a forward's wall time. Two scope traps: `cb1`/`cb2` are CPU encode cost with GPU execution excluded (that execution is the separate `cb1-wait` and `routed-drain` figures), and `io` is a window during which the shared-expert branch is executing on the GPU, so it is not idle time.
 
 Prefill is layer-major in chunks of ≤128 tokens, streams experts in tiles of ≤8 (two tiles must fit the 16-slot cache), and uses staged-affine MPP `matmul2d` for projections with enough rows; single-token decode stays on custom affine INT4/INT8 GEMV kernels.
 

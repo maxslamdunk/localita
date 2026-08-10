@@ -15,7 +15,8 @@ Per layer: `cb1` (Metal) runs norm → QKV → RoPE + KV write → attention →
 
 Two things follow, and both get violated by well-meaning refactors:
 
-- **The phases overlap.** Their counters use different clocks. They are not three serial durations and must never be summed or reported as a timeline.
+- **The three original counters are CPU encode cost, not phase duration.** `totalCb1Nanos` subtracts its own `waitUntilCompleted`; `totalCb2Nanos` counts encode-and-commit and never the routed buffer's execution. `totalCb1WaitNanos` and `totalRoutedDrainNanos` hold the GPU execution they exclude. All use `CLOCK_UPTIME_RAW` — there is no clock-mismatch problem, only a scope one. Read the breakdown through `DecodePhaseTimings`, which carries all six.
+- **`io` hides GPU work.** It is the fetch window, and the resident shared-expert branch executes throughout it. Shrinking `io` below the shared branch's duration buys nothing; the branch's own time is counted nowhere.
 - **The overlap is the design.** Any change that makes `io` wait on `cb1` completion, or `cb2` start before `io` has issued, converts a hidden read into a visible stall. That is a regression even if bytes/token is unchanged.
 
 ## Bytes/token is set here

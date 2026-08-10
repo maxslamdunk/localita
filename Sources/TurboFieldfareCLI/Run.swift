@@ -145,11 +145,17 @@ func expertIOFooter(_ stats: RawDecodeResult) -> String {
 /// milliseconds per forward, alongside the wall time of a forward so each phase
 /// can be read as a fraction of it.
 ///
-/// The trailing marker is not decoration. `cb1` and `cb2` are CPU encode cost
-/// with GPU execution excluded, `cb1-wait` and `routed-drain` are that excluded
-/// GPU execution, and `io` overlaps the shared-expert branch — so the six
-/// columns do not partition `wall` and adding them up produces a number that
-/// corresponds to nothing. Quote the columns, never a total.
+/// The six columns run in sequence within a layer, and measurement on
+/// 2026-08-10 found them covering 98.2–98.5% of `wall` across all three
+/// benchmark cases with a flat ~5.9 ms residual — per-token sampling, which
+/// runs outside the layer loop and is not counted here. So a total over them is
+/// meaningful, unlike a total over the three counters this replaced: those were
+/// CPU encode cost only, and adding them described nothing.
+///
+/// What the marker warns about is the one genuine overlap left. `io` is the
+/// wall time of the routed-expert fetch, and the resident shared-expert branch
+/// executes on the GPU throughout it. That GPU work is real and is not counted
+/// anywhere; `io` is the window that hides it, not idle time waiting on disk.
 ///
 /// Decode only: the production chunked-prefill path does not drive the
 /// cb1/io/cb2 handoff, so there is no prefill half to report.
@@ -172,7 +178,7 @@ func phaseTimeFooter(_ stats: RawDecodeResult) -> String {
         + " routed-drain=\(perForward(phases.routedDrainNanos))"
         + " head=\(perForward(phases.headNanos))"
         + " wall=\(wall)"
-        + " forwards=\(forwards) | phases overlap, do not sum]\n"
+        + " forwards=\(forwards) | sequential per layer; io hides the shared-expert branch]\n"
 }
 
 private func errored(_ stderr: FileHandle, _ message: String, _ code: Int32) -> RunResult {
