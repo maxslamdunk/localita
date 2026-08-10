@@ -21,9 +21,22 @@ of; check it before trusting a document's framing or its numbers.
 ## The binding constraint
 
 The binding constraint is inherited by the port and gets stricter there, since
-iOS has no page-cache tier to fall back on. The binding constraint is **bytes read per token**, not compute. The GPU is not the bottleneck; the SSD is. Every optimization, refactor, and design choice gets justified against bytes/token — a change that lowers GPU time while holding bytes/token flat is, by default, not interesting. State the bytes/token effect first, then everything else.
+iOS has no page-cache tier to fall back on. The binding constraint is **bytes read per token**, not compute. Every optimization, refactor, and design choice gets justified against bytes/token — a change that lowers GPU time while holding bytes/token flat is, by default, not interesting. State the bytes/token effect first, then everything else.
 
 Corollaries that follow from it, and that should shape proposals before compute ever enters the discussion: expert-cache hit rate is a first-class metric because a hit is a read that did not happen; routing locality across consecutive tokens is worth more than kernel throughput; quantization and layout changes matter mainly for how many bytes they pull per routed expert; prefill and decode have different byte profiles and must be reported separately.
+
+**Open as of 2026-08-10: this rule is not currently established on the 8 GB
+validation host.** The section above used to end its first paragraph with "the
+GPU is not the bottleneck; the SSD is"; that sentence is removed because the
+first measurement of bytes/token contradicted the argument behind it. Arithmetic
+on the table below: 261.9 MB/token at the measured 2.7–3.2 GB/s roof is ~90 ms of
+byte movement inside a 315.6 ms token, and reads overlap GPU work, so the true
+read cost is that or less. Where the other ~225 ms goes is unmeasured. Keep
+following the rule — it is what the whole design is built on, it is what gets
+stricter on iOS, and no competing explanation has been measured either — but
+treat it as the project's operating assumption rather than a demonstrated fact
+about this host, and do not defend it by re-asserting it. The measurement that
+would settle it is named at the end of the retraction below.
 
 ## Measured facts
 

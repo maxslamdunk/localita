@@ -88,6 +88,15 @@ below makes that deferral structural rather than a matter of remembering to.
    whether decode time is actually going into reads; and **prefill runs at 0.0%
    hit rate**, reading 192.6 GB for a 3,015-token prompt — about half of all
    bytes that run touched.
+0b. **Per-phase time split on the Mac — the immediate next step.** Print the
+   `cb1`/`io`/`cb2` nanoseconds the runtime already tracks on the CLI footer and
+   re-run one benchmark case. This is plumbing, not new instrumentation, and it
+   answers whether decode time on this host actually goes into expert reads.
+   It gates the rest of Track B: every lever in steps 2 and 3 attacks
+   bytes/token, and if `io` is a minority of the 315.6 ms token then the whole
+   list has a low ceiling and some of it costs quality for that ceiling.
+   Predicted bytes/token delta: **0** — no read added, removed, or coalesced;
+   justified on measurement grounds, exactly as step 0 was.
 1. **Device I/O probe.** Sustained random-read bandwidth at the production
    3,358,720 B block size over 5–10 minutes (not a burst — thermal and NAND
    controller behavior is the real number), swept by working-set size to find
