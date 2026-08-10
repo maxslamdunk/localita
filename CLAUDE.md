@@ -70,7 +70,7 @@ CI (`.github/workflows/ci.yml`, `macos-26`) runs exactly those three. None of th
 Model install and run (model lives at `scratch/gemma4.gturbo`, gitignored, ~14.3 GB):
 
 ```bash
-swift run -c release TurboFieldfareRepack --output scratch/gemma4.gturbo [--overwrite|--resume]
+swift run -c release TurboFieldfareRepack --output scratch/gemma4.gturbo [--overwrite|--resume|--discard-partial]
 swift run -c release TurboFieldfareRepack --verify-install --input-gturbo scratch/gemma4.gturbo
 .build/release/TurboFieldfareMac
 swift run -c release TurboFieldfareCLI --model scratch/gemma4.gturbo --messages-file messages.json
