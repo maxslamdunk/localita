@@ -21,7 +21,9 @@ of; check it before trusting a document's framing or its numbers.
 ## The binding constraint
 
 The binding constraint is inherited by the port and gets stricter there, since
-iOS has no page-cache tier to fall back on. The binding constraint is **bytes read per token**, not compute. Every optimization, refactor, and design choice gets justified against bytes/token — a change that lowers GPU time while holding bytes/token flat is, by default, not interesting. State the bytes/token effect first, then everything else.
+iOS has no page-cache tier to fall back on. The binding constraint is **bytes read per token**, not compute. State the bytes/token effect first, then everything else.
+
+Since 2026-08-10 that has a measured second half. Decode time is `bytes/token ÷ achieved fetch bandwidth`, and **both factors are live**: reads are 59–63% of a forward, and the fetch path moves them at 41–50% of what the device can do. A change that holds bytes/token flat but raises achieved bandwidth is worth exactly as much per millisecond as one that lowers bytes/token, and there is currently more headroom in the second factor than any single cache-policy change has ever found in the first. What remains *not* interesting by default is lowering GPU time in a phase that is not on the critical path — which is a claim about a specific phase, and the `[phase-time …]` footer now settles it rather than leaving it to intuition.
 
 Corollaries that follow from it, and that should shape proposals before compute ever enters the discussion: expert-cache hit rate is a first-class metric because a hit is a read that did not happen; routing locality across consecutive tokens is worth more than kernel throughput; quantization and layout changes matter mainly for how many bytes they pull per routed expert; prefill and decode have different byte profiles and must be reported separately.
 
@@ -189,7 +191,7 @@ Before implementing any change proposed as an optimization, write down:
 2. **The mechanism** — which reads disappear, get coalesced, get cached, or get deferred.
 3. **What would falsify it** — the measurement that would show the prediction was wrong.
 
-No prediction, no implementation. A change predicted at zero bytes/token delta is allowed, but must be labeled as such up front and justified on other grounds (correctness, memory ceiling, portability to iOS). After implementation, record the measured delta against the prediction in `MEASUREMENTS.md` — including when the prediction missed. Wrong predictions kept honestly are the point; silently dropping the ones that missed destroys the record's value.
+No prediction, no implementation. A change predicted at zero bytes/token delta is allowed, but must be labeled as such up front and justified on other grounds. Those grounds are: **achieved fetch bandwidth or another named phase in the `[phase-time …]` split** (state which phase and a predicted ms/forward delta, held to the same standard as a bytes/token one — a signed number and a falsifier), correctness, the memory ceiling, or portability to iOS. Nothing else. "Cleaner" is not a ground. After implementation, record the measured delta against the prediction in `MEASUREMENTS.md` — including when the prediction missed. Wrong predictions kept honestly are the point; silently dropping the ones that missed destroys the record's value.
 
 ### Use a subagent for codebase search
 
