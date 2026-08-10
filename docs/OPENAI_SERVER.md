@@ -1,5 +1,8 @@
 # Local OpenAI-compatible server
 
+> **Upstream, macOS only.** The loopback server is not part of the iOS port and
+> has no bearing on bytes/token. Relevant only when running the Mac server.
+
 `TurboFieldfareServer` exposes a local Chat Completions API for one Gemma
 model. It binds to `127.0.0.1` without authentication or TLS. Do not expose it
 through a proxy or tunnel.

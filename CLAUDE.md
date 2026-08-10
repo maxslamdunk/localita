@@ -4,11 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 TurboFieldfare is a Swift + Metal inference runtime for Gemma 4 26B-A4B (26B total, ~3.9B active) that runs on 8 GB Apple Silicon Macs. It keeps ~1.35 GB of shared weights plus an FP16 KV cache resident and streams the 8 routed experts each token needs from SSD.
 
-`AGENTS.md` is the operator contract for this checkout and takes precedence: it treats the checkout as run-and-report only — do not edit sources, change runtime defaults, or start optimization work unless asked.
+## This repository
+
+This repo is the **iOS port**, a separate repository derived from
+[`drumih/turbo-fieldfare`](https://github.com/drumih/turbo-fieldfare) (Apache-2.0),
+with upstream history kept and `upstream` wired fetch-only.
+
+**Building the port and lowering bytes/token is the priority.** `docs/IOS_PORT.md`
+is the active plan. `AGENTS.md` is the operator contract — it governs *how* to
+work safely (model-process invariants, benchmark protocol), not what is in scope.
+
+Much of `docs/` and all of `README.md` predate the port and describe the Mac
+project. The table under [Document map](#document-map) says what each one is true
+of; check it before trusting a document's framing or its numbers.
 
 ## The binding constraint
 
-This checkout is the base for an **iOS port**. The binding constraint is **bytes read per token**, not compute. The GPU is not the bottleneck; the SSD is. Every optimization, refactor, and design choice gets justified against bytes/token — a change that lowers GPU time while holding bytes/token flat is, by default, not interesting. State the bytes/token effect first, then everything else.
+The binding constraint is inherited by the port and gets stricter there, since
+iOS has no page-cache tier to fall back on. The binding constraint is **bytes read per token**, not compute. The GPU is not the bottleneck; the SSD is. Every optimization, refactor, and design choice gets justified against bytes/token — a change that lowers GPU time while holding bytes/token flat is, by default, not interesting. State the bytes/token effect first, then everything else.
 
 Corollaries that follow from it, and that should shape proposals before compute ever enters the discussion: expert-cache hit rate is a first-class metric because a hit is a read that did not happen; routing locality across consecutive tokens is worth more than kernel throughput; quantization and layout changes matter mainly for how many bytes they pull per routed expert; prefill and decode have different byte profiles and must be reported separately.
 
@@ -118,9 +131,9 @@ Load-width gotcha: packed-weight load width must match the alignment the path ac
 ## Conventions
 
 - Tests use swift-testing (`@Suite` / `@Test`), never XCTest. Shared Metal state makes in-process parallelism unreliable, so always go through `Scripts/test.sh`; add `.serialized` to suites that touch process-wide state. Kernel tests compare against the CPU reference in `TurboFieldfareValidationSupport` with a seeded `SplitMix64` and named tolerances.
-- Keep public runtime controls limited to those documented in `docs/RUNTIME_CONTROLS.md`; production defaults are 4K context, 16 expert-cache slots, LFU, prefill on with 128-token chunks, RDADVISE off, temperature `0.2` / Top-K `64` / Top-P `0.95`.
-- Targets macOS 26 / Swift 6.2 / Metal 4, arm64 only; Swift 6 language mode. Keep changes compatible.
-- Behavior changes need a focused test. Keep PRs narrow (see `CONTRIBUTING.md`), and report commit, hardware/RAM, macOS, Swift version, exact command, exit code, and the full timing footer or error for any real-model run.
+- `docs/RUNTIME_CONTROLS.md` documents the controls the Mac runtime exposes; production defaults are 4K context, 16 expert-cache slots, LFU, prefill on with 128-token chunks, RDADVISE off, temperature `0.2` / Top-K `64` / Top-P `0.95`. The port will add controls (cache sizing against the memory ceiling, jetsam policy) — add them there rather than treating the current list as closed.
+- Currently macOS 26 / Swift 6.2 / Metal 4, arm64 only; Swift 6 language mode. iOS platforms get added by the port; keep the macOS build working, since it is the reference the port is validated against.
+- Behavior changes need a focused test. Keep PRs narrow — good practice here, and it keeps individual changes cherry-pickable back to upstream. Report commit, hardware/RAM, macOS, Swift version, exact command, exit code, and the full timing footer or error for any real-model run.
 - The server has no auth or TLS: keep it on `127.0.0.1`, never proxy or tunnel it, and let the client authorize every model-produced tool call.
 
 ## Working agreements
@@ -156,6 +169,29 @@ Sessions do not share context; these files do. Read them before proposing work, 
 - `docs/EXTERNAL_PRIOR_ART.md` — techniques from outside the project (papers, other runtimes, vendor docs) with an assessment of whether they apply under the bytes/token constraint.
 
 If a session's conclusion is not written into one of these, it did not happen.
+
+## Document map
+
+Nothing under `docs/` loads unless something routes you there, so the cost of a
+document is paid only when it is read — but a document read out of context can
+still supply a wrong number or a stale objective. This table says what each one
+is true of. Prefer reading none of them over reading the wrong one.
+
+| Document | Status | Read it for |
+| --- | --- | --- |
+| `docs/IOS_PORT.md` | **current, this project** | The active plan: tracks, sequencing, repo layout. Start here. |
+| `MEASUREMENTS.md` | **current, this project** | Append-only run log. Every real-model run gets a row. |
+| `docs/EXTERNAL_PRIOR_ART.md` | current, this project | Outside techniques assessed against bytes/token. Stub today. |
+| `docs/SYSTEM_DESIGN.md` | current, describes the Mac runtime | The full architecture and the code map to entry-point files. The most useful doc for the port. |
+| `docs/RUNTIME_CONTROLS.md` | current, Mac controls only | Exposed controls and defaults. The port extends this list. |
+| `docs/COMMUNITY_BENCHMARKS.md` | current, protocol | The benchmark protocol. Follow it verbatim for any performance number. |
+| `docs/experiments/summaries/` | current, in-project prior art | What was already tried. See the table below — read only the relevant one. |
+| `docs/experiments/EXPERIMENT_INVENTORY.md` | current, index | Index over the summaries. |
+| `docs/IMPLEMENTATION_REFERENCES.md` | current, external links | Vendor and spec links. |
+| `docs/BENCHMARKS.md` | **superseded — other hardware** | Numbers from an 8 GB M2 Air and a 24 GB M5 Pro, neither of which is this host. Never quote it; use the measured-facts table above. |
+| `docs/OPTIMIZATION_JOURNEY.md` | upstream narrative | Prose retelling of what the summaries cover densely. Background reading, not a working reference. |
+| `docs/OPENAI_SERVER.md` | upstream, Mac-only | The loopback server. No bearing on the port. |
+| `README.md`, `CONTRIBUTING.md` | upstream | Describe the upstream Mac project and its contribution process, not this repo's scope. |
 
 ### Which prior-art summary to read
 

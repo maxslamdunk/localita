@@ -1,5 +1,10 @@
 # Contributing
 
+> **Upstream process.** This describes contributing to
+> [`drumih/turbo-fieldfare`](https://github.com/drumih/turbo-fieldfare), and
+> applies if you are sending a change back there. It does not define this repo's
+> scope — see `AGENTS.md` and `docs/IOS_PORT.md`.
+
 TurboFieldfare welcomes focused fixes, documentation improvements, and
 benchmark reports from Apple Silicon Macs.
 

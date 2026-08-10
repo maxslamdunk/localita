@@ -1,5 +1,10 @@
 # System design
 
+> **Current, describes the macOS runtime.** The architecture and code map here
+> are accurate and are the best starting point for the port — the runtime it
+> describes is what gets ported. Platform specifics (the two-process Mac app,
+> AppKit paths) do not carry over; see `docs/IOS_PORT.md`.
+
 TurboFieldfare is a Swift and Metal runtime for Gemma 4 26B-A4B on Apple
 Silicon. The text-only installation is about 14.3 GB, but the target machine
 has 8 GB of memory. The runtime keeps the common weights and working state

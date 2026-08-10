@@ -2,7 +2,14 @@
   <img src="docs/assets/turbofieldfare-logo-rounded.png" alt="TurboFieldfare logo: a fieldfare inside a segmented cache ring" width="280">
 </p>
 
-<h1 align="center">TurboFieldfare</h1>
+<h1 align="center">TurboFieldfare — iOS port</h1>
+
+> **This is the iOS port fork.** A separate repository derived from
+> [`drumih/turbo-fieldfare`](https://github.com/drumih/turbo-fieldfare) (Apache-2.0),
+> by the original author. The README below is upstream's and describes the macOS
+> project — accurate for the Mac runtime, but it is not this repo's scope or
+> roadmap. See [`docs/IOS_PORT.md`](docs/IOS_PORT.md) for the plan and
+> [`AGENTS.md`](AGENTS.md) for the operator contract.
 
 <p align="center">
   <strong>Gemma 4 26B-A4B inference in about 2 GB of RAM</strong><br>

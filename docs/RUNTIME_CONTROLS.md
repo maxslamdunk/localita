@@ -1,5 +1,10 @@
 # Runtime controls
 
+> **Current, macOS runtime.** This is the authoritative list of controls the Mac
+> app and CLI expose. It is not a closed set — the iOS port will add controls
+> (expert-cache sizing against the device memory ceiling, jetsam policy); document
+> them here when it does.
+
 The Mac app and CLI expose generation and runtime controls. The app keeps them
 in its fixed right settings pane. FP16 is the fixed KV format. Generation
 settings apply to the next request; app load-time settings require a reload.

@@ -1,5 +1,10 @@
 # Optimizing a 14.3 GB model for an 8 GB machine
 
+> **Upstream narrative, background reading.** A prose retelling of work that
+> `docs/experiments/summaries/` covers more densely and with measurements. Use
+> the summaries as the working reference for prior art; treat any number here as
+> illustrative and check it against `CLAUDE.md`.
+
 TurboFieldfare runs Gemma 4 26B-A4B on an 8 GB Apple Silicon machine. Its
 text-only installation, without the vision tower, is about 14.3 GB. The model
 was never going to fit politely in memory.

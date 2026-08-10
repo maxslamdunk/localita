@@ -1,5 +1,10 @@
 # Contribute a benchmark result
 
+> **Current, protocol.** Follow this verbatim for any performance number, with
+> experimental controls and profiling off. iOS results follow the same protocol
+> but get their own rows in `MEASUREMENTS.md` — they are not comparable to Mac
+> rows.
+
 TurboFieldfare's community benchmark uses three chat-framed generation cases:
 a short explanation, a medium design review, and a long document synthesis.
 They exercise different prompt lengths and require coherent text that reaches
