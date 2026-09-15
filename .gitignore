@@ -51,3 +51,7 @@ __pycache__/
 
 # Claude Code local overrides
 .claude/settings.local.json
+
+# Compiled standalone probes (sources are tracked)
+Scripts/probes/*
+!Scripts/probes/*.c

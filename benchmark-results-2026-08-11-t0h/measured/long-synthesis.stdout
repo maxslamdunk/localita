@@ -1,0 +1,28 @@
+### Technical Assessment: TurboFieldfare
+
+**Overview**
+TurboFieldfare is a specialized Swift/Metal runtime designed to run a 26B-parameter Mixture-of-Experts (MoE) model on hardware with limited RAM (e.g., 8 GB Apple Silicon). It achieves this by treating the SSD as an extension of the model weights, maintaining a minimal memory footprint while managing high-throughput I/O.
+
+**Central Resource Constraint**
+The primary bottleneck is **available system RAM**. Because the full 14.3 GB model cannot fit into the memory of an 8 GB machine, the runtime must balance the resident memory required for the core model and KV cache against the bandwidth and latency of streaming weights from the SSD.
+
+**Data Division: Resident vs. Streamed**
+The runtime splits the model into two distinct categories:
+* **Resident Data:** The 1.35 GB core (shared weights) and the FP16 KV cache are kept entirely in memory to ensure constant availability for every computation.
+* **Streamed Data:** The routed "expert" weights are stored on the SSD. For every layer, the runtime identifies the necessary experts via the router and streams only those specific byte ranges into Metal-visible buffers.
+
+**Prefill vs. Decode Behavior**
+The two phases of inference interact with the I/O subsystem differently:
+* **Prefill (Prompt Processing):** This phase uses "chunked prefill" (up to 128 tokens at a time). By processing multiple tokens in a single chunk, a single fetched expert can be reused across multiple rows, maximizing the computational value of each I/O operation.
+* **Decode (Token Generation):** This phase occurs one token at a time. It is more sensitive to latency, as the router must identify and fetch new experts for every single token generated, making the efficiency of the "router-to-cache" handoff critical.
+
+**Interpreting Benchmarks**
+When reviewing performance numbers, note that they are not absolute ceilings. Throughput is highly dependent on:
+1. **Prompt/Generation Length:** Longer sequences change the ratio of compute to I/O.
+2. **Hardware/OS State:** Disk throughput (SSD speed) and available system memory (page-cache state) significantly impact streaming latency.
+3. **Hardware Generation:** Performance varies wildly between different Apple Silicon generations (e.g., M2 vs. M5).
+
+**Rules for Evaluating Changes**
+1. **Prioritize I/O-Compute Overlap:** Ensure that weight-fetching (SSD reads) happens in parallel with Metal kernel execution to hide latency.
+2. **Protect the Resident Budget:** Any change increasing the resident memory footprint must be weighed against the risk of triggering system-level memory pressure.
+3. **Validate via Chunking:** Always test how changes affect the trade-off between prefill throughput and decode latency.

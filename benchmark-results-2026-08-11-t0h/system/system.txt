@@ -1,0 +1,23 @@
+ M CLAUDE.md
+ M MEASUREMENTS.md
+ M docs/IOS_PORT.md
+ M docs/experiments/EXPERIMENT_INVENTORY.md
+ M docs/experiments/summaries/01-model-install-and-expert-io.md
+ M docs/experiments/summaries/09-validation-and-measurement-lessons.md
+?? Scripts/probes/
+c85ce98cb14fae0221466e3377effd5b7bfec454
+ProductName:		macOS
+ProductVersion:		26.6.1
+BuildVersion:		25G76
+swift-driver version: 1.148.6 Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)
+Target: arm64-apple-macosx26.0
+2026-08-11 01:36:45.225 system_profiler[36932:1588540] hw.cpufamily: 0x1b588bb3
+      Model Name: MacBook Air
+      Model Identifier: MacBookAir10,1
+      Chip: Apple M1
+      Total Number of Cores: 8 (4 Performance and 4 Efficiency)
+      Memory: 8 GB
+1cb53c2423f05dfa673e5f0d9a3407aa355b8227b621f8f8e575830a2bb7fa91  scratch/gemma4.gturbo/manifest.json
+b12e4a71493ad151d7a85b91e878ba784b116ef65de9fcb1b1b1c05198b537b8  docs/benchmark-prompts/real-generation-v1/long-synthesis.json
+23add7976db2069c9927affd13c2f5120508702a1c4915ea88b7de565bdd4b33  docs/benchmark-prompts/real-generation-v1/medium-review.json
+c57da2677143657be55e03797c1aabe8e012d61c1a71bf9345acdd575117d1e1  docs/benchmark-prompts/real-generation-v1/short-explanation.json

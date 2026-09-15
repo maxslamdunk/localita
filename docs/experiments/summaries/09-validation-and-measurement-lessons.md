@@ -170,6 +170,37 @@ from representative holdouts.
 - **Lesson:** Label repetition onset before treating a
   greedy long run as representative generation.
 
+<a id="meth-10"></a>
+### METH-10: Host quiescence is part of the protocol
+
+- **Hypothesis:** A storage probe measures the storage device.
+- **Variants tested:** The full 2026-08-10 probe suite re-run with Spotlight
+  indexing disabled, against the same installed layer files with the same seed.
+- **Evidence:** `mdbulkimport` had been running for 29 hours — it started
+  2026-08-09 18:14, the model was installed 20:40-20:50, so ~25 GB of new files
+  landed mid-reimport and the indexer was plausibly walking the exact files
+  under test. Idle `iostat` showed **1,586-2,403 tps / 23-59 MB/s with nothing
+  of ours running**; with indexing off it fell to 5-451 tps / 0.09-2.97 MB/s.
+  Re-measured: random serial **1.36 → 1.40 GB/s (+3%)**, random QD ceiling
+  **1.67 → 1.82 GB/s (+9%)**, sequential `model_weights.bin` **2.02, unchanged**.
+- **What changed the conclusion:** Nothing, which is the point. The contamination
+  was real, was never checked for, and turned out to be worth single-digit
+  percent — but that was established by measuring, not by assuming.
+- **Final disposition:** No accepted value overturned; `94-96%` for the
+  production fetch path survives as 93-96%. Before quoting any new probe,
+  sample `iostat` and check for `mds`/`mdworker` activity, and record the disk
+  state alongside the result. A probe that does not say what else the machine
+  was doing is not reproducible.
+- **Second lesson, from an invalid run made the same day:** parallel-stream
+  reads of a **single** 1.26 GiB file reported 4.26-7.28 GB/s. That is DRAM. The
+  first pass had pulled the file into the ~1.44 GB page cache, and `F_NOCACHE`
+  does not evict pages that are already resident — it only stops *this*
+  descriptor caching new ones. Any multi-pass bandwidth sweep needs a working
+  set several times the page cache (`Scripts/probes/seqcorpus.c` uses the whole
+  12.01 GiB corpus), not a cache-bypass flag.
+- **Lesson:** Quote a device number only when you can say what else was
+  touching the device, and what could not have been served from memory.
+
 ## Boundaries that were not failed experiments
 
 - ANE/Core ML offload was excluded by the platform and architecture decision;

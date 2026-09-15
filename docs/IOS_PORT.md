@@ -15,11 +15,13 @@ with prompt length, at a 16-slot LFU hit rate of 62–68%. The zero-hit ceiling 
 demand is that ceiling times (1 − hit rate). Quote the measured figure, not the
 ceiling.
 
-At 261.9 MB/token the 8 GB validation host demands only 0.83 GB/s — about 29% of
-its measured 2.7–3.2 GB/s SSD roof. **Decode on that host is not
-SSD-bandwidth-bound**, which retracts the earlier claim that it runs at 95% of
-its roof, and with it the argument that 16 GB hosts must be page-cache-served.
-See the retraction in `CLAUDE.md`.
+At 261.9 MB/token the 8 GB validation host demands 0.83 GB/s averaged over the
+whole token — but it spends only the `io` window actually reading, and inside
+that window it moves bytes at **1.30–1.34 GB/s against the 1.36–1.39 GB/s these
+files can deliver**. So decode on that host *is* storage-bound after all, at
+94–96% of the achievable rate. The intermediate claim that it ran at 29% of a
+2.7–3.2 GB/s roof was arithmetic against a roof measured on zero-filled data;
+that roof is withdrawn. See the resolution in `CLAUDE.md`.
 
 The phase split (step B0b, 2026-08-10) says where that time actually goes:
 **`io` is 59–63% of a decode forward**, so reads bind, and the expert cache
@@ -28,11 +30,13 @@ two-thirds of requests already are one.
 
 But two things it found reshape the track ordering below:
 
-- **The fetch path achieves 41–50% of the device's bandwidth roof** (1.30–1.34
-  GB/s against a probed 2.7–3.2 GB/s at the same block size). Time is being lost
-  between the SSD and the runtime, not to the number of bytes. This is a
-  quality-free win that no cache-policy change can reach, and it is not
-  bytes/token work at all.
+- **The fetch path has no slack left.** A same-day probe of the installed layer
+  files put a bare serial `pread` at 1.36 GB/s against production's in-situ
+  1.30–1.34 — **94–96% of achievable** — with queue depth, fd count, planning
+  cost, and fragmentation all measured and ruled out as levers. The earlier
+  entry here claimed a 2.2× quality-free win between the SSD and the runtime;
+  **that win does not exist** and the work it justified is struck below. Fewer
+  bytes is the only remaining lever on `io`.
 - **GPU attention (`cb1-wait`) is 29–35% of a forward and rises with prompt
   length** — 95 ms at a 61-token prompt, 133 ms at 3,015. On device, with long
   context, this only grows. Nothing in either track currently touches it.
@@ -111,16 +115,114 @@ below makes that deferral structural rather than a matter of remembering to.
 1. **Device I/O probe.** Sustained random-read bandwidth at the production
    3,358,720 B block size over 5–10 minutes (not a burst — thermal and NAND
    controller behavior is the real number), swept by working-set size to find
-   whether a page-cache knee exists at all.
+   whether a page-cache knee exists at all. **Fill the probe file with
+   incompressible data, and record that you did.** The Mac probe was zero-filled
+   and overstated the roof by 3.1×, which cost a day and put a nonexistent win
+   at the top of this list; a phone's controller will flatter zeros at least as
+   much. `Scripts/probes/genrand.c` writes a suitable file; the rest of that
+   directory is the Mac suite this lesson came from.
 2. **Quality-neutral levers** — exhaust these before spending any accuracy:
-   - **Close the fetch-path gap.** The largest known quality-free win and the
-     only one measured rather than assumed: `io` runs at 41–50% of the device
-     roof, so roughly half of 202 ms/forward is going somewhere other than
-     moving bytes. Candidates not yet distinguished: per-read latency the probe
-     did not model (30 open layer files vs. one; ~2.6 reads per layer issued and
-     awaited per layer rather than streamed), planning cost counted inside the
-     `io` window, queue depth. Diagnose before optimizing — this is not a
-     bytes/token change and does not get justified as one.
+   - ~~**Close the fetch-path gap.**~~ **Struck 2026-08-10, diagnosed and
+     closed.** This was listed as the largest known quality-free win on the
+     strength of `io` running at "41–50% of the device roof". The roof was
+     measured on a zero-filled probe file; on the real, incompressible expert
+     bytes the same probe gives 1.36–1.39 GB/s and production already achieves
+     94–96% of it. Queue depth (k=2/3/8: flat), 30 fds vs. one, planning cost
+     (outside the `io` timer) were each measured and are not levers. There is
+     ~4–6% here against a QD1 serial read, not 2.2×. Two honest residuals
+     survive, and both belong to the port rather than to the Mac:
+     - **Steady queue depth.** Random reads saturate at 1.82 GB/s at QD4 on a
+       quiet disk and production sits at 1.30–1.34, so a *steady* pipeline is
+       worth ~27% of `io`. `cb2` needs every expert of the layer before it starts, so the
+       fan-out is burst-and-drain by construction and pays the batch's slowest
+       read, not its mean; ORCH-09 through ORCH-15 are the record of what
+       happens to schemes that try to break that. But per layer `io` is 6.74 ms
+       for 2.6 reads against 6.43 ms serial, i.e. the existing
+       `concurrentPerform` fan-out buys ~nothing — and the probe suite found
+       `dispatch_apply` (1.43–1.55 GB/s) below real pthreads (1.63–1.67),
+       because GCD may not supply threads for blocking work. Cheap to test, and
+       [IO-11](experiments/summaries/01-model-install-and-expert-io.md#io-11)
+       carries the prediction.
+     - **Install-time write order — promoted 2026-08-10, validated 2026-08-11,
+       and WITHDRAWN 2026-08-18 when the gain proved transient.** The falsifier
+       written into this entry — *"falsified if a sequentially rewritten layer
+       file, once aged, reads no faster than the installed original"* — **fired.**
+       Read the correction at the end of this entry before acting on anything in
+       it. Superseding the earlier "upper bound ~19% from
+       fragmentation" framing here, which was wrong: APFS extent count explains
+       ~13% and predicts nothing across files. What predicts read rate is the
+       order bytes were *written* relative to their logical order, because that
+       sets NAND page placement. Same bytes, same age, read at production's slot
+       granularity: sequential write **2.30 GB/s** vs. shuffled 256 KiB write
+       **1.78** at 0 h, and **2.08** vs. **1.55** at 25 h — a ratio of 1.29–1.34×
+       that does not decay. The installed `layer_25.bin` reads **1.34–1.41**.
+       The installer writes 30 layer files interleaved as remote shards arrive,
+       which is the scattered case (confirmed in code — see prerequisite 2).
+       Rewriting each layer file in one sequential
+       pass predicted **0 bytes/token, `io` read rate ~1.3×** (~−47 ms/forward on
+       the short case, 202.1 → ~155 ms, wall 323.0 → ~276, 3.10 → ~3.6 tok/s);
+       falsified if a sequentially rewritten layer file, once aged, reads no
+       faster than the installed original.
+       **DONE on 2026-08-11 — the prediction held at t≈0.** All 30 layer files
+       were rewritten in place (hash-verified per file, atomic rename,
+       `--verify-install` clean) and `real-generation-v1` gave
+       **3.725 / 3.306 / 2.978 tok/s, +20.1% / +14.4% / +14.9%**, with `io`
+       **152.40 / 169.61 / 182.64 ms** (predicted ~155 on the short case) and
+       **bytes/token unchanged to the digit**. Achieved fetch bandwidth
+       1.30–1.34 → **1.64–1.72 GB/s**.
+
+       **WITHDRAWN 2026-08-18 — the aged re-run falsified it.** Same artifact
+       untouched at **7 d 16.8 h**, same binary, same seeds:
+       **3.271 / 2.858 / 2.674 tok/s** (−12.2% / −13.5% / −10.2%), `io` back to
+       **187.33 / 213.01 / 216.29 ms**, fetch back to **1.25–1.35 GB/s** — the
+       scattered artifact's rate. What survives against the artifact this
+       replaced is **+5.4% / −1.1% / +3.2%**, i.e. nothing once that baseline's
+       ~3% Spotlight handicap is removed; the medium case is now *slower*.
+       Generated text was byte-identical and `cb1-wait` moved <2.5%, so the
+       regression is storage-specific and not machine drift. ⚠️ Confounded by a
+       ~34 GiB deletion in the same window (91% → 74% full), so GC-triggered
+       relocation is at least as likely as time decay. See
+       [IO-12](experiments/summaries/01-model-install-and-expert-io.md#io-12) and
+       [IO-13](experiments/summaries/01-model-install-and-expert-io.md#io-13).
+       **The product change is off the plan.** Making the installer write
+       sequentially would buy a first-session speedup that decays under ordinary
+       use, which does not justify reworking the streaming copy path against the
+       bounded-memory rule. It returns to the plan only if the gain is shown to
+       persist, or GC is confirmed as the cause and a layout is found that
+       survives it. The **invariant stands regardless**: nothing may deliberately
+       scatter the files, since avoiding that is free. This no longer settles
+       CACHE-09. Two things were settled before implementing, in order:
+       1. **The decay re-test — DONE 2026-08-11, both terms confirmed.** Run with
+          0-hour controls written in-session rather than as a bare re-read, since
+          a cross-day comparison confounds decay with machine-state drift and a
+          null would have been unreadable. **Recency decays ~15% per 24 h**
+          (sequential 3.23 → 2.74, shuffled 2.10 → 1.80). **Write order is
+          1.54× at 0 h and 1.53× at 24 h — it does not decay**, which is what
+          makes it a lever rather than an artifact. **Magnitude corrected the same
+          day to ~1.3×:** those cells were read whole-file, production reads
+          random slots, and re-measured under that geometry the ratio is 1.29× at
+          0 h and 1.34× at 25 h — still undecaying, but ~85% the claimed size.
+          Consequence for benchmarking:
+          record the model's age on disk beside every performance number, and
+          treat community figures without it as age-contaminated — a run taken
+          the day of install reads ~10–15% faster than the same model a day later.
+          Still open, and not a blocker: the curve past 24 h. Six controls are
+          retained in `/tmp` for later re-reads.
+       2. **Confirm the installer actually interleaves — DONE 2026-08-11,
+          confirmed, and the cause is not what the wording here assumed.** It is
+          not concurrency: `HTTPRangeSourceByteProvider.copyBatch` is a single
+          sequential loop with no task group. `RangeCopyPlanner.coalesce` builds
+          the copy list in destination order and then **re-sorts it by
+          `(shardID, sourceOffset)`** so adjacent source ranges merge into single
+          HTTP requests. The install therefore walks the remote shards front to
+          back and scatters each range into whichever layer files own it, holding
+          every touched fd open in an `outputFDs` cache for the whole phase —
+          interleaved across the 30 files *and* non-monotonic in offset within
+          each one. **This is a direct consequence of the bounded-memory rule**:
+          streaming source-ordered ranges straight to their destination offsets is
+          what avoids buffering a tensor, and scattered write order is its
+          by-product. Any fix has to keep that property (see the sequential
+          rewrite pass below), not undo it.
    - Expert cache sizing against the ceiling from A1. The Mac's 16 slots are
      **54 MB**; a phone may afford 1 GB+ of explicit cache.
    - Routing locality, prefetch, router lookahead.
