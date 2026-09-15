@@ -144,7 +144,8 @@ below makes that deferral structural rather than a matter of remembering to.
        [IO-11](experiments/summaries/01-model-install-and-expert-io.md#io-11)
        carries the prediction.
      - **Install-time write order — promoted 2026-08-10, validated 2026-08-11,
-       and WITHDRAWN 2026-08-18 when the gain proved transient.** The falsifier
+       WITHDRAWN 2026-08-18 when the first artifact decayed, and REOPENED
+       2026-09-15 when a second artifact held at 27 days.** The falsifier
        written into this entry — *"falsified if a sequentially rewritten layer
        file, once aged, reads no faster than the installed original"* — **fired.**
        Read the correction at the end of this entry before acting on anything in
@@ -174,7 +175,7 @@ below makes that deferral structural rather than a matter of remembering to.
        **WITHDRAWN 2026-08-18 — the aged re-run falsified it.** Same artifact
        untouched at **7 d 16.8 h**, same binary, same seeds:
        **3.271 / 2.858 / 2.674 tok/s** (−12.2% / −13.5% / −10.2%), `io` back to
-       **187.33 / 213.01 / 216.29 ms**, fetch back to **1.25–1.35 GB/s** — the
+       **187.33 / 213.01 / 216.29 ms**, fetch back to **1.31–1.41 GB/s** (units-corrected 2026-09-15) — the
        scattered artifact's rate. What survives against the artifact this
        replaced is **+5.4% / −1.1% / +3.2%**, i.e. nothing once that baseline's
        ~3% Spotlight handicap is removed; the medium case is now *slower*.
@@ -184,7 +185,17 @@ below makes that deferral structural rather than a matter of remembering to.
        relocation is at least as likely as time decay. See
        [IO-12](experiments/summaries/01-model-install-and-expert-io.md#io-12) and
        [IO-13](experiments/summaries/01-model-install-and-expert-io.md#io-13).
-       **The product change is off the plan.** Making the installer write
+       **REOPENED 2026-09-15 — the persistence condition below has now been met
+       once.** The second rewrite (2026-08-19, on a 74%-full volume) was re-run
+       untouched at **26.8 d**: **3.745 / 3.346 / 2.987 tok/s**, fetch
+       **1.67–1.74 GB/s**, bytes/token and output identical — +20.7% / +15.8% /
+       +15.2% over the scattered artifact. The first artifact's decay was a
+       property of that artifact (written onto a 91%-full volume, then a ~34 GiB
+       deletion), not of age. Before the installer change is worth building,
+       IO-13 has to say which of those two killed it: if it was free space at
+       write time, the installer needs a free-space precondition as well as
+       sequential order.
+       **The product change was taken off the plan on 2026-08-18.** Making the installer write
        sequentially would buy a first-session speedup that decays under ordinary
        use, which does not justify reworking the streaming copy path against the
        bounded-memory rule. It returns to the plan only if the gain is shown to

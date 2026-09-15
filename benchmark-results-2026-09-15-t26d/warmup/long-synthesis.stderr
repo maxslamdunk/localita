@@ -1,0 +1,4 @@
+
+[stop=endOfTurn prefill=3015tok new=604tok decode=200.33s tok/s=3.015]
+[expert-io decode bytes/tok=291.42MB hit-rate=62.1% req/tok=240.00 reads/tok=90.98 forwards=603 | prefill bytes=183663.98MB hit-rate=0.0% reads=57339]
+[phase-time decode ms/fwd cb1=1.34 cb1-wait=129.67 io=178.16 cb2=1.48 routed-drain=1.69 head=14.08 wall=332.22 forwards=603 | sequential per layer; io hides the shared-expert branch]

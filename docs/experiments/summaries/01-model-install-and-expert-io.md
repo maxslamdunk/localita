@@ -17,8 +17,8 @@ runtime artifact appears last.
 | Default bounded parallel miss-read path | Production |
 | Whole-pool `mmap`, `mlock`, compression, speculative reads, and MTLIO | Rejected |
 | Fetch-path bandwidth gap vs. the SSD roof | Closed as nonexistent |
-| Install-time write order (~1.3x on read rate, 0 bytes/token) | **Transient — paid +14–20% at 0 h, decayed to ~0 by 7 d**, [IO-12](#io-12) |
-| Read rate falls after write — now the dominant open question | **Open, unexplained; upgraded 2026-08-18**, [IO-13](#io-13) |
+| Install-time write order (~1.3x on read rate, 0 bytes/token) | **Held on the second artifact (+15–21% tok/s at 26.8 d); the first decayed within 7 d**, [IO-12](#io-12) |
+| Why the first rewritten artifact decayed | **Open; reframed 2026-09-15**, [IO-13](#io-13) |
 
 ## Runtime expert I/O
 
@@ -450,6 +450,24 @@ runtime artifact appears last.
   Fetch-path proposals previously dismissed as arguing over 4–6% were dismissed
   against the old artifact and may deserve re-examination against this one.
 
+- **2026-09-15 — the second rewrite held at 26.8 d, and the saturation reading
+  is withdrawn.** Same binary and seeds, the 2026-08-19 artifact untouched,
+  volume still 74% full: **3.745 / 3.346 / 2.987 tok/s**, `io` **150.18 / 166.39 /
+  182.59 ms/fwd**, fetch **1.744 / 1.676 / 1.674 GB/s**, bytes/token and generated
+  text identical. That is **+20.7% / +15.8% / +15.2%** over the scattered artifact
+  and within 1.2% of the first rewrite at 0 h. Against its own 0 h short run it
+  lost 4.9% tok/s and 5.9% fetch. Cold probe 1.99 GB/s (0 h: 2.48). **Predicted
+  3.25–3.50 short and fetch 1.30–1.50 — missed high**; the pre-written "placement
+  persisted" falsifier fired. Two corrections follow. First, the lever is not
+  inherently transient: the decay of the 2026-08-11 artifact is a property of
+  that artifact, which was written onto a 91%-full volume and followed by a
+  ~34 GiB deletion, and this run cannot say which of the two mattered. Second,
+  the 2026-08-18/19 fetch figures were GiB/s labelled GB/s, 4.9% low (1.333 →
+  1.398, 1.768 → 1.853). Corrected, production captured 75–77% of the probe on
+  both fresh rewrites and 88% on this artifact aged, so it tracks the artifact
+  rather than saturating near 1.7–1.8 GB/s. The installer change returns as a
+  candidate, gated on [IO-13](#io-13).
+
 <a id="io-13"></a>
 ### IO-13: Read rate falls after write — OPEN, and the rate is not established
 
@@ -473,6 +491,20 @@ treated as a phenomenon we have observed rather than a number we know.
   artifact **through the fetch path** rather than through `slotscan`, since the
   two now disagree. The original `/tmp` controls that would have given the
   multi-day fit were deleted in the cleanup and are gone.
+
+- **Reframed 2026-09-15: decay is not a general property of age.** The
+  2026-08-19 artifact, written on a 74%-full volume, kept ~94% of its 0 h
+  production fetch rate over 26.8 d (1.853 → 1.744 GB/s) while its cold probe
+  fell 20% (2.48 → 1.99). The 2026-08-11 artifact kept ~81% over 7.7 d (1.718 →
+  1.398, units-corrected). What separates them is free space at write time
+  (18 vs. 53 GiB free) and the ~34 GiB deletion that followed only the first.
+  Discriminating tests, in order of cost: age a fresh rewrite on this volume and
+  then delete a comparable amount; or rewrite onto a deliberately filled volume.
+  Two things stay unexplained and should not be filled in with a story: at
+  similar probe rates (1.82 vs. 1.99 GB/s) production read the first aged
+  artifact at 1.398 and this one at 1.744; and the probe loses far more to age
+  than production does (−20% vs. −6% here), so probe-measured recency must not
+  be carried into decode predictions.
 
 - **What is actually observed:** a sequentially written file reads 2.30 GB/s at
   0 h and 2.08 at 25 h; a shuffled one 1.78 at 0 h and 1.55 at 24.5 h. Whole-file

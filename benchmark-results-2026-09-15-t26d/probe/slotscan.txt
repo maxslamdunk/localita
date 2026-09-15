@@ -1,0 +1,29 @@
+# cold slotscan, 2026-09-15 19:10:18 CEST, artifact written 2026-08-19 22:40
+# pre-probe iostat (first line = since-boot avg, ignore):
+              disk0 
+    KB/t  tps  MB/s 
+   16.85 1223 20.13 
+   31.29   45  1.37 
+   12.87   55  0.69 
+   15.32   76  1.13 
+## round 1
+  flush layers: 00 01 02 03
+  layer_07.bin       128 slots once, shuffled: 2.06 GB/s  (1627 us/slot)
+  flush layers: 04 05 06 08
+  layer_18.bin       128 slots once, shuffled: 1.96 GB/s  (1711 us/slot)
+  flush layers: 09 10 11 12
+  layer_25.bin       128 slots once, shuffled: 1.95 GB/s  (1721 us/slot)
+## round 2
+  flush layers: 13 14 15 16
+  layer_07.bin       128 slots once, shuffled: 2.02 GB/s  (1664 us/slot)
+  flush layers: 17 19 20 21
+  layer_18.bin       128 slots once, shuffled: 1.92 GB/s  (1750 us/slot)
+  flush layers: 22 23 24 26
+  layer_25.bin       128 slots once, shuffled: 1.82 GB/s  (1844 us/slot)
+# vm_stat after:
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                     3878.
+Pages active:                                  86228.
+Pages inactive:                                78969.
+Pages speculative:                              6431.
+Pages throttled:                                   0.

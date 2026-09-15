@@ -1,0 +1,30 @@
+### Risk Analysis
+
+**1. Critical Correctness Risks (Data Corruption & Crashes)**
+*   **Race Condition on Buffer Reuse:** The design allows a "hit" to return a view into a buffer while an asynchronous "miss" is overwriting that same buffer. This leads to **use-after-free-style corruption** where a caller reads partially written or invalid data.
+*   **Double-Write/Race on Slot Selection:** Because slot selection and timestamp updates are not atomic, two concurrent misses can select the same slot. This causes two threads to write to the same buffer simultaneously, corrupting the data.
+*   **Unbounded Memory/OOM:** The lack of a payload size limit and the ability to resize buffers based on untrusted file headers allows a malicious or malformed file to trigger an Out-of-Memory (OOM) crash.
+*   **Dangling Pointers on Failure:** Leaving failed reads in the dictionary without a mechanism to clear them or verify the buffer state can lead to "poisoned" slots being served to future callers.
+
+**2. Performance Risks**
+*   **Work Duplication:** The design does not deduplicate work for the same key. If 100 requests arrive for a missing key, 100 I/O tasks will be spawned to read the same file into the same slot.
+*   **False Hits:** Counting in-flight/failed reads as "hits" inflates metrics, masking poor cache performance and making latency/hit-rate analysis useless.
+
+---
+
+### Proposed Safer Design
+
+**1. Atomic State Management**
+*   **The Slot State:** Each slot must own a `State` (e.g., `Empty`, `Loading`, `Ready`).
+*   **The Dictionary:** Map `Key -> SlotID`. Use a single atomic operation (or a fine-grained lock) to "reserve" a slot. If a key is missing, the caller must atomically transition a slot from `Empty` to `Loading` to prevent multiple threads from picking the same slot.
+
+**2. Request Coalescing (Singleflight)**
+*   When a miss occurs, use a "singleflight" pattern: if a task for `Key X` is already in flight, subsequent callers for `Key X` must join the existing `Future` rather than starting new I/O.
+
+**3. Memory Safety & Bounds**
+*   **Hard Limits:** Enforce a `MAX_PAYLOAD_SIZE`. If a header exceeds this, fail the read immediately.
+*   **Immutable Views:** Once a read is complete, the buffer is "locked" to that key. A slot cannot be reused for a new key until the current `Key -> Slot` mapping is removed **and** all active readers (using reference counting) have exited.
+
+**4. Refined Lifecycle**
+*   **Eviction:** Use an LRU policy. A slot is only eligible for eviction if its state is `Ready` and its reference count is zero.
+*   **Error Handling:** If a read fails, remove the key from the dictionary immediately. Use a "negative cache" (TTL-based) only if necessary to prevent repeated hits on broken files.
