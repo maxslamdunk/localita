@@ -4,7 +4,7 @@ Orchestration: configuration, the forward runner, KV cache, prefill scheduling, 
 
 ## Directory-local conventions
 
-- `Configuration/` — `RuntimeConfiguration` is the only place a runtime control is defined. Public controls are limited to those documented in `docs/RUNTIME_CONTROLS.md`; adding a control means updating that doc in the same change. Production defaults: 4K context, 16 expert-cache slots, LFU, prefill on with 128-token chunks, RDADVISE off, temperature `0.2` / Top-K `64` / Top-P `0.95`.
+- `Configuration/` — `RuntimeConfiguration` is the only place a runtime control is defined. Public controls are limited to those documented in `docs/RUNTIME_CONTROLS.md`; adding a control means updating that doc in the same change. Production defaults: 8K context for the CLI and app, 16K for the server (4K before the 2026-09-15 upstream merge), 16 expert-cache slots, LFU, prefill on with 128-token chunks, RDADVISE off, temperature `0.2` / Top-K `64` / Top-P `0.95`.
 - `Inference/` — `RealForwardRunner` owns the per-layer schedule; `ModelExpertIO` owns expert read planning. Anything that changes how many experts are fetched belongs here, not in a kernel wrapper.
 - `Generation/` — sampling and stop handling. No Metal, no disk I/O.
 - `KVCache/`, `Prefill/` — FP16 KV cache and chunk scratch. Both are sized against the memory ceiling, not against convenience.

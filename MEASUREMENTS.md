@@ -21,7 +21,7 @@ Accepted current values live in the Measured facts table in `CLAUDE.md`; when a 
 | --- | --- |
 | Date | `YYYY-MM-DD` of the run. |
 | SHA | Short git SHA of the checkout, plus `-dirty` if the tree was not clean. |
-| Config | Host, then the controls that differ from production defaults (4K context, 16 slots, LFU, prefill on / 128-token chunks, RDADVISE off, temp `0.2` / Top-K `64` / Top-P `0.95`). Write `defaults` when nothing differs. |
+| Config | Host, then the controls that differ from production defaults (4K context, which the benchmark protocol passes explicitly — the bare CLI default is 8K since the 2026-09-15 upstream merge, 16 slots, LFU, prefill on / 128-token chunks, RDADVISE off, temp `0.2` / Top-K `64` / Top-P `0.95`). Write `defaults` when nothing differs. |
 | Bytes/token | Steady-state decode bytes read per token. Note prefill separately in notes; the two are not comparable. |
 | Hit rate | Expert-cache hit rate over the measured window. |
 | tok/s | Decode rate from the timing footer. |
