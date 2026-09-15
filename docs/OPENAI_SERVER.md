@@ -50,6 +50,35 @@ requests for preparation or queueing. The limit is enforced before prompt
 rendering and tokenization. Use `--queue-limit` to change it. Press Control-C
 to stop the server.
 
+## Runtime settings
+
+The server accepts the same runtime flags as the CLI, with the same values and
+defaults. See [Runtime controls](RUNTIME_CONTROLS.md) for what each one does.
+
+```bash
+.build/release/TurboFieldfareServer \
+  --model scratch/gemma4.gturbo \
+  --expert-cache-slots 32 \
+  --expert-cache-policy lru \
+  --prefill on \
+  --prefill-chunk-tokens 64 \
+  --rdadvise bounded
+```
+
+Without these flags the server runs the production defaults: 16 expert-cache
+slots, LFU eviction, chunked prefill on with 128-token chunks, and read advice
+off. `--prefill-chunk-tokens auto` runs at the cap,
+256, on the server: a per-request size is the smallest allowed size covering the
+span being prefilled, so the cap prefills every prompt in exactly those spans,
+and it costs about 32.5 MB of prefill scratch against about 16.4 MB at the 128
+default. Values are validated before the model loads, so an unsupported one
+exits with the usage text rather than failing partway through startup. Chunked
+prefill needs at least 16 expert-cache slots, so `--expert-cache-slots 8`
+requires `--prefill off`.
+
+The settings are fixed for the life of the process. Restart the server to
+change them.
+
 ## Connect a client
 
 The base URL is `http://127.0.0.1:8080/v1`. Some client libraries require an
@@ -84,6 +113,11 @@ OpenCode:
       "models": {
         "gemma-4-26b-a4b-it": {
           "name": "Gemma 4 26B-A4B IT",
+          "attachment": true,
+          "modalities": {
+            "input": ["text", "image"],
+            "output": ["text"]
+          },
           "limit": {
             "context": 16384,
             "output": 4096
@@ -96,6 +130,13 @@ OpenCode:
 ```
 
 Select `turbofieldfare/gemma-4-26b-a4b-it` in OpenCode.
+
+`attachment` and `modalities` are what make images work. OpenCode decides whether
+a model accepts images from this configuration, not from the `capabilities` field
+`/v1/models` returns, so without them it refuses an image with "this model does
+not support image input" before sending anything. Images then reach the server
+through OpenCode's `read` tool, which returns image files as attachments; ask it
+to read the file explicitly.
 
 Pi uses its `openai-completions` adapter:
 
@@ -115,6 +156,7 @@ Pi uses its `openai-completions` adapter:
         "id": "gemma-4-26b-a4b-it",
         "name": "Gemma 4 26B-A4B IT",
         "reasoning": false,
+        "input": ["text", "image"],
         "contextWindow": 16384,
         "maxTokens": 4096
       }]
@@ -124,6 +166,12 @@ Pi uses its `openai-completions` adapter:
 ```
 
 Keep the client context setting at or below the server's `--max-context`.
+
+Pi's `input` field declares image support the same way OpenCode's `modalities`
+does. With it, `pi -p @photo.png "What is in this image?"` sends the image as a
+base64 data URL in an `image_url` part, which is the shape this server accepts;
+its RPC interface takes an explicit `images` array and produces the same
+request.
 
 ## Prompt reuse
 
@@ -181,8 +229,22 @@ Supported options include `temperature`, `top_p`, `top_k`,
 `repetition_penalty`, `seed`, `stop`, `max_tokens`,
 `max_completion_tokens`, and function-tool fields.
 
+Unknown top-level request fields return HTTP 400 with `code`
+`unknown_parameter` and the field name in `param`, so a misspelled option is
+refused rather than silently ignored. `response_format` is accepted only as
+`{"type": "text"}`; `json_object` and `json_schema` return
+`unsupported_value`, as do `logit_bias`, `top_logprobs`, `reasoning_effort`,
+`verbosity`, `modalities`, `audio`, `prediction`, `web_search_options`, and
+the legacy `functions` and `function_call`. `response_format` must be an object; any
+other JSON value returns `invalid_value`. `user`, `store`, `metadata`,
+`service_tier`, `prompt_cache_key`, and `safety_identifier` are accepted and
+ignored. A top-level field set to `null` is treated as absent. Fields inside
+`messages`, `tools`, and `stream_options` are not checked for extras. Inside
+`stream_options` only `include_usage` is read, so a misspelled key there is
+ignored rather than refused.
+
 The server supports one model and one choice. It does not support the Responses
-API, legacy Completions, embeddings, multimodal input, structured output,
+API, legacy Completions, embeddings, structured output,
 batching, log probabilities, or remote model switching.
 
 Context length can be 4K, 8K, 16K, 32K, or 64K. The default is 16K. Larger FP16
@@ -192,3 +254,23 @@ watch memory pressure.
 For long requests, stderr reports the request lifecycle as prepared, queued,
 generating, completed, or failed. It includes token counts and timing, but not
 prompt text, tool arguments, headers, or request bodies.
+
+## Images
+
+`messages[].content` accepts `image_url` parts in user messages. An
+`image_url` on any other role returns HTTP 400. The URL must be a data URL,
+and `detail` must be absent or set to `auto`.
+
+Image bytes go to disk as the request body arrives, so a large upload does not
+sit in memory. Before any pixel is decoded, the server works out how many
+tokens the images will occupy and rejects the request if they do not fit the
+context. Bodies and images over their limits return HTTP 413.
+
+`GET /v1/models` reports `capabilities` as `["text", "image"]` when a valid
+companion pack is loaded and `["text"]` otherwise. `GET /health` reports the
+same state under `vision`, as `ready`, `missing`, `invalid`, or `unsupported`.
+`unsupported` means the image tower cannot run on this Mac; it requires M2 or
+newer. Text requests remain available.
+
+Choose the pack and the residency policy with `--vision-pack <dir>` and
+`--vision-residency on-demand|keep-ready`.

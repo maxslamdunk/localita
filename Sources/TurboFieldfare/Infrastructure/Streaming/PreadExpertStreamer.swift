@@ -60,6 +60,7 @@ public final class PreadExpertStreamer: @unchecked Sendable {
 
     public let layout: StreamLayout
     public let slotCount: Int
+    private let slotAllocationSize: Int
     public let cachePolicy: ExpertCachePolicy
     /// Cumulative read and cache counters. Shared across a model's per-layer
     /// streamers when one is injected; otherwise private to this streamer.
@@ -150,6 +151,7 @@ public final class PreadExpertStreamer: @unchecked Sendable {
         }
 
         let allocationSize = ((Int(layout.expertStride) + pageSize - 1) / pageSize) * pageSize
+        self.slotAllocationSize = allocationSize
         var pointers: [UnsafeMutableRawPointer] = []
         var buffers: [MTLBuffer] = []
         pointers.reserveCapacity(slotCount)
@@ -444,5 +446,12 @@ public final class PreadExpertStreamer: @unchecked Sendable {
             counters.recordBytesRead(UInt64(readCount))
             filled += readCount
         }
+    }
+
+    /// Model-derived CPU-side scratch owned by this streamer: its aligned
+    /// slot allocation. Diagnostic metadata for residency reporting, not an
+    /// ownership or lifetime API.
+    public var diagnosticSlotScratchBytes: UInt64 {
+        UInt64(slotCount) * UInt64(slotAllocationSize)
     }
 }
