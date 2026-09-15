@@ -1,6 +1,8 @@
 # iOS port plan
 
-Status: planning. No device code written, no device measurements taken.
+Status: planning. Target device chosen 2026-09-15: **iPhone 17** (see
+[Target device](#target-device)). No device code written, no device
+measurements taken.
 
 This document is the framing and sequencing for the iPhone port. It does not
 restate the measured facts — `CLAUDE.md` is the single source of truth for those
@@ -49,6 +51,75 @@ Consequence that survives unchanged: iOS has no page-cache tier and a tighter
 memory ceiling, so the memory ceiling caps the expert cache, and the expert
 cache is the only second tier the port will have.
 
+## Target device
+
+Chosen 2026-09-15: **iPhone 17** (model A3258). Everything below is from spec
+sheets or from reading this repo's code, not from measurement. Sources are in
+[`IMPLEMENTATION_REFERENCES.md`](IMPLEMENTATION_REFERENCES.md#ios-target-platform).
+Nothing in `CLAUDE.md`'s measured-facts table has been measured on this device.
+
+| | iPhone 17 | Mac validation host |
+| --- | --- | --- |
+| Chip | A19: 6-core CPU (2 performance, 4 efficiency), 5-core GPU with Neural Accelerators, 16-core Neural Engine | M1 |
+| Metal GPU family | **Apple10** | **Apple7** |
+| RAM | 8 GB. Apple does not publish it; MacRumors read it from Xcode 26 | 8 GB |
+| Storage | 256 GB or 512 GB | 256 GB |
+| OS | iOS 27, per Apple's spec page | macOS 26.6.1 |
+
+The iPhone Air, 17 Pro and 17 Pro Max have 12 GB of RAM.
+
+**Unknown from any public source.** Each is already a scheduled measurement:
+
+- **App memory limit.** Apple publishes no number. The `increased-memory-limit`
+  entitlement raises the limit "on supported devices", and
+  `os_proc_available_memory()` returns the current limit minus the app's
+  footprint. Step A1 reads it with and without the entitlement.
+- **Storage read rate.** There is no trustworthy public figure. Step B1 measures
+  it. Record the phone's storage tier beside the result, since base-capacity
+  units can ship fewer NAND chips (see `CLAUDE.md`).
+- **NAND part and supplier.** One uncited source names Kioxia. The TechInsights
+  teardown that would confirm it is paywalled. The plan doesn't need it, because
+  B1 measures the rate directly.
+
+### What differs from the Mac validation host
+
+The RAM is the same but the GPU family is not, so the Mac does not exercise
+every path the phone will run. Checked in code on 2026-09-15:
+
+- **Prefill attention.** Before the upstream 0.8.0 merge, the TensorOps 2D
+  full-attention prefill pipeline was built only when `supportsFamily(.apple10)`
+  passed, so the M1 ran causal-tiled. Upstream #159 removed that check in
+  `PrefillAttention.swift`, and both machines now try TensorOps by default. The
+  phone would have run it before the merge too.
+- **No GPU timing transfers.** The A19 GPU is a different architecture with
+  Neural Accelerators the M1 lacks, so neither prefill timing nor `cb1-wait`
+  carries over from the Mac. Measure both on the device.
+- **Text prefill projections are the same.** `RealForwardRunner` builds
+  `MPPPrefillInt4QMM` with its default `.control` variant, so that kernel's
+  Apple10 variant is not used for text.
+- **Vision.** The image tower requires `.apple8` (`VisionRuntime.isSupported`),
+  so it has never run on the M1 host. On the phone it would run, and Apple10
+  also selects the BF16 projector. If the port ships image input, the Mac cannot
+  validate that path.
+- **The GPU watchdog mitigation is macOS-only.**
+  `MetalContext.relaxInteractivityWatchdog` sets
+  `AGX_RELAX_CDM_CTXSTORE_TIMEOUT` under `#if os(macOS)`, because long prefill
+  dispatches could otherwise be killed as compositor-impacting on macOS 26.
+  Nothing does this on iOS, and whether iOS kills long dispatches is unknown.
+  Treat it as a risk for step A3.
+
+### What this changes in the plan
+
+- **A1 budgets the KV cache at both 4K and 8K context.** The benchmark protocol
+  passes `--max-context 4096`, but the CLI and app default became 8K in the
+  0.8.0 merge.
+- **Check extended virtual addressing in A1.** `model_weights.bin` (1.26 GiB) is
+  memory-mapped, and the `extended-virtual-addressing` entitlement exists for
+  apps that map large assets. Whether the runtime needs it is unknown.
+- **The fallback device is a 12 GB model.** Use it if 8 GB cannot hold the
+  residents, the KV cache and a useful expert cache. Switching target is a
+  recorded decision, like a quality spend; do not drift onto a Pro silently.
+
 ## Two tracks
 
 The port has two deliverables with different definitions of done. They are not
@@ -84,7 +155,11 @@ regression without it. This is why Track A comes first rather than in parallel.
 Steps:
 
 1. **Memory-ceiling probe.** Jetsam limit with and without the increased-memory-limit
-   entitlement, on the target device. This is the gate.
+   entitlement, on an iPhone 17 (8 GB). Read `os_proc_available_memory()` and
+   record the actual kill point, since Apple publishes no limit. Budget the KV
+   cache at both 4K and 8K context, and check whether mapping `model_weights.bin`
+   needs extended virtual addressing (see [Target device](#target-device)).
+   This is the gate.
 2. **Model delivery.** Getting ~14.3 GB onto a phone: on-device download plus
    repack, storage provisioning, eviction behavior. A Track A blocker, not a
    later product concern.
@@ -260,7 +335,8 @@ down that you paid for it.
 
 ## What is deliberately not decided
 
-- **Target device.** `CLAUDE.md` records the iOS device target as `_TBD_`.
+- ~~**Target device.**~~ **Decided 2026-09-15: iPhone 17.** See
+  [Target device](#target-device).
 - **Target tok/s.** Deliberately absent. tok/s is an output of bytes/token ÷
   bandwidth, not a decision variable; a target chosen before the device I/O
   probe would be picked from nothing. The 0.5 tok/s floor is a feasibility

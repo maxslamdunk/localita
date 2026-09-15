@@ -91,3 +91,28 @@ included for broader design context rather than a line-level claim.
 - [TurboQuant](https://arxiv.org/abs/2504.19874) and
   [Open-TQ-Metal](https://arxiv.org/abs/2604.16957) informed the rejected K4/V4
   KV-cache experiments.
+
+## iOS target platform
+
+The port targets the iPhone 17 (see [Target device](IOS_PORT.md#target-device)).
+These are the sources for its specs and for the iOS memory contracts the port
+runs under. All were checked on 2026-09-15.
+
+- Apple's [iPhone 17 technical specifications](https://www.apple.com/iphone-17/specs/)
+  give the A19 chip (6-core CPU with 2 performance and 4 efficiency cores,
+  5-core GPU with Neural Accelerators, 16-core Neural Engine), 256 GB and 512 GB
+  storage, and model A3258. Apple does not publish iPhone RAM.
+- [MacRumors](https://www.macrumors.com/2025/09/09/iphone-17-pro-iphone-air-ram-amounts/)
+  read the RAM out of Xcode 26: 8 GB on the iPhone 17, 12 GB on the iPhone Air,
+  17 Pro and 17 Pro Max.
+- Apple's [Metal Feature Set Tables](https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf)
+  (May 21, 2026 edition) list the A19-series and M5-series as GPU family
+  Apple10, and the M1-series as Apple7.
+- The [`increased-memory-limit` entitlement](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.kernel.increased-memory-limit)
+  asks for a higher app memory limit "on supported devices" and gives no number.
+  It points to [`os_proc_available_memory`](https://developer.apple.com/documentation/os/os_proc_available_memory),
+  which returns the current limit minus the app's footprint, may change during
+  the app's life, and returns `0` once the app is over its limit.
+- The [`extended-virtual-addressing` entitlement](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.kernel.extended-virtual-addressing)
+  grants a larger address space to apps that memory-map assets. Apple gives no
+  sizes.
