@@ -49,8 +49,13 @@ enum Mem {
 /// reason; a decode run needs them on the same grounds. Free space is here
 /// because `devicectl` reports total capacity only, and the model is ~14.3 GB.
 enum DeviceState {
+    /// Queried against `Documents`, which exists from first launch. Asking
+    /// `Application Support` returned nil in a fresh container — the directory
+    /// is not created until something writes there — and the harness logged a
+    /// useless `free=-1`. The figure is volume-wide, so any existing URL on it
+    /// gives the same answer.
     static func freeSpaceBytes() -> Int64 {
-        let url = FileManager.default.urls(for: .applicationSupportDirectory,
+        let url = FileManager.default.urls(for: .documentDirectory,
                                            in: .userDomainMask)[0]
         let values = try? url.resourceValues(
             forKeys: [.volumeAvailableCapacityForImportantUsageKey])
@@ -193,6 +198,21 @@ final class Harness: ObservableObject {
     }
 
     private func generate(settings: HarnessSettings) async throws {
+        // Metal comes first, deliberately, and before any check that can fail.
+        // `MetalContext.init` compiles all 14 shader modules from source at
+        // startup via `Bundle.module`, and whether that resolves inside an app
+        // bundle is the one runtime risk that can be retired without the model
+        // being present. Ordering the model check ahead of it meant a phone
+        // with no model told us nothing at all.
+        guard let device = MetalContext.makeSystemDefaultDevice() else {
+            throw HarnessError.noMetalDevice
+        }
+        emit("metal-device", "name=\(device.name) apple10=\(device.supportsFamily(.apple10))")
+        let shaderStart = DispatchTime.now().uptimeNanoseconds
+        let context = try MetalContext()
+        emit("shaders-compiled",
+             "ms=\((DispatchTime.now().uptimeNanoseconds - shaderStart) / 1_000_000)")
+
         let modelURL = ModelLocation.directory
         guard FileManager.default.fileExists(atPath: modelURL.path) else {
             throw HarnessError.modelMissing(modelURL.path)
@@ -207,15 +227,6 @@ final class Harness: ObservableObject {
         }
         let tokenizer = try await GFTokenizer.load(from: tokenizerFolder)
         emit("tokenizer-loaded")
-
-        // Compiles all 14 shader modules from source at startup. On the Mac this
-        // is unmeasured noise; on the phone it is worth its own timestamp.
-        guard let device = MetalContext.makeSystemDefaultDevice() else {
-            throw HarnessError.noMetalDevice
-        }
-        emit("metal-device", "name=\(device.name) apple10=\(device.supportsFamily(.apple10))")
-        let context = try MetalContext()
-        emit("shaders-compiled")
 
         let config = GenerationConfig(
             maxNewTokens: settings.maxNewTokens,
