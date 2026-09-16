@@ -519,10 +519,22 @@ below makes that deferral structural rather than a matter of remembering to.
        record thermal beside every device number and treat a run that reached
        `serious` as **understating** its gain — which includes the long case
        above, whose baseline ran cooler than its 24- and 32-slot runs.
-     - Whether 32 becomes the iOS default is a separate decision:
-       `RuntimeConfiguration` defaults to 16, that default is shared with the
-       Mac, and CACHE-03 showed 32 is harmful there. A per-platform default is a
-       product change, not a measurement.
+     - **32 is now the iOS default — DONE 2026-09-16 (`bf95248`).** Expressed as
+       `RuntimeConfiguration.productionExpertCacheSlots`: 32 on iOS, 16 on
+       macOS, because CACHE-03 measured 32 as actively harmful on the 8 GB Mac
+       and the cost is real — slots are per layer, so 16 → 32 is **+1.61 GB**.
+       A named constant in `Configuration/` rather than an `#if os(iOS)` at call
+       sites, per `Infrastructure/CLAUDE.md`.
+       - ⚠️ **The default alone was not enough.** `HarnessSettings` hardcoded its
+         own `expertCacheSlots = 16`, which silently overrode the new default and
+         would have held every device run at 16 while the runtime claimed
+         otherwise. It now reads the shared constant. Verified by a run passing
+         **no** `--slots`, which logged `slots=32`.
+       - Test coverage was the other trap. `RuntimeConfigurationTests` asserts the
+         default but runs under `swift test`, which is macOS-only — so a
+         per-platform default would keep passing on the Mac while the iOS value
+         went entirely unasserted. The assertion is now platform-split and the
+         suite runs in the on-device bundle: 145 tests in 47 suites, 0 failures.
    - **Prefill chunk size — DONE 2026-09-16, and it is the other half of the
      win.** 256 against the default 128, at a fixed 32 slots:
      **7.596 / 6.204 / 5.206 tok/s**, prefill bytes −39.6 / −43.2% on medium and
@@ -542,19 +554,42 @@ below makes that deferral structural rather than a matter of remembering to.
        bytes: per-chunk volume grows 13.6–20.8% with chunk size as a wider chunk
        routes to more distinct experts. And decode phases moved 5–10% on short
        and long despite an unchanged decode byte profile — plausibly thermal on
-       long, **unexplained on short**, where both runs were `nominal`. A
-       candidate is that 40% fewer prefill bytes leave the OS file cache less
-       thrashed entering decode, which Track B step 1 makes plausible; it is
-       testable by running decode-only at both chunk sizes and is recorded as
-       open rather than assumed.
+       long, **unexplained on short**, where both runs were `nominal`.
+       - ⚠️ **The candidate explanation is refuted, same day, without needing its
+         falsifier run.** It held that 40% fewer prefill bytes leave the OS file
+         cache less thrashed entering decode. A third short-case run — the `auto`
+         verification, which resolved to chunk 64 — gave **7.209 tok/s**, between
+         c128's 7.005 and c256's 7.596, with the same byte-identical decode
+         profile and all three sampling `nominal` throughout, so thermal is
+         unavailable too. Decisively, **all three read identical prefill bytes**
+         (6,950.78 MB), because a 61-token prompt is one chunk at 64, 128 *and*
+         256. Prefill volume never differed on the short case, so the proposed
+         mechanism could not have applied there at all.
+       - Short is therefore **ordinary device run-to-run variance, ~8% across
+         three runs** with identical bytes, hit rate and thermal state — not a
+         prefill→decode coupling. The long case's 5.5% stays open and still
+         plausibly thermal. Either way, no decode effect may be quoted from a
+         prefill change.
      - ⚠️ The long-case prefill gain is **inflated by thermal** in the direction
        the prediction warned about, so **−20 to −25% is the conservative
        attribution** to chunk size rather than the measured −32.3%.
-     - Next, and cheap: make `auto` the iOS default. It resolves to 256 above
-       256 prompt tokens and smaller below, which is the right policy under the
-       corrected model as well as the original. It is a shared default, so it
-       ships with a `RUNTIME_CONTROLS.md` update in the same commit, and unlike
-       the slot-count win it is platform-neutral and therefore upstreamable.
+     - **`auto` is now the iOS default — DONE 2026-09-16.** ⚠️ **And the plan
+       this line replaced was wrong about what that meant.** `auto` is *not* a
+       shared default that can be switched: `Run.swift` shows it is a
+       parse-level alias resolved from the prompt length *before* the config is
+       built, and `RuntimeConfiguration.prefillChunkTokens` is always a concrete
+       `Int`. It cannot be expressed as a constant, so **the shared default stays
+       128 on every platform**. What changed is that the iOS app leaves the size
+       unset and resolves `PrefillRuntimeConfig.autoChunkTokens` once the prompt
+       is tokenized — which required hoisting prompt encoding above the runtime
+       configuration, mirroring the CLI's ordering.
+       - Verified on device with neither knob passed: `prefill-chunk-auto
+         resolved=64 for 61 prompt tokens`, `prefillChunkSource=auto`, and
+         prefill bytes **6,950.78 MB — identical to the digit** to both the 128
+         and 256 runs, which is the control confirming one chunk is one chunk.
+       - ⚠️ Also not upstreamable as that line claimed: the slot default is
+         iOS-only by design, and the `auto` policy lives in the iOS app rather
+         than in shared code. Nothing here is a platform-neutral change.
    - Routing locality, prefetch, router lookahead.
    - Disk layout, expert co-location, read coalescing.
    - **Attention over long context**, which is not a bytes lever at all but is

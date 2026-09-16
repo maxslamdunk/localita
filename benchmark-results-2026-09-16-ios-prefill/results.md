@@ -68,6 +68,23 @@ Against the original 16-slot / chunk-128 baseline, the combined configuration
   LFU hit rate — consistent with Track B step 1's finding that iOS does serve a
   large file cache. *Falsifier:* run decode-only with prefill disabled at both
   chunk sizes; if `io` is identical, the effect is prefill's cache footprint.
+
+  ⚠️ **Update, same day: that candidate hypothesis is refuted, without needing
+  the falsifier run.** A third short-case run — the `auto` verification, which
+  resolved to chunk 64 — landed at **7.209 tok/s** between c128's 7.005 and
+  c256's 7.596, with the same byte-identical decode profile (103.68 MB/tok,
+  86.5%) and `io` 74.93 ms/fwd. All three sampled **`nominal` throughout**, so
+  thermal is not available as an explanation either.
+  The decisive detail is that **all three read identical prefill bytes**
+  (6,950.78 MB), because 61 prompt tokens fit in one chunk at 64, 128 *and*
+  256. The proposed mechanism needed prefill read volume to differ; on the short
+  case it never did. So the hypothesis could not have applied here, and the
+  leading explanation for an ~8% spread across three runs with identical bytes,
+  identical hit rate and identical thermal state is **ordinary device
+  run-to-run variance**.
+  Consequence: the short case was never evidence of a prefill→decode coupling.
+  The long case's 5.5% movement remains unexplained and is still plausibly
+  thermal. Nothing here licenses quoting a decode effect from a prefill change.
 - **P5 — output. HELD.** Token counts identical across both chunk sizes:
   507 / 632 / 602.
 - **P6 — memory. HELD.** Peak `phys_footprint` rose **+15.2 / +35.9 / +36.2 MB**,

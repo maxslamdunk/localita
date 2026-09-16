@@ -125,10 +125,12 @@ struct HarnessSettings {
     /// measured rows are 4K regardless of the 8K CLI default.
     var maxContext = 4096
     var maxNewTokens = 128
-    /// Mac parity. Track B step 2 is where this gets raised against the 5.60 GB
-    /// ceiling; raising it here first would make the first device number
-    /// incomparable with every Mac row.
-    var expertCacheSlots = 16
+    /// The platform's production default, **not** a literal. Since 2026-09-16
+    /// that is 32 on iOS, measured at +59 / +56 / +34% over 16. Hardcoding 16
+    /// here would silently override the shared constant and hold every device
+    /// run at the old value while the runtime claimed otherwise — which is
+    /// exactly the drift the constant exists to prevent.
+    var expertCacheSlots = RuntimeConfiguration.productionExpertCacheSlots
     var temperature: Float = 0.2
     var topK = 64
     var topP: Float = 0.95
@@ -143,12 +145,23 @@ struct HarnessSettings {
         + "streaming experts from storage changes the engineering problem."
     /// Prompt tokens per chunked-prefill step; allowed values are 32, 64, 128,
     /// 256. Chunks loop *outside* layers, so each one re-reads that layer's
-    /// routed experts and read volume tracks chunk count and nothing else —
-    /// which is why prefill runs at a 0.0% cache hit rate and why 256 halves
-    /// the chunks on a long prompt. `docs/RUNTIME_CONTROLS.md` records 256 as
-    /// 16% faster than 128 on a 7,019-token prompt with byte-identical output,
-    /// costing ~32.5 MB of prefill scratch against 16.4 MB at 128.
+    /// routed experts, which is why prefill runs at a 0.0% cache hit rate and
+    /// why halving the chunk count helps.
+    ///
+    /// ⚠️ Chunk count is the **dominant** term, not the only one: per-chunk
+    /// read volume also grows with chunk size (6,341 → 7,659 MiB/chunk on the
+    /// medium case), because a wider chunk routes to more distinct experts. So
+    /// doubling the size does not halve the bytes — measured −39.6% and −43.2%,
+    /// not −50%. An earlier version of this comment said read volume "tracks
+    /// chunk count and nothing else"; that was falsified on 2026-09-16.
+    ///
+    /// Unset means `auto`, resolved against the prompt length once it is known.
     var prefillChunkTokens = 128
+    /// Whether `--prefill-chunk-tokens` was actually passed. Needed because the
+    /// default is indistinguishable from an explicit `128` otherwise, and
+    /// `--prefill-chunk-tokens 128` must pin 128 rather than silently becoming
+    /// `auto`.
+    var prefillChunkExplicit = false
 
     static func fromLaunchArguments() -> HarnessSettings {
         var settings = HarnessSettings()
@@ -165,6 +178,7 @@ struct HarnessSettings {
         if let v = value("--slots").flatMap(Int.init) { settings.expertCacheSlots = v }
         if let v = value("--prefill-chunk-tokens").flatMap(Int.init) {
             settings.prefillChunkTokens = v
+            settings.prefillChunkExplicit = true
         }
         return settings
     }
@@ -292,6 +306,42 @@ final class Harness: ObservableObject {
         let tokenizer = try await GFTokenizer.load(from: tokenizerFolder)
         emit("tokenizer-loaded")
 
+        // Hoisted above the runtime configuration, because that is what `auto`
+        // needs: `autoChunkTokens` picks the smallest allowed chunk covering the
+        // prompt, so the token count must exist before the config is built.
+        // `Run.swift` orders the CLI the same way. Encoding depends only on the
+        // tokenizer, so moving it up is safe. The one visible consequence is
+        // that `prompt-encoded` now precedes `model-loaded`, so its footprint
+        // reading no longer includes the model; the run-matrix script greps
+        // events by name rather than by order, so parsing is unaffected.
+        //
+        // A `real-generation-v1` case when one is named, so the row can sit
+        // beside a Mac row; the ad-hoc prompt otherwise, which cannot. The
+        // SHA-256 goes in the log so the run proves which frozen bytes it used.
+        let promptIds: [Int32]
+        if let caseID = settings.caseID {
+            let loaded = try PromptCase.load(caseID)
+            promptIds = tokenizer.encode(
+                try tokenizer.applyChatTemplate(loaded.messages), addBOS: false)
+            emit("prompt-encoded", "case=\(caseID) sha256=\(loaded.sha256) "
+                + "messages=\(loaded.messages.count) tokens=\(promptIds.count)")
+        } else {
+            promptIds = tokenizer.encode(
+                try tokenizer.applyChatTemplate([.init(role: .user, content: settings.prompt)]),
+                addBOS: false)
+            emit("prompt-encoded", "case=ad-hoc-NOT-COMPARABLE tokens=\(promptIds.count)")
+        }
+
+        // `settings` is a `let` parameter, so the resolved size is a local
+        // rather than a mutation.
+        let resolvedChunkTokens = settings.prefillChunkExplicit
+            ? settings.prefillChunkTokens
+            : PrefillRuntimeConfig.autoChunkTokens(promptTokens: promptIds.count)
+        if !settings.prefillChunkExplicit {
+            emit("prefill-chunk-auto",
+                 "resolved=\(resolvedChunkTokens) for \(promptIds.count) prompt tokens")
+        }
+
         let config = GenerationConfig(
             maxNewTokens: settings.maxNewTokens,
             temperature: settings.temperature,
@@ -309,13 +359,13 @@ final class Harness: ObservableObject {
                 + "\(RuntimeConfiguration.allowedExpertCacheSlots)")
         }
         guard RuntimeConfiguration.allowedPrefillChunkTokens
-            .contains(settings.prefillChunkTokens) else {
-            throw HarnessError.badSetting("prefill chunk \(settings.prefillChunkTokens) "
+            .contains(resolvedChunkTokens) else {
+            throw HarnessError.badSetting("prefill chunk \(resolvedChunkTokens) "
                 + "not in \(RuntimeConfiguration.allowedPrefillChunkTokens)")
         }
         let runtime = RuntimeConfiguration(
             expertCacheSlots: settings.expertCacheSlots,
-            prefillChunkTokens: settings.prefillChunkTokens,
+            prefillChunkTokens: resolvedChunkTokens,
             // A sampling config cannot use the fused head's GPU argmax.
             forceLogitsHead: !config.isPureGreedy)
 
@@ -371,26 +421,14 @@ final class Harness: ObservableObject {
         // relied on labels alone to tell configurations apart; with two knobs
         // varying, a log that does not state its own configuration is one
         // mislabelled run away from a wrong conclusion.
+        // Both knobs plus where the chunk size came from. A log that does not
+        // state its own configuration is one mislabelled run away from a wrong
+        // conclusion, and with `auto` in play the size is no longer inferable
+        // from the launch arguments alone.
         emit("runner-ready", "slots=\(runtime.expertCacheSlots) "
             + "prefillChunk=\(runtime.prefillChunkTokens) "
+            + "prefillChunkSource=\(settings.prefillChunkExplicit ? "explicit" : "auto") "
             + "prefill=\(runtime.prefillPolicy.rawValue)")
-
-        // A `real-generation-v1` case when one is named, so the row can sit
-        // beside a Mac row; the ad-hoc prompt otherwise, which cannot. The
-        // SHA-256 goes in the log so the run proves which frozen bytes it used.
-        let promptIds: [Int32]
-        if let caseID = settings.caseID {
-            let loaded = try PromptCase.load(caseID)
-            promptIds = tokenizer.encode(
-                try tokenizer.applyChatTemplate(loaded.messages), addBOS: false)
-            emit("prompt-encoded", "case=\(caseID) sha256=\(loaded.sha256) "
-                + "messages=\(loaded.messages.count) tokens=\(promptIds.count)")
-        } else {
-            promptIds = tokenizer.encode(
-                try tokenizer.applyChatTemplate([.init(role: .user, content: settings.prompt)]),
-                addBOS: false)
-            emit("prompt-encoded", "case=ad-hoc-NOT-COMPARABLE tokens=\(promptIds.count)")
-        }
 
         var text = ""
         let stats = try await runRawCompletion(
