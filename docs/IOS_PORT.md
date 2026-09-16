@@ -231,9 +231,46 @@ Steps:
    - It loads the model with `.sizeCheckTrustedReceipt`, not `.fullSha256`. The
      latter verifies each 410 MiB layer file on its **first routed touch**,
      landing a SHA-256 of 12.01 GiB inside the `io` phase it is meant to measure.
-   - Still open: nothing has generated a token yet. The app target lives at
-     `iOS/`, is hand-written, and is tracked despite the blanket `*.xcodeproj`
-     ignore rule — losing it would leave the port unbuildable from a clone.
+   - **Track A's feasibility gate is met (2026-09-16).** First on-device
+     generation: 36-token prompt, 64 new tokens, `stop=maxTokens`, 17.99 s
+     decode, **3.558 tok/s** — seven times the 0.5 tok/s floor. **No jetsam:**
+     peak `phys_footprint` **2.145 GB** against the measured 5.60 GB ceiling,
+     with 4.30 GB still reported available, so the ceiling is not close to
+     binding at 16 slots and 4K context.
+   - **The A19 GPU beats this M1 on the compute phases.** `cb1-wait` **64.44**
+     ms/forward against the Mac's 91.55, and `head` **11.84** against 15.09.
+     The phone's deficit is entirely in `io` — **199.92** against 150.18 —
+     which is the direction Track B step 1 predicted from storage. The second
+     half of the binding constraint therefore looks *better* on the phone than
+     on the host, and `cb1-wait`, named in `CLAUDE.md` as the most likely place
+     for the next win on the Mac, is a smaller problem here.
+   - ⚠️ **These figures are not comparable with the Mac rows**, for two reasons
+     that are both about workload rather than the device. The prompt was an
+     ad-hoc one rather than the frozen `real-generation-v1` set, so routing and
+     therefore hit rate differ — 57.5% against the Mac's 67.7%, and 326.72
+     MB/token against 260.2. And `--max-new 64` amortizes the one-time SHA-256
+     of the 12.01 GiB corpus over 63 forwards where the protocol's
+     `--max-new 1024` spreads it over roughly 600. **Both platforms pay that
+     verification** — the Mac CLI hardcodes `.fullSha256` at `Run.swift:183` —
+     so this is a dilution difference, not a contamination peculiar to the phone.
+   - **The trusted-receipt path cannot bind on iOS, and this blocks clean
+     measurement.** `validateManifestBinding` compares
+     `receipt.modelDirectoryPath` against the live directory. A side-loaded
+     artifact still names the Mac path it was verified at, and more
+     fundamentally an app container's UUID changes on **every install** — three
+     distinct UUIDs observed across installs on 2026-09-16 — so even a receipt
+     regenerated on the device would be void after the next one. Until that
+     binding is relaxed, every device run pays `.fullSha256`. Fixing it touches
+     shared validation code that the installer and verifier also use, so it is
+     a change to raise rather than make quietly; see
+     [Coordination hazard](#coordination-hazard).
+   - Next, for a number that can sit beside a Mac row: bundle the three frozen
+     prompt JSONs into the app and run them at `--max-new 1024 --max-context
+     4096`, with the receipt binding fixed so the policy is
+     `.sizeCheckTrustedReceipt`.
+   - The app target lives at `iOS/`, is hand-written, and is tracked despite the
+     blanket `*.xcodeproj` ignore rule — losing it would leave the port
+     unbuildable from a clone.
 
 ### Track B — performance
 
