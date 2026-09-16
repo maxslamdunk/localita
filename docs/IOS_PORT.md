@@ -508,6 +508,38 @@ below makes that deferral structural rather than a matter of remembering to.
        `RuntimeConfiguration` defaults to 16, that default is shared with the
        Mac, and CACHE-03 showed 32 is harmful there. A per-platform default is a
        product change, not a measurement.
+   - **Prefill chunk size — DONE 2026-09-16, and it is the other half of the
+     win.** 256 against the default 128, at a fixed 32 slots:
+     **7.596 / 6.204 / 5.206 tok/s**, prefill bytes −39.6 / −43.2% on medium and
+     long, prefill time **−31.9 / −32.3%**, and end-to-end wall on the long case
+     **313.4 → 243.3 s (−22.4%)**. Costs ~36 MB and changes no output. Combined
+     with 32 slots the device now runs at **2.03× / 1.85× / 1.74× the Mac host**.
+     Predictions and scoring are in `benchmark-results-2026-09-16-ios-prefill/`.
+     - **This was a default nobody revisited, not a new idea.**
+       `docs/RUNTIME_CONTROLS.md` already recorded 256 as 16% faster than 128 on
+       the Mac with byte-identical output, and the server already resolves
+       `auto` to 256 — but the CLI and app default to 128, so every Mac
+       benchmark row and every device run before this one used 128. I twice
+       asserted 256 was untested; the controls doc carries measurements, not
+       just descriptions, and reading it would have prevented that.
+     - **Two predictions were falsified.** Prefill bytes missed the 40% floor on
+       medium (−39.6%), because halving the chunk count does not halve the
+       bytes: per-chunk volume grows 13.6–20.8% with chunk size as a wider chunk
+       routes to more distinct experts. And decode phases moved 5–10% on short
+       and long despite an unchanged decode byte profile — plausibly thermal on
+       long, **unexplained on short**, where both runs were `nominal`. A
+       candidate is that 40% fewer prefill bytes leave the OS file cache less
+       thrashed entering decode, which Track B step 1 makes plausible; it is
+       testable by running decode-only at both chunk sizes and is recorded as
+       open rather than assumed.
+     - ⚠️ The long-case prefill gain is **inflated by thermal** in the direction
+       the prediction warned about, so **−20 to −25% is the conservative
+       attribution** to chunk size rather than the measured −32.3%.
+     - Next, and cheap: make `auto` the iOS default. It resolves to 256 above
+       256 prompt tokens and smaller below, which is the right policy under the
+       corrected model as well as the original. It is a shared default, so it
+       ships with a `RUNTIME_CONTROLS.md` update in the same commit, and unlike
+       the slot-count win it is platform-neutral and therefore upstreamable.
    - Routing locality, prefetch, router lookahead.
    - Disk layout, expert co-location, read coalescing.
    - **Attention over long context**, which is not a bytes lever at all but is
