@@ -186,10 +186,54 @@ Steps:
    logs: the four 2026-09-16 rows in `MEASUREMENTS.md`; probe at
    `~/ml_projects/iphone-port/probes/memory-ceiling`. Still open: the KV budget at
    4K against 8K context.
-2. **Model delivery.** Getting ~14.3 GB onto a phone: on-device download plus
-   repack, storage provisioning, eviction behavior. A Track A blocker, not a
-   later product concern.
-3. **Port the runtime.** 16-slot expert cache untouched, no optimization.
+2. **Model delivery — split 2026-09-16 into bring-up and product.** Getting
+   ~14.3 GB onto a phone: on-device download plus repack, storage provisioning,
+   eviction behavior. **For bring-up this is side-loaded, not installed:** the
+   Mac's existing `scratch/gemma4.gturbo` is pushed into the app data container
+   with `devicectl device copy to`, which needs no code and — the reason it is
+   the right call rather than the lazy one — keeps the device running the
+   **byte-identical artifact** the Mac reference was measured on, which Track A's
+   definition of done requires anyway. The phone had **50.5 GB free** before the
+   copy (measured on-device 2026-09-16; `devicectl` reports total capacity only).
+   Porting the installer stays on the plan as the product answer, and it has a
+   known prerequisite: `TurboFieldfareAppCore` does not build for iOS because
+   `Inference/DecodeServiceInferenceClient.swift` uses `Process`, which iOS does
+   not have. That is not a bug — the Mac app is two processes so its UI never
+   holds a second model, and on iOS a second process would be actively harmful
+   under jetsam. The `Installation/` half of that target **is** wanted on the
+   phone, so the target needs splitting along the `Inference/` boundary before
+   on-device install is possible.
+3. **Port the runtime — started 2026-09-16, app target building and running on
+   the device.** 16-slot expert cache untouched, no optimization.
+   - **The runtime needed no porting to compile.** `TurboFieldfare` (85 files,
+     17,704 lines) and `TurboFieldfareFormat` (6 files, 1,262) build clean for
+     `arm64-apple-ios26.0` against the iPhoneOS26.5 SDK with **zero errors**.
+     `Package.swift` already declared `.iOS(.v26)`. The only error in the whole
+     package was `homeDirectoryForCurrentUser` in `AppModelLocation.swift`
+     (fixed, platform-neutral, macOS build and tests green).
+   - **The Apple10 risk is narrower than the plan assumed.** `RealForwardRunner`
+     builds `MPPPrefillInt4QMM` with the default `.control` variant, and only
+     `VisionRuntime` opts into the Apple10 kernels. **Text prefill and decode are
+     GPU-family-independent**; the divergence from this Apple7 host is confined
+     to the vision tower. Confirmed on hardware: the device reports
+     `Apple A19 GPU` with `supportsFamily(.apple10) == true`.
+   - **Shaders compile on-device in 281 ms.** All 14 `.metal` modules (5,480
+     lines) resolve through `Bundle.module` from inside an app bundle and
+     compile at startup, as on the Mac. This was the untested runtime risk of
+     shipping shader *sources* rather than a metallib; it is retired.
+   - **The increased-memory-limit entitlement works in a real app**, not just a
+     throwaway probe: `os_proc_available_memory` reports 6.43 GB at launch,
+     matching the A1 entitled figure, signed by a free personal team.
+   - The harness copies `expertIOFooter` and `phaseTimeFooter` **verbatim** from
+     `Sources/TurboFieldfareCLI/Run.swift`. That duplication is deliberate and
+     hand-maintained: it is what makes a device number comparable with a row in
+     `MEASUREMENTS.md`. Change both in the same commit.
+   - It loads the model with `.sizeCheckTrustedReceipt`, not `.fullSha256`. The
+     latter verifies each 410 MiB layer file on its **first routed touch**,
+     landing a SHA-256 of 12.01 GiB inside the `io` phase it is meant to measure.
+   - Still open: nothing has generated a token yet. The app target lives at
+     `iOS/`, is hand-written, and is tracked despite the blanket `*.xcodeproj`
+     ignore rule — losing it would leave the port unbuildable from a clone.
 
 ### Track B — performance
 
