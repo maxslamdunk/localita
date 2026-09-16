@@ -293,10 +293,25 @@ Steps:
        prefill against 169 s in decode** for a 3,015-token prompt, reading
        192.7 GB at a 0.0% hit rate. On a phone, a long prompt costs as much as
        the entire answer.
-   - Still unverified: Track A's definition of done also asks for output within
-     the existing `Tolerances` against the CPU reference. These runs show the
-     model generating coherently and stopping correctly; they are **not** a
-     numerical equivalence check, and no such check has been run on the device.
+   - **Kernel numerics checked on device — DONE 2026-09-16.** Track A's
+     definition of done also asks for output within the existing `Tolerances`
+     against the CPU reference. The package's own kernel suites now run on the
+     device as an Xcode test bundle hosted in the `iOS/` app — the same
+     assertions that gate the Mac, not a reimplementation, which would drift and
+     then lie. **142 tests in 46 suites, 0 failures, 0 skipped**
+     (`validation-results-2026-09-16-ios-kernels/`). Every text-path kernel
+     conforms on Apple10, as do the nine Accelerate-vs-scalar reference suites,
+     which is what establishes that the *comparator* is sound on this silicon.
+     Vision and the TensorOps/MPP path — the two flagged in advance as most
+     likely to diverge — both passed.
+   - ⚠️ **That does not close the bullet above.** The definition of done asks for
+     *output* equivalence on the same artifact and sampling config; this checks
+     *kernels in isolation* against CPU references on seeded synthetic data,
+     with no model loaded. Kernel conformance is necessary for end-to-end
+     equivalence, not sufficient, and the device still generates different text
+     from the Mac (507 / 632 / 602 against 511 / 669 / 604). The run is also
+     binary pass/fail rather than a margin measurement, so an Apple10 drift that
+     stays inside a tolerance bound would be invisible to it.
    - The app target lives at `iOS/`, is hand-written, and is tracked despite the
      blanket `*.xcodeproj` ignore rule — losing it would leave the port
      unbuildable from a clone.
