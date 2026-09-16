@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import Metal
 import UIKit
@@ -41,6 +42,41 @@ enum Mem {
     /// kill point by ~841 MB (measured 2026-09-16). Log it, never size against it.
     static func line() -> String {
         "footprint=\(footprint()) available=\(available())"
+    }
+}
+
+/// One case of the frozen `real-generation-v1` set, pushed to the device rather
+/// than copied into the app bundle. Duplicating the prompts into `iOS/` would
+/// create a second copy that can drift from the canonical
+/// `docs/benchmark-prompts/`, and the protocol's whole point is that everyone
+/// generates from the same bytes — so the file is carried over and its SHA-256
+/// is logged, making the run self-verifying against
+/// `docs/COMMUNITY_BENCHMARKS.md`.
+enum PromptCase {
+    struct MessageJSON: Decodable {
+        let role: String
+        let content: String
+    }
+
+    static func directory() -> URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("prompts", isDirectory: true)
+    }
+
+    /// Returns the decoded messages and the file's SHA-256, so the log records
+    /// which frozen bytes produced the number.
+    static func load(_ caseID: String) throws -> (messages: [GFTokenizer.Message], sha256: String) {
+        let url = directory().appendingPathComponent("\(caseID).json")
+        let data = try Data(contentsOf: url)
+        let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+        let decoded = try JSONDecoder().decode([MessageJSON].self, from: data)
+        let messages: [GFTokenizer.Message] = try decoded.map {
+            guard let role = GFTokenizer.Role(rawValue: $0.role) else {
+                throw HarnessError.badPromptCase("unknown role \($0.role) in \(caseID).json")
+            }
+            return GFTokenizer.Message(role: role, content: $0.content)
+        }
+        return (messages, digest)
     }
 }
 
@@ -98,6 +134,11 @@ struct HarnessSettings {
     var topP: Float = 0.95
     var seed: UInt64 = 1
     var label = "run"
+    /// A `real-generation-v1` case id — `short-explanation`, `medium-review` or
+    /// `long-synthesis`. When set, the prompt comes from the pushed file and
+    /// `prompt` is ignored, which is the only way to produce a row that can sit
+    /// beside a Mac row.
+    var caseID: String?
     var prompt = "Explain what a mixture-of-experts language model is, and why "
         + "streaming experts from storage changes the engineering problem."
 
@@ -109,6 +150,7 @@ struct HarnessSettings {
             return args[index + 1]
         }
         if let v = value("--label") { settings.label = v }
+        if let v = value("--case") { settings.caseID = v }
         if let v = value("--prompt") { settings.prompt = v }
         if let v = value("--max-new").flatMap(Int.init) { settings.maxNewTokens = v }
         if let v = value("--max-context").flatMap(Int.init) { settings.maxContext = v }
@@ -154,6 +196,7 @@ enum HarnessError: LocalizedError {
     case noMetalDevice
     case modelMissing(String)
     case tokenizerMissing(String)
+    case badPromptCase(String)
 
     var errorDescription: String? {
         switch self {
@@ -163,6 +206,8 @@ enum HarnessError: LocalizedError {
             return "no model at \(path) — push one with `devicectl device copy to`"
         case .tokenizerMissing(let path):
             return "no tokenizer sidecar under \(path)"
+        case .badPromptCase(let detail):
+            return "prompt case unusable: \(detail)"
         }
     }
 }
@@ -294,10 +339,22 @@ final class Harness: ObservableObject {
         let scratch = try RawCompletionScratch(context: context, vocab: model.config.vocabSize)
         emit("runner-ready")
 
-        let promptIds = tokenizer.encode(
-            try tokenizer.applyChatTemplate([.init(role: .user, content: settings.prompt)]),
-            addBOS: false)
-        emit("prompt-encoded", "tokens=\(promptIds.count)")
+        // A `real-generation-v1` case when one is named, so the row can sit
+        // beside a Mac row; the ad-hoc prompt otherwise, which cannot. The
+        // SHA-256 goes in the log so the run proves which frozen bytes it used.
+        let promptIds: [Int32]
+        if let caseID = settings.caseID {
+            let loaded = try PromptCase.load(caseID)
+            promptIds = tokenizer.encode(
+                try tokenizer.applyChatTemplate(loaded.messages), addBOS: false)
+            emit("prompt-encoded", "case=\(caseID) sha256=\(loaded.sha256) "
+                + "messages=\(loaded.messages.count) tokens=\(promptIds.count)")
+        } else {
+            promptIds = tokenizer.encode(
+                try tokenizer.applyChatTemplate([.init(role: .user, content: settings.prompt)]),
+                addBOS: false)
+            emit("prompt-encoded", "case=ad-hoc-NOT-COMPARABLE tokens=\(promptIds.count)")
+        }
 
         var text = ""
         let stats = try await runRawCompletion(
@@ -314,9 +371,14 @@ final class Harness: ObservableObject {
                 case .token(let index, _, let delta):
                     text += delta
                     // Footprint every 16 tokens: the jetsam-survival evidence
-                    // Track A's definition of done asks for.
+                    // Track A's definition of done asks for. Thermal comes with
+                    // it because a protocol run is minutes long and B1 reached
+                    // `fair` — sampling only at start would hide a mid-run slide
+                    // that makes the phases incomparable within the same run.
                     if index % 16 == 0 {
-                        _ = self.log?.write("token", "index=\(index)")
+                        _ = self.log?.write("token", "index=\(index) "
+                            + "thermal=\(DeviceState.thermal()) "
+                            + "battery=\(DeviceState.battery())")
                     }
                 case .tail(let tail):
                     text += tail
