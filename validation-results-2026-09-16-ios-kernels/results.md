@@ -75,13 +75,21 @@ been checked rather than assumed.
 
 **Does not establish, and must not be quoted as:**
 
-1. **Margins.** As predicted, this is binary conformance. `#expect(relErr < T)`
-   prints `relErr` only on failure, so a kernel passing at 0.99× its tolerance is
-   indistinguishable here from one at 0.01×. A subtle Apple10 degradation that
-   stays inside the bar is invisible to this run. Measuring headroom needs the
-   tests instrumented to emit margins — a separate change, and the obvious
-   follow-up if anyone wants to claim the A19 is numerically *equivalent* rather
-   than *conformant*.
+1. ~~**Margins.**~~ **RESOLVED, same day — see `margins.md`.** This was correct
+   when written: the run was binary conformance, and a subtle Apple10
+   degradation inside the bar would have been invisible. `RelError` is now
+   instrumented, and the follow-up this item asked for has been done. The answer
+   is stronger than "conformant": across **all 41 shared instrumented call sites
+   the worst-case relative error is numerically identical on the A19 and the
+   M1**, and text-path kernels sit at ≤43% of their bounds.
+   ⚠️ Two qualifications carry forward. Coverage is partial — only comparisons
+   routing through `RelError` report a margin (42 sites across 25 of 48 files),
+   and the rest, **including both Vision suites**, assert bytewise or structural
+   equality where a margin is undefined. And the three tightest margins
+   (`MPPPrefillInt4QMMTests:179` at 98% on a disjunctive assertion,
+   `PrefillAffineTests:169` at 80%, `MPPPrefillInt4QMMTests:189` at 77%) are
+   identical on both machines, so they are tolerance tightness, not Apple10
+   divergence.
 2. **End-to-end equivalence.** These are kernels in isolation against CPU
    references. The device still generates **different text** from the Mac
    (507 / 632 / 602 tokens vs. 511 / 669 / 604). This run does not explain that
