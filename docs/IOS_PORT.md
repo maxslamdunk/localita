@@ -47,9 +47,24 @@ So the device I/O probe (step B1) has to be read alongside a device phase split,
 not on its own: a phone that is attention-bound needs different work than one
 that is fetch-bound, and the Mac is measurably both.
 
-Consequence that survives unchanged: iOS has no page-cache tier and a tighter
-memory ceiling, so the memory ceiling caps the expert cache, and the expert
-cache is the only second tier the port will have.
+⚠️ **Corrected 2026-09-16 on the device.** This plan said iOS has no page-cache
+tier. It does: on the iPhone 17, random reads at the production slot size run
+~6× the uncached rate for working sets up to 1 GiB, with the knee between 1 and
+4 GiB (step B1 below).
+
+What survives is the part that binds. The routed-expert corpus is 12.01 GiB,
+far past that knee, so the OS cache cannot serve the working set decode actually
+touches, and the expert cache under the memory ceiling is still the only tier
+the port controls. Two things change:
+
+- **The OS cache is a real second tier for anything that fits**, which the plan
+  assumed away.
+- **Cache-resident bytes look cheap against the memory ceiling.** Mapped clean
+  file pages cost ~16.6 MB of footprint for 1.26 GiB (step A1), so bytes the OS
+  holds for us are not bytes charged to the app's 5.60 GB. Whether that can be
+  turned into a design — mapping expert files rather than `pread`-ing them, and
+  letting the OS cache absorb re-reads — is **untested and belongs in Track B
+  step 2**, with a predicted bytes/token delta like anything else.
 
 ## Target device
 
@@ -198,15 +213,27 @@ below makes that deferral structural rather than a matter of remembering to.
    discarded were added with them. Predicted 0 bytes/token; measured bytes/token
    came back identical to the digit against the previous session, confirming it.
    Findings are in `CLAUDE.md`; the two that change this plan are quoted above.
-1. **Device I/O probe.** Sustained random-read bandwidth at the production
-   3,358,720 B block size over 5–10 minutes (not a burst — thermal and NAND
-   controller behavior is the real number), swept by working-set size to find
-   whether a page-cache knee exists at all. **Fill the probe file with
-   incompressible data, and record that you did.** The Mac probe was zero-filled
-   and overstated the roof by 3.1×, which cost a day and put a nonexistent win
-   at the top of this list; a phone's controller will flatter zeros at least as
-   much. `Scripts/probes/genrand.c` writes a suitable file; the rest of that
-   directory is the Mac suite this lesson came from.
+1. **Device I/O probe — DONE 2026-09-16, iPhone 17 (iOS 26.6).** Sustained random
+   reads at the production 3,358,720 B slot size, one read in flight, over a
+   12.01 GiB corpus of incompressible bytes shaped like the 30 installed layer
+   files, 60 s per working-set point.
+   - **Uncached rate: 1.650 GB/s** (p50 2,142 µs, p95 2,623, p99 5,052).
+   - **The page-cache assumption was wrong.** 256 MiB reads at 9.829 GB/s and
+     1 GiB at 10.456 — roughly 6× uncached — with the knee between 1 and 4 GiB
+     (4 GiB gives 2.606). See the correction under
+     [The constraint the port inherits](#the-constraint-the-port-inherits).
+   - **The corpus was 0 h old and sequentially written**, so 1.650 is a best
+     case. Against the Mac's comparable 0 h control (2.30 GB/s at the same
+     granularity) the phone's storage is **slower**, so no Mac fetch figure
+     transfers to the device.
+   - **Thermal reached `fair` and never `serious`**, and throughput stayed flat
+     inside every point, so this is a sustained number rather than a burst.
+
+   Numbers, predictions and misses: the 2026-09-16 rows in `MEASUREMENTS.md`.
+   Two predictions failed (the 4 GiB/full-corpus agreement, and the page-cache
+   assumption); both are recorded rather than dropped. Still open: the same sweep
+   on an aged corpus, and a queue-depth sweep — production issues one read at a
+   time, and whether the phone rewards more is unmeasured.
 2. **Quality-neutral levers** — exhaust these before spending any accuracy:
    - ~~**Close the fetch-path gap.**~~ **Struck 2026-08-10, diagnosed and
      closed.** This was listed as the largest known quality-free win on the
