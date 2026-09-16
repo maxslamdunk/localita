@@ -28,6 +28,16 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "FE00AA00BB00CC00DD00EE16"
+               BuildableName = "TurboFieldfareiOSTests.xctest"
+               BlueprintName = "TurboFieldfareiOSTests"
+               ReferencedContainer = "container:TurboFieldfareiOS.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

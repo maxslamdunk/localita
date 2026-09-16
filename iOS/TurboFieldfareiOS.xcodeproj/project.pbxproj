@@ -8,10 +8,23 @@
 
 /* Begin PBXBuildFile section */
 		FE00AA00BB00CC00DD00EE12 /* TurboFieldfare in Frameworks */ = {isa = PBXBuildFile; productRef = FE00AA00BB00CC00DD00EE11 /* TurboFieldfare */; };
+		FE00AA00BB00CC00DD00EE20 /* TurboFieldfare in Frameworks */ = {isa = PBXBuildFile; productRef = FE00AA00BB00CC00DD00EE21 /* TurboFieldfare */; };
+		FE00AA00BB00CC00DD00EE22 /* TurboFieldfareValidationSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FE00AA00BB00CC00DD00EE1F /* TurboFieldfareValidationSupport */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		FE00AA00BB00CC00DD00EE1E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FE00AA00BB00CC00DD00EE0A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FE00AA00BB00CC00DD00EE06;
+			remoteInfo = TurboFieldfareiOS;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		FE00AA00BB00CC00DD00EE01 /* TurboFieldfareiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TurboFieldfareiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FE00AA00BB00CC00DD00EE13 /* TurboFieldfareiOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TurboFieldfareiOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -20,7 +33,47 @@
 			path = TurboFieldfareiOS;
 			sourceTree = "<group>";
 		};
+		FE00AA00BB00CC00DD00EE14 /* Kernels */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				FE00AA00BB00CC00DD00EE23 /* Exceptions */,
+			);
+			name = Kernels;
+			path = ../Tests/TurboFieldfare/Core/Kernels;
+			sourceTree = "<group>";
+		};
+		FE00AA00BB00CC00DD00EE15 /* Reference */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = Reference;
+			path = ../Tests/TurboFieldfare/Core/Validation/Reference;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		FE00AA00BB00CC00DD00EE23 /* Exceptions */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			/*
+			 * `+Binding.swift` builds a toy model on disk via
+			 * `ModelLoaderTests.writeToySynthetic()` and `ArchConfig.gemma4Toy()`,
+			 * both of which live in Tests/.../Infrastructure/ModelIO and are not
+			 * in this target. Supplying them means pulling that whole suite --
+			 * symlink following, trusted receipts, SHA-256 verification -- onto
+			 * the device, where sandbox differences could fail for reasons that
+			 * have nothing to do with GPU numerics and would muddy this check.
+			 *
+			 * Excluding it costs no numerical coverage: all eight of its tests
+			 * are orchestration (slot lifetime, expert-to-slot binding, tile
+			 * planning, pread cache-plan hit/miss accounting). None compares a
+			 * GPU result against a CPU reference. Tracked as a known gap in
+			 * validation-results-2026-09-16-ios-kernels/predictions.md.
+			 */
+			membershipExceptions = (
+				"Prefill/PrefillGroupedRoutedMoETests+Binding.swift",
+			);
+			target = FE00AA00BB00CC00DD00EE16 /* TurboFieldfareiOSTests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		FE00AA00BB00CC00DD00EE03 /* Frameworks */ = {
@@ -31,6 +84,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FE00AA00BB00CC00DD00EE1B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FE00AA00BB00CC00DD00EE20 /* TurboFieldfare in Frameworks */,
+				FE00AA00BB00CC00DD00EE22 /* TurboFieldfareValidationSupport in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -38,6 +100,8 @@
 			isa = PBXGroup;
 			children = (
 				FE00AA00BB00CC00DD00EE02 /* TurboFieldfareiOS */,
+				FE00AA00BB00CC00DD00EE14 /* Kernels */,
+				FE00AA00BB00CC00DD00EE15 /* Reference */,
 				FE00AA00BB00CC00DD00EE05 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -46,6 +110,7 @@
 			isa = PBXGroup;
 			children = (
 				FE00AA00BB00CC00DD00EE01 /* TurboFieldfareiOS.app */,
+				FE00AA00BB00CC00DD00EE13 /* TurboFieldfareiOSTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -76,6 +141,32 @@
 			productReference = FE00AA00BB00CC00DD00EE01 /* TurboFieldfareiOS.app */;
 			productType = "com.apple.product-type.application";
 		};
+		FE00AA00BB00CC00DD00EE16 /* TurboFieldfareiOSTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FE00AA00BB00CC00DD00EE17 /* Build configuration list for PBXNativeTarget "TurboFieldfareiOSTests" */;
+			buildPhases = (
+				FE00AA00BB00CC00DD00EE1A /* Sources */,
+				FE00AA00BB00CC00DD00EE1B /* Frameworks */,
+				FE00AA00BB00CC00DD00EE1C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				FE00AA00BB00CC00DD00EE1D /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				FE00AA00BB00CC00DD00EE14 /* Kernels */,
+				FE00AA00BB00CC00DD00EE15 /* Reference */,
+			);
+			name = TurboFieldfareiOSTests;
+			packageProductDependencies = (
+				FE00AA00BB00CC00DD00EE21 /* TurboFieldfare */,
+				FE00AA00BB00CC00DD00EE1F /* TurboFieldfareValidationSupport */,
+			);
+			productName = TurboFieldfareiOSTests;
+			productReference = FE00AA00BB00CC00DD00EE13 /* TurboFieldfareiOSTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -88,6 +179,10 @@
 				TargetAttributes = {
 					FE00AA00BB00CC00DD00EE06 = {
 						CreatedOnToolsVersion = 26.6;
+					};
+					FE00AA00BB00CC00DD00EE16 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = FE00AA00BB00CC00DD00EE06;
 					};
 				};
 			};
@@ -109,12 +204,20 @@
 			projectRoot = "";
 			targets = (
 				FE00AA00BB00CC00DD00EE06 /* TurboFieldfareiOS */,
+				FE00AA00BB00CC00DD00EE16 /* TurboFieldfareiOSTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		FE00AA00BB00CC00DD00EE09 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FE00AA00BB00CC00DD00EE1C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -131,7 +234,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FE00AA00BB00CC00DD00EE1A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		FE00AA00BB00CC00DD00EE1D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FE00AA00BB00CC00DD00EE06 /* TurboFieldfareiOS */;
+			targetProxy = FE00AA00BB00CC00DD00EE1E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		FE00AA00BB00CC00DD00EE0C /* Debug */ = {
@@ -144,6 +262,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				SWIFT_ENABLE_TESTABILITY = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -215,6 +334,44 @@
 			};
 			name = Release;
 		};
+		FE00AA00BB00CC00DD00EE18 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PTWLHQ5QZX;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.maxslamdunk.TurboFieldfareiOSTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TurboFieldfareiOS.app/TurboFieldfareiOS";
+				TEST_TARGET_NAME = TurboFieldfareiOS;
+			};
+			name = Debug;
+		};
+		FE00AA00BB00CC00DD00EE19 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PTWLHQ5QZX;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.maxslamdunk.TurboFieldfareiOSTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TurboFieldfareiOS.app/TurboFieldfareiOS";
+				TEST_TARGET_NAME = TurboFieldfareiOS;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -236,6 +393,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		FE00AA00BB00CC00DD00EE17 /* Build configuration list for PBXNativeTarget "TurboFieldfareiOSTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FE00AA00BB00CC00DD00EE18 /* Debug */,
+				FE00AA00BB00CC00DD00EE19 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -249,6 +415,14 @@
 		FE00AA00BB00CC00DD00EE11 /* TurboFieldfare */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = TurboFieldfare;
+		};
+		FE00AA00BB00CC00DD00EE21 /* TurboFieldfare */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TurboFieldfare;
+		};
+		FE00AA00BB00CC00DD00EE1F /* TurboFieldfareValidationSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TurboFieldfareValidationSupport;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

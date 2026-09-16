@@ -9,6 +9,13 @@ let package = Package(
     ],
     products: [
         .library(name: "TurboFieldfare", targets: ["TurboFieldfare"]),
+        // A product only so that non-SwiftPM test targets can link it. The iOS
+        // device test bundle is an Xcode target, and Xcode can link products
+        // but not bare targets; without this the on-device kernel-vs-CPU-
+        // reference check cannot import its own comparators.
+        .library(
+            name: "TurboFieldfareValidationSupport",
+            targets: ["TurboFieldfareValidationSupport"]),
         .executable(name: "TurboFieldfareRepack", targets: ["TurboFieldfareRepack"]),
         .executable(name: "TurboFieldfareCLI", targets: ["TurboFieldfareCLI"]),
         .executable(name: "TurboFieldfareMac", targets: ["TurboFieldfareMac"]),
