@@ -457,8 +457,21 @@ below makes that deferral structural rather than a matter of remembering to.
           what avoids buffering a tensor, and scattered write order is its
           by-product. Any fix has to keep that property (see the sequential
           rewrite pass below), not undo it.
-   - Expert cache sizing against the ceiling from A1. The Mac's 16 slots are
-     **54 MB**; a phone may afford 1 GB+ of explicit cache.
+   - Expert cache sizing against the ceiling from A1. ⚠️ **Corrected
+     2026-09-16 — the "54 MB" figure that stood here was wrong by 30×.** Slots
+     are allocated **per layer**: `Model.load` builds one `PreadExpertStreamer`
+     per layer, each with `slotCount` buffers of 3,358,720 B, so 16 slots means
+     30 × 16 = 480 buffers = **1.61 GB already allocated**, not 54 MB. 54 MB is
+     one layer's share. The phone therefore does not "afford 1 GB+" as an
+     upgrade — it is already spending that — and the move actually available is
+     roughly one doubling: 24 slots costs +0.81 GB and 32 costs +1.61 GB,
+     against a measured 5.60 GB ceiling with 2.13 GB in use. 48 slots/layer
+     would reach ~5.35 GB, too close to a kill point that varied by 270 MB
+     across runs. This is the condition
+     [CACHE-03](experiments/summaries/03-expert-cache-prediction-and-layout.md#cache-03)
+     was deferred on — "conditional +memory experiment" — so the phone reopens
+     it with a new argument rather than repeating it. Predictions for the 24 and
+     32 slot runs are in `benchmark-results-2026-09-16-ios-slots/predictions.md`.
    - Routing locality, prefetch, router lookahead.
    - Disk layout, expert co-location, read coalescing.
    - **Attention over long context**, which is not a bytes lever at all but is
