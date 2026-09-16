@@ -472,6 +472,42 @@ below makes that deferral structural rather than a matter of remembering to.
      was deferred on — "conditional +memory experiment" — so the phone reopens
      it with a new argument rather than repeating it. Predictions for the 24 and
      32 slot runs are in `benchmark-results-2026-09-16-ios-slots/predictions.md`.
+     **DONE 2026-09-16 — the largest win in this log, and it is memory-funded.**
+     32 slots per layer gives **7.005 / 6.181 / 4.786 tok/s**: +59 / +56 / +34%
+     over the 16-slot baseline and **1.87× / 1.85× / 1.60× the Mac host**, for
+     +1.61 GB of buffers and a peak footprint of 3.77 GB against the 5.60 GB
+     ceiling. 24 slots gives 6.028 / 5.079 / 4.328 (+37 / +28 / +21%) at
+     2.96 GB. Hit rate reaches 86.5 / 83.0 / 80.6% and bytes/token falls
+     48.7–58.3%. Scoring is in `results.md` beside the predictions.
+     - **CACHE-03's thrashing failure does not reproduce.** Its live 32-slot row
+       on the 8 GB Mac collapsed to 1.578 tok/s with `io` at 318.3 ms/token; on
+       the phone `io` falls monotonically at every slot count and in every case.
+       **The measured 5.60 GB ceiling headroom is real**, which is the premise
+       the rest of Track B is planned against.
+     - **Two predictions missed, and both trace to one cause.** Bytes/token at 24
+       slots came in under its predicted −35 to −50% band on medium and long
+       (−31.0 / −29.2%), and the tok/s point estimate overshot the long case by
+       17%. `io` does not fall in proportion to bytes: achieved fetch *drops* as
+       the cache grows (1.767 → 1.708 → 1.400 GB/s on the short case, because
+       the reads that remain are the scattered ones), and `cb1-wait` does not
+       shrink with bytes at all.
+     - **So the next win on the phone is attention, not bytes.** At 32 slots
+       `cb1-wait` is **39% of the long case's wall**. `CLAUDE.md` already names
+       it as the most likely place for the next win on the Mac; shrinking the
+       byte half has now made it the dominant term here too.
+     - **Trace replay over-predicts live gain** by 2–5 hit-rate points, worth
+       knowing before any future cache work is justified on replay alone.
+     - ⚠️ **Thermal is a measured confound now, not a caveat.** A 16-slot control
+       repeated hot against the same case cool cost **11.6% of throughput**, with
+       bytes/token and hit rate identical to the digit. `serious` throttles the
+       fetch path (`io` +18.3%) far more than the GPU (`cb1-wait` +3.6%), so
+       record thermal beside every device number and treat a run that reached
+       `serious` as **understating** its gain — which includes the long case
+       above, whose baseline ran cooler than its 24- and 32-slot runs.
+     - Whether 32 becomes the iOS default is a separate decision:
+       `RuntimeConfiguration` defaults to 16, that default is shared with the
+       Mac, and CACHE-03 showed 32 is harmful there. A per-platform default is a
+       product change, not a measurement.
    - Routing locality, prefetch, router lookahead.
    - Disk layout, expert co-location, read coalescing.
    - **Attention over long context**, which is not a bytes lever at all but is
