@@ -264,10 +264,39 @@ Steps:
      shared validation code that the installer and verifier also use, so it is
      a change to raise rather than make quietly; see
      [Coordination hazard](#coordination-hazard).
-   - Next, for a number that can sit beside a Mac row: bundle the three frozen
-     prompt JSONs into the app and run them at `--max-new 1024 --max-context
-     4096`, with the receipt binding fixed so the policy is
-     `.sizeCheckTrustedReceipt`.
+   - **DONE 2026-09-16 — the comparable run, and the phone beats the host.**
+     All three frozen `real-generation-v1` cases at `--max-new 1024
+     --max-context 4096`, every one `stop=endOfTurn`:
+     **4.395 / 3.961 / 3.571 tok/s** against this Mac's 3.745 / 3.346 / 2.987
+     pre-merge and 3.729 / 3.255 / 2.897 at HEAD — **+17 to +23%**. Prompts were
+     pushed to the device rather than bundled, and each file's SHA-256 is in the
+     log and matches the canonical hash, so the run proves which bytes made it.
+     - **The controls hold, which is what makes the comparison legitimate:**
+       hit rate 67.7 / 64.9 / 62.3% against the Mac's 67.7 / 65.0 / 61.6, and
+       bytes/token 260.6 / 283.2 / 304.2 MB against 260.2 / 281.9 / 309.3.
+       Same workload, same byte profile.
+     - **The win is entirely GPU.** `cb1-wait` −31 to −33% and `head` −26 to
+       −28%, while `io` is at parity (147.41 / 160.80 / 171.46 against 150.18 /
+       166.39 / 182.59). **This inverts the plan's working assumption for the
+       port:** the phone's problem was supposed to be that its storage is
+       slower, and instead its compute is so much faster that it wins outright.
+     - ⚠️ **`io` parity is not a result about the device.** The phone's artifact
+       is 0 h old; the Mac's is 26.8 d. Track B step 1 measured the phone's
+       storage as *slower* than this Mac's like-for-like, and nothing here
+       contradicts that — the aged re-run is what settles it.
+     - ⚠️ Generated token counts differ (507 / 632 / 602 against 511 / 669 /
+       604), so the text is not byte-identical: near-identical work, not
+       identical. And the long case ran its whole decode at thermal `fair`
+       while short and medium stayed `nominal`, so its figures were taken in a
+       hotter state than the other two.
+     - **Prefill is the unflattering half.** The long case spent **168 s in
+       prefill against 169 s in decode** for a 3,015-token prompt, reading
+       192.7 GB at a 0.0% hit rate. On a phone, a long prompt costs as much as
+       the entire answer.
+   - Still unverified: Track A's definition of done also asks for output within
+     the existing `Tolerances` against the CPU reference. These runs show the
+     model generating coherently and stopping correctly; they are **not** a
+     numerical equivalence check, and no such check has been run on the device.
    - The app target lives at `iOS/`, is hand-written, and is tracked despite the
      blanket `*.xcodeproj` ignore rule — losing it would leave the port
      unbuildable from a clone.
