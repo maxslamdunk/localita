@@ -154,12 +154,21 @@ regression without it. This is why Track A comes first rather than in parallel.
 
 Steps:
 
-1. **Memory-ceiling probe.** Jetsam limit with and without the increased-memory-limit
-   entitlement, on an iPhone 17 (8 GB). Read `os_proc_available_memory()` and
-   record the actual kill point, since Apple publishes no limit. Budget the KV
-   cache at both 4K and 8K context, and check whether mapping `model_weights.bin`
-   needs extended virtual addressing (see [Target device](#target-device)).
-   This is the gate.
+1. **Memory-ceiling probe — DONE 2026-09-16, iPhone 17 (8 GB, iOS 26.6).** The gate
+   is open. Usable ceiling **5.60 GB** with the increased-memory-limit entitlement,
+   which a free personal team can sign, and **3.53 GB** without it.
+   `os_proc_available_memory` predicts the unentitled kill to within 3.2 MB but
+   overstates the entitled one by 841 MB, so the ceiling is the measured kill
+   point, never what that API reports. **Mapped file pages are nearly free
+   against it:** 1.26 GiB mmapped, page-touched, wrapped in an `MTLBuffer` and
+   GPU-resident cost ~16.6 MB of footprint (n=1), so the ~1.35 GB of resident
+   shared weights need not come out of the budget — the ceiling is spent on the
+   KV cache, expert slots and scratch. Mapping that much needed no
+   extended-virtual-addressing entitlement. Numbers, caveats and logs: the three
+   2026-09-16 rows in `MEASUREMENTS.md`; probe at
+   `~/ml_projects/iphone-port/probes/memory-ceiling`. Still open: the KV budget at
+   4K against 8K context, and the mapped result is n=1 because the repeat run's
+   log could not be retrieved.
 2. **Model delivery.** Getting ~14.3 GB onto a phone: on-device download plus
    repack, storage provisioning, eviction behavior. A Track A blocker, not a
    later product concern.
