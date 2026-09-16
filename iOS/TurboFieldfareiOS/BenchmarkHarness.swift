@@ -141,6 +141,14 @@ struct HarnessSettings {
     var caseID: String?
     var prompt = "Explain what a mixture-of-experts language model is, and why "
         + "streaming experts from storage changes the engineering problem."
+    /// Prompt tokens per chunked-prefill step; allowed values are 32, 64, 128,
+    /// 256. Chunks loop *outside* layers, so each one re-reads that layer's
+    /// routed experts and read volume tracks chunk count and nothing else —
+    /// which is why prefill runs at a 0.0% cache hit rate and why 256 halves
+    /// the chunks on a long prompt. `docs/RUNTIME_CONTROLS.md` records 256 as
+    /// 16% faster than 128 on a 7,019-token prompt with byte-identical output,
+    /// costing ~32.5 MB of prefill scratch against 16.4 MB at 128.
+    var prefillChunkTokens = 128
 
     static func fromLaunchArguments() -> HarnessSettings {
         var settings = HarnessSettings()
@@ -155,6 +163,9 @@ struct HarnessSettings {
         if let v = value("--max-new").flatMap(Int.init) { settings.maxNewTokens = v }
         if let v = value("--max-context").flatMap(Int.init) { settings.maxContext = v }
         if let v = value("--slots").flatMap(Int.init) { settings.expertCacheSlots = v }
+        if let v = value("--prefill-chunk-tokens").flatMap(Int.init) {
+            settings.prefillChunkTokens = v
+        }
         return settings
     }
 }
@@ -197,6 +208,7 @@ enum HarnessError: LocalizedError {
     case modelMissing(String)
     case tokenizerMissing(String)
     case badPromptCase(String)
+    case badSetting(String)
 
     var errorDescription: String? {
         switch self {
@@ -208,6 +220,8 @@ enum HarnessError: LocalizedError {
             return "no tokenizer sidecar under \(path)"
         case .badPromptCase(let detail):
             return "prompt case unusable: \(detail)"
+        case .badSetting(let detail):
+            return "unsupported setting: \(detail)"
         }
     }
 }
@@ -284,8 +298,24 @@ final class Harness: ObservableObject {
             topK: settings.topK,
             topP: settings.topP,
             seed: settings.seed)
+        // `RuntimeConfiguration.init` enforces both of these with a
+        // `precondition`, which **traps** rather than throwing — and a trap
+        // writes no log line at all, so the run would simply vanish with no
+        // evidence of why. Refuse an unsupported value here instead, where the
+        // failure can be logged.
+        guard RuntimeConfiguration.allowedExpertCacheSlots
+            .contains(settings.expertCacheSlots) else {
+            throw HarnessError.badSetting("slots \(settings.expertCacheSlots) not in "
+                + "\(RuntimeConfiguration.allowedExpertCacheSlots)")
+        }
+        guard RuntimeConfiguration.allowedPrefillChunkTokens
+            .contains(settings.prefillChunkTokens) else {
+            throw HarnessError.badSetting("prefill chunk \(settings.prefillChunkTokens) "
+                + "not in \(RuntimeConfiguration.allowedPrefillChunkTokens)")
+        }
         let runtime = RuntimeConfiguration(
             expertCacheSlots: settings.expertCacheSlots,
+            prefillChunkTokens: settings.prefillChunkTokens,
             // A sampling config cannot use the fused head's GPU argmax.
             forceLogitsHead: !config.isPureGreedy)
 
@@ -337,7 +367,13 @@ final class Harness: ObservableObject {
             maxContext: settings.maxContext,
             runtimeConfiguration: runtime)
         let scratch = try RawCompletionScratch(context: context, vocab: model.config.vocabSize)
-        emit("runner-ready")
+        // Both knobs go in the log, not just the launch label. The slot matrix
+        // relied on labels alone to tell configurations apart; with two knobs
+        // varying, a log that does not state its own configuration is one
+        // mislabelled run away from a wrong conclusion.
+        emit("runner-ready", "slots=\(runtime.expertCacheSlots) "
+            + "prefillChunk=\(runtime.prefillChunkTokens) "
+            + "prefill=\(runtime.prefillPolicy.rawValue)")
 
         // A `real-generation-v1` case when one is named, so the row can sit
         // beside a Mac row; the ad-hoc prompt otherwise, which cannot. The
