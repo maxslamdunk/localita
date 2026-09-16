@@ -7,7 +7,9 @@ enum AppModelLocation {
             for: .applicationSupportDirectory,
             in: .userDomainMask,
             appropriateFor: nil,
-            create: false)) ?? fileManager.homeDirectoryForCurrentUser
+            // `homeDirectoryForCurrentUser` is unavailable on iOS; this spells the
+            // same last-resort fallback in a way both platforms compile.
+            create: false)) ?? URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
         return resolve(
             explicitURL: nil,
             executableURL: Bundle.main.executableURL,
