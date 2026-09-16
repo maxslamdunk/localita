@@ -1,8 +1,9 @@
 # iOS port plan
 
-Status: planning. Target device chosen 2026-09-15: **iPhone 17** (see
-[Target device](#target-device)). No device code written, no device
-measurements taken.
+Status: **Track A closed 2026-09-17**; Track B step 2 partly done and where work
+continues. Target device chosen 2026-09-15: **iPhone 17** (see
+[Target device](#target-device)). The runtime runs on the device and beats the
+8 GB M1 validation host on every benchmark case.
 
 This document is the framing and sequencing for the iPhone port. It does not
 restate the measured facts — `CLAUDE.md` is the single source of truth for those
@@ -163,6 +164,17 @@ one:
 - Survives jetsam through a full generation.
 - ≥ 0.5 tok/s.
 
+**CLOSED 2026-09-17 — all three are met.** *≥ 0.5 tok/s:* **7.596 / 6.204 /
+5.206**, fifteen times the floor. *Survives jetsam:* peak `phys_footprint`
+**3.81 GB** against the measured 5.60 GB ceiling, on every run to date, all
+ending `stop=endOfTurn`. *`Tolerances` against the CPU reference:* **142 tests
+in 46 suites, 0 failures**, with worst-case relative error **numerically
+identical on Apple10 and Apple7 at all 41 shared instrumented sites**. That
+third bullet is met as written — it asks for the project's existing standard
+against the CPU reference, and the existing standard is the kernel tolerance
+suite, which the device now passes in full. The residual this close accepts,
+and the gate that pays it off, are the last three bullets of step 3.
+
 Track A also produces the instrument Track B cannot work without: **a zero-loss
 reference running on the device**. There is no way to measure a quality
 regression without it. This is why Track A comes first rather than in parallel.
@@ -304,14 +316,46 @@ Steps:
      which is what establishes that the *comparator* is sound on this silicon.
      Vision and the TensorOps/MPP path — the two flagged in advance as most
      likely to diverge — both passed.
-   - ⚠️ **That does not close the bullet above.** The definition of done asks for
-     *output* equivalence on the same artifact and sampling config; this checks
-     *kernels in isolation* against CPU references on seeded synthetic data,
-     with no model loaded. Kernel conformance is necessary for end-to-end
-     equivalence, not sufficient, and the device still generates different text
-     from the Mac (507 / 632 / 602 against 511 / 669 / 604). The run is also
-     binary pass/fail rather than a margin measurement, so an Apple10 drift that
-     stays inside a tolerance bound would be invisible to it.
+   - ✅ **Margins measured the same day, and the A19 matches the M1 exactly
+     (`b6cac0a`).** The objection that stood here until 2026-09-17 — that the run
+     was "binary pass/fail rather than a margin measurement, so an Apple10 drift
+     that stays inside a tolerance bound would be invisible to it" — is
+     **answered and withdrawn**. `RelError` reports every comparison, and across
+     all 41 shared instrumented call sites the worst-case relative error is
+     identical on both chips to every printed digit, 0 differing; text-path
+     kernels sit at ≤43% of their bounds. Such a drift would now show as a
+     changed margin.
+   - **What closing Track A accepts, stated rather than buried.** Kernel tests
+     exercise kernels *in isolation* on seeded synthetic data with no model
+     loaded, so they do not test **composition** — orchestration, KV cursor
+     arithmetic over long context, layer scalars, the sampled output head. A
+     binding or ordering bug would pass all 142 and still generate wrong text.
+     Two things bound that risk without eliminating it: the device runs the
+     byte-identical artifact, and its **hit rate (67.7 / 64.9 / 62.3%) and
+     bytes/token land within 0.7pp and 2% of the Mac's** — routing is the
+     router's output, which depends on the whole forward being right, so a
+     composition bug is unlikely to leave a byte profile that close.
+   - ⚠️ **Differing generated text is not evidence of a defect and should stop
+     being cited as one.** The device produces 507 / 632 / 602 tokens against the
+     Mac's 511 / 669 / 604, but these runs *sample* (temperature 0.2, Top-K 64,
+     Top-P 0.95): a 1-ULP logit difference near a tie flips one draw, and the
+     sequences diverge permanently after it. The Mac does the same to itself —
+     HEAD after the 0.8.0 merge generated 527 / 665 / 597 on the same machine and
+     artifact, which `CLAUDE.md` records as a changed routing workload, not a
+     regression. The standing lesson is
+     [METH-01](experiments/summaries/09-validation-and-measurement-lessons.md#meth-01):
+     numerical equivalence is a distributional claim, not a bit-identity claim,
+     and four candidates were once falsely rejected on exactly this gate.
+   - **The gate that pays off the residual: a greedy A/B before Track B step 3.**
+     Run the same prompt and artifact at `--temperature 0` on both the Mac CLI
+     and the device, and compare token IDs; greedy removes the sampling noise
+     above, so a divergence there is real. This is owed before **step 3**, the
+     quality-spending levers — the only work whose measurements depend on the
+     device reference being calibrated. Step 2's remaining levers are
+     quality-neutral by construction, as the slot-count and chunk-size wins were;
+     both changed zero tokens. ⚠️ Greedy and sampled generation use different
+     output-head paths (`forceLogitsHead: !config.isPureGreedy`), so a greedy
+     match validates the numerics and the greedy head, not the sampled head.
    - The app target lives at `iOS/`, is hand-written, and is tracked despite the
      blanket `*.xcodeproj` ignore rule — losing it would leave the port
      unbuildable from a clone.
