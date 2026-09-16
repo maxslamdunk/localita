@@ -193,7 +193,12 @@ final class Harness: ObservableObject {
         do {
             try await generate(settings: settings)
         } catch {
-            emit("failed", "\(error.localizedDescription)")
+            // `ModelError` is `CustomStringConvertible` but not `LocalizedError`,
+            // so `localizedDescription` renders it as an opaque
+            // "ModelError error 11" and discards the detail the enum already
+            // carries. Log the real description first; keep the localized one
+            // for error types that do supply a useful string.
+            emit("failed", "\(String(describing: error)) | \(error.localizedDescription)")
         }
     }
 
@@ -239,15 +244,36 @@ final class Harness: ObservableObject {
             // A sampling config cannot use the fused head's GPU argmax.
             forceLogitsHead: !config.isPureGreedy)
 
-        // `.fullSha256` would SHA-256 each 410 MiB layer file on its first
-        // routed touch, landing that cost inside the `io` phase it is trying to
-        // measure. The receipt is written at install time and checked here
-        // instead. If it is absent, say so loudly rather than quietly hashing.
-        let hasReceipt = FileManager.default.fileExists(
-            atPath: modelURL.appendingPathComponent("verified-install.json").path)
-        if !hasReceipt {
-            emit("no-install-receipt",
-                 "falling back to fullSha256 — io timings from this run are contaminated")
+        // `.fullSha256` verifies each 410 MiB layer file on its first routed
+        // touch, landing that cost inside the `io` phase it is meant to
+        // measure, so the receipt is preferred wherever it is usable.
+        //
+        // On iOS it currently never is. `validateManifestBinding` compares
+        // `receipt.modelDirectoryPath` against the live directory, and a
+        // side-loaded artifact still carries the Mac path it was verified at.
+        // The deeper problem is that an app's container UUID changes on every
+        // install — observed across three installs on 2026-09-16 — so even a
+        // receipt regenerated on the device would be void after the next one.
+        // An absolute-path binding cannot hold on iOS.
+        //
+        // Detect that instead of hashing silently, and say what it costs: a run
+        // that falls back here has SHA-256 of 12.01 GiB smeared through its
+        // `io` figures, so its timings are NOT comparable with MEASUREMENTS.md.
+        var integrityPolicy: ModelIntegrityPolicy = .fullSha256
+        do {
+            let receipt = try VerifiedInstallReceiptReader.load(directoryURL: modelURL)
+            let actualPath = modelURL.standardizedFileURL.path
+            if receipt.modelDirectoryPath == actualPath {
+                integrityPolicy = .sizeCheckTrustedReceipt
+            } else {
+                emit("receipt-path-mismatch",
+                     "receipt names \(receipt.modelDirectoryPath) but the model is at "
+                        + "\(actualPath) — falling back to fullSha256, so io timings "
+                        + "from this run are contaminated")
+            }
+        } catch {
+            emit("no-install-receipt", "\(String(describing: error)) — falling back to "
+                + "fullSha256, so io timings from this run are contaminated")
         }
         let loadStarted = DispatchTime.now().uptimeNanoseconds
         let model = try Model.load(
@@ -255,9 +281,10 @@ final class Harness: ObservableObject {
             device: context.device,
             streamingMode: .pread(slotCount: runtime.expertCacheSlots),
             expertCachePolicy: runtime.modelExpertCachePolicy,
-            integrityPolicy: hasReceipt ? .sizeCheckTrustedReceipt : .fullSha256)
+            integrityPolicy: integrityPolicy)
         emit("model-loaded",
-             "ms=\((DispatchTime.now().uptimeNanoseconds - loadStarted) / 1_000_000)")
+             "policy=\(integrityPolicy == .fullSha256 ? "fullSha256" : "trustedReceipt") "
+                + "ms=\((DispatchTime.now().uptimeNanoseconds - loadStarted) / 1_000_000)")
 
         let runner = try RealForwardRunner(
             model: model,
