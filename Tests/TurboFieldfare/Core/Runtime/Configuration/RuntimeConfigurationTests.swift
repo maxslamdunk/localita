@@ -5,7 +5,16 @@ import Testing
     @Test func productionDefaultsAreStable() {
         let runtime = RuntimeConfiguration.production
         #expect(runtime.fp16RingEnabled)
+        // Literals per platform, not `productionExpertCacheSlots`, which would
+        // assert the constant against itself. `swift test` only ever runs the
+        // macOS branch; the iOS branch is asserted by the on-device test bundle
+        // in `iOS/`, which is the only thing that stops the iOS default from
+        // drifting unnoticed.
+        #if os(iOS)
+        #expect(runtime.expertCacheSlots == 32)
+        #else
         #expect(runtime.expertCacheSlots == 16)
+        #endif
         #expect(runtime.expertCachePolicy == .lfu)
         #expect(runtime.rdadvisePolicy == .off)
         #expect(!runtime.rdadviseEnabled)
