@@ -90,6 +90,15 @@ public enum ConversationRowPresentation {
     static func decimal(_ value: Int) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
+        // Pinned, not the user's locale. An unpinned formatter groups by region
+        // -- "1 234" on en_NL, "1.234" elsewhere -- so this copy read
+        // differently on every machine, and the tests asserting "1,234" passed
+        // only on a US-configured host. CI runs US-configured, which is why
+        // that stayed green until someone ran the suite on a European Mac.
+        // en_US, and deliberately not en_US_POSIX: POSIX suppresses digit
+        // grouping altogether ("1234"), which fails the same assertions for a
+        // new reason. Measured, after trying it.
+        formatter.locale = Locale(identifier: "en_US")
         return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 }

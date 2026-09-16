@@ -88,6 +88,13 @@ public enum ConversationContextPresentation {
     private static func number(_ value: Int) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
+        // Pinned rather than the user's locale, so this copy reads the same on
+        // every machine; unpinned it groups by region ("1 234" on en_NL).
+        // en_US and not en_US_POSIX, which suppresses grouping entirely
+        // ("1234"). Same fix, and the same duplicated helper, as
+        // `ConversationRowPresentation.decimal` in
+        // ConversationSidebarPresentation.swift.
+        formatter.locale = Locale(identifier: "en_US")
         return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 }
