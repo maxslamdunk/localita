@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Measured 2026-09-16 on the iPhone 17: this raises the usable ceiling
+	     from 3.53 GB to 5.60 GB, and a free personal team can sign it.
+	     `os_proc_available_memory` reports 6.43 GB with it; that number is
+	     wrong by 841 MB and must not be used for sizing. -->
+	<key>com.apple.developer.kernel.increased-memory-limit</key>
+	<true/>
+</dict>
+</plist>

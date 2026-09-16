@@ -55,3 +55,12 @@ __pycache__/
 # Compiled standalone probes (sources are tracked)
 Scripts/probes/*
 !Scripts/probes/*.c
+
+# The iOS app target is hand-written and IS the deliverable, so it is tracked
+# despite the blanket *.xcodeproj / *.xcscheme rules above. An app bundle cannot
+# be expressed in Package.swift, so losing this project would mean the port
+# could not be rebuilt. `xcuserdata/` stays ignored.
+!iOS/TurboFieldfareiOS.xcodeproj/
+!iOS/TurboFieldfareiOS.xcodeproj/project.pbxproj
+!iOS/TurboFieldfareiOS.xcodeproj/xcshareddata/
+!iOS/TurboFieldfareiOS.xcodeproj/xcshareddata/**/*.xcscheme

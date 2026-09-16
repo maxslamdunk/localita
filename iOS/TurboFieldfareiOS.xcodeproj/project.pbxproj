@@ -1,0 +1,256 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		FE00AA00BB00CC00DD00EE12 /* TurboFieldfare in Frameworks */ = {isa = PBXBuildFile; productRef = FE00AA00BB00CC00DD00EE11 /* TurboFieldfare */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		FE00AA00BB00CC00DD00EE01 /* TurboFieldfareiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TurboFieldfareiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		FE00AA00BB00CC00DD00EE02 /* TurboFieldfareiOS */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TurboFieldfareiOS;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		FE00AA00BB00CC00DD00EE03 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FE00AA00BB00CC00DD00EE12 /* TurboFieldfare in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		FE00AA00BB00CC00DD00EE04 = {
+			isa = PBXGroup;
+			children = (
+				FE00AA00BB00CC00DD00EE02 /* TurboFieldfareiOS */,
+				FE00AA00BB00CC00DD00EE05 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		FE00AA00BB00CC00DD00EE05 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				FE00AA00BB00CC00DD00EE01 /* TurboFieldfareiOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		FE00AA00BB00CC00DD00EE06 /* TurboFieldfareiOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FE00AA00BB00CC00DD00EE07 /* Build configuration list for PBXNativeTarget "TurboFieldfareiOS" */;
+			buildPhases = (
+				FE00AA00BB00CC00DD00EE08 /* Sources */,
+				FE00AA00BB00CC00DD00EE03 /* Frameworks */,
+				FE00AA00BB00CC00DD00EE09 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				FE00AA00BB00CC00DD00EE02 /* TurboFieldfareiOS */,
+			);
+			name = TurboFieldfareiOS;
+			packageProductDependencies = (
+				FE00AA00BB00CC00DD00EE11 /* TurboFieldfare */,
+			);
+			productName = TurboFieldfareiOS;
+			productReference = FE00AA00BB00CC00DD00EE01 /* TurboFieldfareiOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		FE00AA00BB00CC00DD00EE0A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					FE00AA00BB00CC00DD00EE06 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+				};
+			};
+			buildConfigurationList = FE00AA00BB00CC00DD00EE0B /* Build configuration list for PBXProject "TurboFieldfareiOS" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = FE00AA00BB00CC00DD00EE04;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				FE00AA00BB00CC00DD00EE10 /* XCLocalSwiftPackageReference ".." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = FE00AA00BB00CC00DD00EE05 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				FE00AA00BB00CC00DD00EE06 /* TurboFieldfareiOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		FE00AA00BB00CC00DD00EE09 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		FE00AA00BB00CC00DD00EE08 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		FE00AA00BB00CC00DD00EE0C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		FE00AA00BB00CC00DD00EE0D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		FE00AA00BB00CC00DD00EE0E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TurboFieldfare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PTWLHQ5QZX;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIFileSharingEnabled = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.maxslamdunk.TurboFieldfareiOS;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		FE00AA00BB00CC00DD00EE0F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TurboFieldfare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PTWLHQ5QZX;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIFileSharingEnabled = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.maxslamdunk.TurboFieldfareiOS;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		FE00AA00BB00CC00DD00EE07 /* Build configuration list for PBXNativeTarget "TurboFieldfareiOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FE00AA00BB00CC00DD00EE0E /* Debug */,
+				FE00AA00BB00CC00DD00EE0F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FE00AA00BB00CC00DD00EE0B /* Build configuration list for PBXProject "TurboFieldfareiOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FE00AA00BB00CC00DD00EE0C /* Debug */,
+				FE00AA00BB00CC00DD00EE0D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		FE00AA00BB00CC00DD00EE10 /* XCLocalSwiftPackageReference ".." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ..;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		FE00AA00BB00CC00DD00EE11 /* TurboFieldfare */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TurboFieldfare;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = FE00AA00BB00CC00DD00EE0A /* Project object */;
+}
