@@ -44,6 +44,41 @@ enum Mem {
     }
 }
 
+/// The device conditions that make one run incomparable with another. The A1
+/// and B1 probes logged thermal state and battery beside every point for this
+/// reason; a decode run needs them on the same grounds. Free space is here
+/// because `devicectl` reports total capacity only, and the model is ~14.3 GB.
+enum DeviceState {
+    static func freeSpaceBytes() -> Int64 {
+        let url = FileManager.default.urls(for: .applicationSupportDirectory,
+                                           in: .userDomainMask)[0]
+        let values = try? url.resourceValues(
+            forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+        return values?.volumeAvailableCapacityForImportantUsage ?? -1
+    }
+
+    static func thermal() -> String {
+        switch ProcessInfo.processInfo.thermalState {
+        case .nominal: return "nominal"
+        case .fair: return "fair"
+        case .serious: return "serious"
+        case .critical: return "critical"
+        @unknown default: return "unknown"
+        }
+    }
+
+    static func battery() -> String {
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        let level = Int((UIDevice.current.batteryLevel * 100).rounded())
+        switch UIDevice.current.batteryState {
+        case .charging: return "\(level)%/charging"
+        case .full: return "\(level)%/full"
+        case .unplugged: return "\(level)%/unplugged"
+        default: return "\(level)%/unknown"
+        }
+    }
+}
+
 struct HarnessSettings {
     /// The benchmark protocol passes `--max-context 4096` explicitly, so the
     /// measured rows are 4K regardless of the 8K CLI default.
@@ -146,7 +181,9 @@ final class Harness: ObservableObject {
 
         let log = RunLog(label: settings.label)
         self.log = log
-        emit("start", "device=\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)")
+        emit("start", "os=\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
+            + " free=\(DeviceState.freeSpaceBytes())"
+            + " thermal=\(DeviceState.thermal()) battery=\(DeviceState.battery())")
 
         do {
             try await generate(settings: settings)
