@@ -161,14 +161,16 @@ Steps:
    overstates the entitled one by 841 MB, so the ceiling is the measured kill
    point, never what that API reports. **Mapped file pages are nearly free
    against it:** 1.26 GiB mmapped, page-touched, wrapped in an `MTLBuffer` and
-   GPU-resident cost ~16.6 MB of footprint (n=1), so the ~1.35 GB of resident
-   shared weights need not come out of the budget — the ceiling is spent on the
-   KV cache, expert slots and scratch. Mapping that much needed no
-   extended-virtual-addressing entitlement. Numbers, caveats and logs: the three
-   2026-09-16 rows in `MEASUREMENTS.md`; probe at
+   GPU-resident cost ~16.6 MB of footprint (16.61 and 16.78 MB in two runs), so
+   the ~1.35 GB of resident shared weights need not come out of the budget — the
+   ceiling is spent on the KV cache, expert slots and scratch. Mapping that much
+   needed no extended-virtual-addressing entitlement. ⚠️ **The entitled ceiling
+   varies with system state** — 5.60 GB twice, then 5.67 and 5.87 GB, the last
+   right after a reboot — so size against 5.60 GB as a floor and expect no
+   guarantee. The unentitled limit reproduced to the byte. Numbers, caveats and
+   logs: the four 2026-09-16 rows in `MEASUREMENTS.md`; probe at
    `~/ml_projects/iphone-port/probes/memory-ceiling`. Still open: the KV budget at
-   4K against 8K context, and the mapped result is n=1 because the repeat run's
-   log could not be retrieved.
+   4K against 8K context.
 2. **Model delivery.** Getting ~14.3 GB onto a phone: on-device download plus
    repack, storage provisioning, eviction behavior. A Track A blocker, not a
    later product concern.
