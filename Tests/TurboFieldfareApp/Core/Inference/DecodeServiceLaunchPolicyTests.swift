@@ -1,5 +1,6 @@
 import Testing
 @testable import TurboFieldfareAppCore
+@testable import TurboFieldfareMacInference
 
 @Suite struct DecodeServiceLaunchPolicyTests {
     @Test func kickstartTargetsGUIJobWithoutRestartingIt() {

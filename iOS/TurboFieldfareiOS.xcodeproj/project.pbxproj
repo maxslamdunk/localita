@@ -10,6 +10,7 @@
 		FE00AA00BB00CC00DD00EE12 /* TurboFieldfare in Frameworks */ = {isa = PBXBuildFile; productRef = FE00AA00BB00CC00DD00EE11 /* TurboFieldfare */; };
 		FE00AA00BB00CC00DD00EE20 /* TurboFieldfare in Frameworks */ = {isa = PBXBuildFile; productRef = FE00AA00BB00CC00DD00EE21 /* TurboFieldfare */; };
 		FE00AA00BB00CC00DD00EE22 /* TurboFieldfareValidationSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FE00AA00BB00CC00DD00EE1F /* TurboFieldfareValidationSupport */; };
+		FE00AA00BB00CC00DD00EE30 /* TurboFieldfareAppCore in Frameworks */ = {isa = PBXBuildFile; productRef = FE00AA00BB00CC00DD00EE31 /* TurboFieldfareAppCore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -87,6 +88,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FE00AA00BB00CC00DD00EE12 /* TurboFieldfare in Frameworks */,
+				FE00AA00BB00CC00DD00EE30 /* TurboFieldfareAppCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -143,6 +145,7 @@
 			name = TurboFieldfareiOS;
 			packageProductDependencies = (
 				FE00AA00BB00CC00DD00EE11 /* TurboFieldfare */,
+				FE00AA00BB00CC00DD00EE31 /* TurboFieldfareAppCore */,
 			);
 			productName = TurboFieldfareiOS;
 			productReference = FE00AA00BB00CC00DD00EE01 /* TurboFieldfareiOS.app */;
@@ -431,6 +434,10 @@
 		FE00AA00BB00CC00DD00EE1F /* TurboFieldfareValidationSupport */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = TurboFieldfareValidationSupport;
+		};
+		FE00AA00BB00CC00DD00EE31 /* TurboFieldfareAppCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TurboFieldfareAppCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -207,14 +207,24 @@ Steps:
    **byte-identical artifact** the Mac reference was measured on, which Track A's
    definition of done requires anyway. The phone had **50.5 GB free** before the
    copy (measured on-device 2026-09-16; `devicectl` reports total capacity only).
-   Porting the installer stays on the plan as the product answer, and it has a
-   known prerequisite: `TurboFieldfareAppCore` does not build for iOS because
-   `Inference/DecodeServiceInferenceClient.swift` uses `Process`, which iOS does
-   not have. That is not a bug — the Mac app is two processes so its UI never
-   holds a second model, and on iOS a second process would be actively harmful
-   under jetsam. The `Installation/` half of that target **is** wanted on the
-   phone, so the target needs splitting along the `Inference/` boundary before
-   on-device install is possible.
+   Porting the installer stays on the plan as the product answer, and its
+   **prerequisite is met as of 2026-09-17.** `TurboFieldfareAppCore` did not
+   build for iOS because `Inference/DecodeServiceInferenceClient.swift` uses
+   `Process`, which iOS does not have. That was never a bug — the Mac app is two
+   processes so its UI never holds a second model, and on iOS a second process
+   would be actively harmful under jetsam. ✅ **The split is done:** that file and
+   its `DecodeServiceResponseRouter` moved to a macOS-only
+   `TurboFieldfareMacInference` target, and `TurboFieldfareAppCore` **also
+   dropped its `TurboFieldfareDecodeProtocol` dependency** — those two files were
+   its only importers, so the socket transport is now entirely out of the iOS
+   build. ⚠️ **The boundary is the client, not `Inference/`**, which this entry
+   had assumed: the half the phone wants *includes*
+   `Inference/RealInferenceClient.swift`, because `AppModel`'s default client is
+   the in-process one and only `TurboFieldfareMacApp` overrides it. So the phone
+   needs no new inference path — it needs the default. `TurboFieldfareAppCore` is
+   now a library product, and the `iOS/` app target links it and compiles for
+   `generic/platform=iOS`, so this is verified rather than asserted. The
+   `Installation/` half is therefore reachable and on-device install is unblocked.
 3. **Port the runtime — started 2026-09-16, app target building and running on
    the device.** 16-slot expert cache untouched, no optimization.
    - **The runtime needed no porting to compile.** `TurboFieldfare` (85 files,

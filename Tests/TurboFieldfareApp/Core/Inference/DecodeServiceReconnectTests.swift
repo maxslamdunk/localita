@@ -4,6 +4,7 @@ import Synchronization
 import Testing
 @testable import TurboFieldfare
 @testable import TurboFieldfareAppCore
+@testable import TurboFieldfareMacInference
 import TurboFieldfareDecodeProtocol
 
 /// A stand-in decode service: it speaks the wire protocol over a real socket

@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import TurboFieldfareAppCore
+@testable import TurboFieldfareMacInference
 import TurboFieldfareDecodeProtocol
 
 @Suite struct DecodeServiceResponseMatchingTests {

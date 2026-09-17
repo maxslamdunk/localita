@@ -1,7 +1,8 @@
 import AppKit
-import TurboFieldfareAppCore
-import TurboFieldfareMacPresentation
 import SwiftUI
+import TurboFieldfareAppCore
+import TurboFieldfareMacInference
+import TurboFieldfareMacPresentation
 
 // Run as a regular foreground app even when launched as a bare SwiftPM
 // executable (no .app bundle): Dock icon, click-to-activate, full main menu

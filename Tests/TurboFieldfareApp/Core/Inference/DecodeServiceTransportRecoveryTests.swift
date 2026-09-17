@@ -3,6 +3,7 @@ import Foundation
 import Synchronization
 import Testing
 @testable import TurboFieldfareAppCore
+@testable import TurboFieldfareMacInference
 import TurboFieldfareDecodeProtocol
 
 /// The failure this covers is a decode service that is *alive but mute*: its

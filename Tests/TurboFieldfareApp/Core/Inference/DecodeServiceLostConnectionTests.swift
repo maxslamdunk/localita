@@ -2,6 +2,7 @@ import Foundation
 import Testing
 import TurboFieldfareDecodeProtocol
 @testable import TurboFieldfareAppCore
+@testable import TurboFieldfareMacInference
 
 /// A service the client can no longer reach is one loss, whatever was asked
 /// of it.

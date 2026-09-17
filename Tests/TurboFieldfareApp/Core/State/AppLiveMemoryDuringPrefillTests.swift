@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import TurboFieldfareAppCore
+@testable import TurboFieldfareMacInference
 import TurboFieldfareDecodeProtocol
 
 /// Prefill is the long phase for a large prompt or an image, and it is exactly

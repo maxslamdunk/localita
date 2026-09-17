@@ -160,6 +160,14 @@ public struct AppTokenEvent: Equatable, Sendable {
     public var index: Int
     public var textDelta: String
     public var elapsedDecodeSeconds: Double
+
+    /// Explicit because a public struct's memberwise initializer is internal,
+    /// and the decode-service client now builds these from another module.
+    public init(index: Int, textDelta: String, elapsedDecodeSeconds: Double) {
+        self.index = index
+        self.textDelta = textDelta
+        self.elapsedDecodeSeconds = elapsedDecodeSeconds
+    }
 }
 
 public enum AppInferenceEvent: Equatable, Sendable {

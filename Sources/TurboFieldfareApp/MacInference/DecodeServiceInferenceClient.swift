@@ -2,6 +2,7 @@ import Darwin
 import Foundation
 import Synchronization
 import TurboFieldfare
+import TurboFieldfareAppCore
 import TurboFieldfareDecodeProtocol
 
 public final class DecodeServiceInferenceClient: AppModelLifecycleClient,

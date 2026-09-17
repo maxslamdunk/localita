@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import TurboFieldfareAppCore
+@testable import TurboFieldfareMacInference
 
 @Suite struct DecodeServiceConnectionInvalidationTests {
     @Test func lostResetAcknowledgementDiscardsTheDeadConnection() async throws {

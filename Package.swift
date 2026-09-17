@@ -16,6 +16,11 @@ let package = Package(
         .library(
             name: "TurboFieldfareValidationSupport",
             targets: ["TurboFieldfareValidationSupport"]),
+        // Products, not bare targets, because the iOS app is an Xcode target
+        // and Xcode links products. Same reason `TurboFieldfareValidationSupport`
+        // is one: a target the iOS app cannot link is a target the port cannot
+        // reuse, which is the whole point of splitting these out of the Mac app.
+        .library(name: "TurboFieldfareAppCore", targets: ["TurboFieldfareAppCore"]),
         .executable(name: "TurboFieldfareRepack", targets: ["TurboFieldfareRepack"]),
         .executable(name: "TurboFieldfareCLI", targets: ["TurboFieldfareCLI"]),
         .executable(name: "TurboFieldfareMac", targets: ["TurboFieldfareMac"]),
@@ -72,11 +77,31 @@ let package = Package(
         ),
         .target(
             name: "TurboFieldfareAppCore",
-            dependencies: ["TurboFieldfare", "TurboFieldfareRepackCore", "TurboFieldfareDecodeProtocol"],
+            // No `TurboFieldfareDecodeProtocol`: the only two files that imported
+            // it were the decode-service client and its response router, which
+            // now live in `TurboFieldfareMacInference`. Dropping the dependency
+            // is what keeps the socket transport out of the iOS build.
+            dependencies: ["TurboFieldfare", "TurboFieldfareRepackCore"],
             path: "Sources/TurboFieldfareApp/Core",
             resources: [
                 .copy("Resources/app-prompts.json"),
             ]
+        ),
+        // The Mac app runs as two processes so its UI never holds a second
+        // model. iOS has no `Process` and a second process would be actively
+        // harmful under jetsam, so the socket client is macOS-only by
+        // construction — it is the reason `TurboFieldfareAppCore` did not build
+        // for iOS. `AppModel`'s default client is the in-process
+        // `RealInferenceClient`, which is the one the phone wants; only
+        // `TurboFieldfareMacApp` overrides it with this.
+        .target(
+            name: "TurboFieldfareMacInference",
+            dependencies: [
+                "TurboFieldfare",
+                "TurboFieldfareAppCore",
+                "TurboFieldfareDecodeProtocol",
+            ],
+            path: "Sources/TurboFieldfareApp/MacInference"
         ),
         .target(
             name: "TurboFieldfareMacPresentation",
@@ -113,7 +138,11 @@ let package = Package(
         ),
         .executableTarget(
             name: "TurboFieldfareMac",
-            dependencies: ["TurboFieldfareAppCore", "TurboFieldfareMacPresentation"],
+            dependencies: [
+                "TurboFieldfareAppCore",
+                "TurboFieldfareMacInference",
+                "TurboFieldfareMacPresentation",
+            ],
             path: "Sources/TurboFieldfareApp/Mac",
             resources: [
                 .copy("Resources/turbofieldfare-app-icon.png"),
@@ -157,6 +186,10 @@ let package = Package(
             dependencies: [
                 "TurboFieldfareAppCore", "TurboFieldfare", "TurboFieldfareRepackCore",
                 "TurboFieldfareDecodeProtocol",
+                // The decode-service client moved out of AppCore; its tests did
+                // not, so they reach it from here rather than being split into
+                // a target of their own.
+                "TurboFieldfareMacInference",
                 // `SplitMix64`, for the seeded conversation-history walk. The
                 // only seeded generator in the tree; a second copy would drift.
                 "TurboFieldfareValidationSupport",
@@ -170,7 +203,10 @@ let package = Package(
         ),
         .testTarget(
             name: "TurboFieldfareMacPresentationTests",
-            dependencies: ["TurboFieldfareAppCore", "TurboFieldfareMacPresentation"],
+            dependencies: [
+                "TurboFieldfareAppCore",
+                "TurboFieldfareMacPresentation",
+            ],
             path: "Tests/TurboFieldfareApp/MacPresentation",
             resources: [.copy("Fixtures")]
         ),
