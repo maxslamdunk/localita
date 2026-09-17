@@ -28,8 +28,8 @@ import Foundation
 /// bytes that arrived, not the bytes that are there: re-scanning a 10 KB fenced
 /// block on each of the ~1,200 ticks it takes to stream is the quadratic shape
 /// the streaming timing gate exists to catch.
-enum ResponseBlockSplitter {
-    enum Kind: Equatable {
+public enum ResponseBlockSplitter {
+    public enum Kind: Equatable {
         case paragraph
         case heading
         case fencedCode
@@ -41,27 +41,27 @@ enum ResponseBlockSplitter {
         case thematicBreak
     }
 
-    struct Fence: Equatable {
-        let marker: UInt8
-        let length: Int
-        let indent: Int
+    public struct Fence: Equatable {
+        public let marker: UInt8
+        public let length: Int
+        public let indent: Int
         /// First byte after the opening fence line.
-        let bodyStart: Int
+        public let bodyStart: Int
         /// First byte of the closing fence line, or the end of the block.
-        let bodyEnd: Int
-        let isClosed: Bool
+        public let bodyEnd: Int
+        public let isClosed: Bool
     }
 
-    struct Block: Equatable {
+    public struct Block: Equatable {
         /// UTF-8 offset of the block's first byte.
-        let start: Int
+        public let start: Int
         /// UTF-8 offset one past the block's last non-blank byte; the line
         /// terminator that follows is not part of the block.
-        let end: Int
-        let kind: Kind
-        let fence: Fence?
+        public let end: Int
+        public let kind: Kind
+        public let fence: Fence?
 
-        var utf8Range: Range<Int> { start..<end }
+        public var utf8Range: Range<Int> { start..<end }
     }
 
     /// Scanner position that survives an append. Only complete lines commit,
@@ -96,15 +96,20 @@ enum ResponseBlockSplitter {
         var innerFenceLength = 0
     }
 
-    struct Split: Equatable {
-        var completed: [Block] = []
-        var open: Block?
+    public struct Split: Equatable {
+        public var completed: [Block] = []
+        public var open: Block?
         var scan = ScanState()
 
-        var blocks: [Block] { completed + (open.map { [$0] } ?? []) }
+        /// Explicit because `scan` stays internal, which makes the memberwise
+        /// initializer internal too; the transcript controller starts a fresh
+        /// split from another module.
+        public init() {}
+
+        public var blocks: [Block] { completed + (open.map { [$0] } ?? []) }
     }
 
-    static func split(_ response: String) -> Split {
+    public static func split(_ response: String) -> Split {
         scan(response, from: Split())
     }
 
@@ -112,11 +117,11 @@ enum ResponseBlockSplitter {
     /// extends the string `previous` was produced from; a shorter or diverging
     /// response has to go through `split(_:)` instead, because the committed
     /// blocks are not re-examined.
-    static func split(_ response: String, resuming previous: Split) -> Split {
+    public static func split(_ response: String, resuming previous: Split) -> Split {
         scan(response, from: previous)
     }
 
-    static func text(_ range: Range<Int>, in response: String) -> String {
+    public static func text(_ range: Range<Int>, in response: String) -> String {
         withUTF8(response) { bytes in
             let lower = min(max(range.lowerBound, 0), bytes.count)
             let upper = min(max(range.upperBound, lower), bytes.count)

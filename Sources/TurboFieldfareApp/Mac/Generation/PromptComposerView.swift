@@ -4,6 +4,7 @@ import TurboFieldfareAppCore
 import TurboFieldfareMacPresentation
 import SwiftUI
 import UniformTypeIdentifiers
+import TurboFieldfareAppPresentation
 
 struct PromptComposerView: View {
     @Bindable var model: AppModel

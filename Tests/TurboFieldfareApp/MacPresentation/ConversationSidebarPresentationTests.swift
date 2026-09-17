@@ -3,6 +3,7 @@ import SwiftUI
 import Testing
 import TurboFieldfare
 @testable import TurboFieldfareAppCore
+@testable import TurboFieldfareAppPresentation
 @testable import TurboFieldfareMacPresentation
 
 /// A row that cannot be continued has to say which of the two very different

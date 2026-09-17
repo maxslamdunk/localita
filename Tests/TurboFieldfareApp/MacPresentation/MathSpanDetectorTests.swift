@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+@testable import TurboFieldfareAppPresentation
 @testable import TurboFieldfareMacPresentation
 
 @Suite struct MathSpanDetectorTests {

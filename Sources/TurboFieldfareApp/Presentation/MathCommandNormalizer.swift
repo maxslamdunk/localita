@@ -8,7 +8,7 @@ import Foundation
 /// already renders gets no rule, because rewriting it would trade real
 /// notation for an approximation; a command with no rule passes through and
 /// fails visibly instead of being silently mangled.
-enum MathCommandNormalizer {
+public enum MathCommandNormalizer {
     /// A rewritten argument is rewritten in turn, so `\boxed{\boxed{...}}`
     /// costs one stack frame per level. Real answers nest a handful deep;
     /// thousands deep is a runaway generation, and overflowing the stack there
@@ -16,7 +16,7 @@ enum MathCommandNormalizer {
     /// and renders as raw text instead.
     private static let maximumDepth = 256
 
-    static func normalize(_ latex: String) -> String {
+    public static func normalize(_ latex: String) -> String {
         var overflowed = false
         let rewritten = rewrite(Array(latex), depth: 0, overflowed: &overflowed)
         return overflowed ? latex : rewritten

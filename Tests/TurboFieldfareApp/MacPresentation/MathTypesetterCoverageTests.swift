@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import SwiftMath
 import Testing
+@testable import TurboFieldfareAppPresentation
 @testable import TurboFieldfareMacPresentation
 
 /// The one place that reaches the typesetting library directly rather than

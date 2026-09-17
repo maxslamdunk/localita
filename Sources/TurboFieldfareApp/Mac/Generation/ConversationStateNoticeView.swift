@@ -1,6 +1,7 @@
 import SwiftUI
 import TurboFieldfareAppCore
 import TurboFieldfareMacPresentation
+import TurboFieldfareAppPresentation
 
 /// The banner above the composer when the chat on screen cannot be continued.
 ///

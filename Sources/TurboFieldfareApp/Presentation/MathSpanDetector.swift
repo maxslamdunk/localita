@@ -1,36 +1,36 @@
 import Foundation
 
-struct MathSpan: Equatable {
-    enum Mode: Equatable {
+public struct MathSpan: Equatable {
+    public enum Mode: Equatable {
         case inline
         case display
     }
 
     /// Character offsets into the string the span was found in.
-    let range: Range<Int>
-    let mode: Mode
+    public let range: Range<Int>
+    public let mode: Mode
     /// The exact source text, delimiters included.
-    let source: String
+    public let source: String
     /// What goes to the typesetter: the text between the delimiters.
-    let latex: String
+    public let latex: String
     /// A partial equation from an interrupted generation. It is substituted
     /// like any other span so the markdown pass cannot eat its backslashes,
     /// then restored verbatim instead of typeset.
-    let isLiteralProtect: Bool
+    public let isLiteralProtect: Bool
 }
 
 /// Finds the math in a model answer before the markdown parser gets to mangle
 /// it. Every rule here exists because a real answer broke without it: currency
 /// pairs, shell variables in prose, `$` inside link destinations, `\$` inside
 /// an equation, and code regions that must never be searched at all.
-enum MathSpanDetector {
-    static let openSentinel: Character = "\u{E000}"
-    static let closeSentinel: Character = "\u{E001}"
+public enum MathSpanDetector {
+    public static let openSentinel: Character = "\u{E000}"
+    public static let closeSentinel: Character = "\u{E001}"
 
-    struct Substitution: Equatable {
+    public struct Substitution: Equatable {
         /// The source with each span replaced by its indexed sentinel.
-        let working: String
-        let spans: [MathSpan]
+        public let working: String
+        public let spans: [MathSpan]
     }
 
     /// Environments KaTeX auto-renders at block level. Anything outside this
@@ -52,7 +52,7 @@ enum MathSpanDetector {
         return String(source.filter { $0 != openSentinel && $0 != closeSentinel })
     }
 
-    static func substitute(_ source: String) -> Substitution {
+    public static func substitute(_ source: String) -> Substitution {
         let stripped = strippingSentinels(source)
         let spans = self.spans(in: stripped)
         guard !spans.isEmpty else { return Substitution(working: stripped, spans: spans) }

@@ -14,7 +14,7 @@ import Foundation
 /// is why a base character carrying a combining mark is drawn — its string
 /// sorts inside the range its base falls in — and the empirical probe measures
 /// every scalar of this against the build.
-enum PinnedMathCoverage {
+public enum PinnedMathCoverage {
     static func renders(_ character: Character) -> Bool {
         let text = String(character)
         if text >= "\u{0410}", text <= "\u{044F}" { return true }
@@ -33,7 +33,7 @@ enum PinnedMathCoverage {
     /// Command names are skipped, because the letters after a backslash are a
     /// command rather than literal text, and so are `\text{...}` groups, which
     /// is the one place the builder accepts anything at all.
-    static func firstDroppedCharacter(in latex: String) -> Character? {
+    public static func firstDroppedCharacter(in latex: String) -> Character? {
         let characters = Array(latex)
         var index = 0
         while index < characters.count {

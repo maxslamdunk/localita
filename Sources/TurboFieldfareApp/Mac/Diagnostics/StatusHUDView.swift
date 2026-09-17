@@ -1,6 +1,7 @@
 import TurboFieldfareAppCore
 import TurboFieldfareMacPresentation
 import SwiftUI
+import TurboFieldfareAppPresentation
 
 struct StatusHUDView: View {
     let model: AppModel

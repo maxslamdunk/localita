@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import TurboFieldfareAppCore
+@testable import TurboFieldfareAppPresentation
 @testable import TurboFieldfareMacPresentation
 
 @Suite struct GenericErrorBannerPolicyTests {

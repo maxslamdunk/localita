@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+@testable import TurboFieldfareAppPresentation
 @testable import TurboFieldfareMacPresentation
 
 /// The grammar four scanners share. Every row runs through both entry points,

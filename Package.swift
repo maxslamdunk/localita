@@ -21,6 +21,9 @@ let package = Package(
         // is one: a target the iOS app cannot link is a target the port cannot
         // reuse, which is the whole point of splitting these out of the Mac app.
         .library(name: "TurboFieldfareAppCore", targets: ["TurboFieldfareAppCore"]),
+        .library(
+            name: "TurboFieldfareAppPresentation",
+            targets: ["TurboFieldfareAppPresentation"]),
         .executable(name: "TurboFieldfareRepack", targets: ["TurboFieldfareRepack"]),
         .executable(name: "TurboFieldfareCLI", targets: ["TurboFieldfareCLI"]),
         .executable(name: "TurboFieldfareMac", targets: ["TurboFieldfareMac"]),
@@ -103,11 +106,24 @@ let package = Package(
             ],
             path: "Sources/TurboFieldfareApp/MacInference"
         ),
+        // Presentation logic with no AppKit in it: streamed-markdown block
+        // splitting, fence and math span detection, transcript sync planning,
+        // formatting policy. Shared so the iOS views are not a second
+        // implementation that drifts from the Mac's and then lies.
+        .target(
+            name: "TurboFieldfareAppPresentation",
+            dependencies: [
+                "TurboFieldfare",
+                "TurboFieldfareAppCore",
+            ],
+            path: "Sources/TurboFieldfareApp/Presentation"
+        ),
         .target(
             name: "TurboFieldfareMacPresentation",
             dependencies: [
                 "TurboFieldfare",
                 "TurboFieldfareAppCore",
+                "TurboFieldfareAppPresentation",
                 .product(name: "SwiftMath", package: "SwiftMath"),
             ],
             path: "Sources/TurboFieldfareApp/MacPresentation"
@@ -140,6 +156,7 @@ let package = Package(
             name: "TurboFieldfareMac",
             dependencies: [
                 "TurboFieldfareAppCore",
+                "TurboFieldfareAppPresentation",
                 "TurboFieldfareMacInference",
                 "TurboFieldfareMacPresentation",
             ],
@@ -205,6 +222,7 @@ let package = Package(
             name: "TurboFieldfareMacPresentationTests",
             dependencies: [
                 "TurboFieldfareAppCore",
+                "TurboFieldfareAppPresentation",
                 "TurboFieldfareMacPresentation",
             ],
             path: "Tests/TurboFieldfareApp/MacPresentation",

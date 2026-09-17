@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import TurboFieldfareAppCore
+import TurboFieldfareAppPresentation
 import TurboFieldfareMacInference
 import TurboFieldfareMacPresentation
 

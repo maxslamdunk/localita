@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+@testable import TurboFieldfareAppPresentation
 @testable import TurboFieldfareMacPresentation
 
 /// These decisions lived inside a private view coordinator, where no test could

@@ -2,6 +2,7 @@ import AppKit
 import TurboFieldfareAppCore
 import TurboFieldfareMacPresentation
 import SwiftUI
+import TurboFieldfareAppPresentation
 
 struct InspectorView: View {
     @Bindable var model: AppModel

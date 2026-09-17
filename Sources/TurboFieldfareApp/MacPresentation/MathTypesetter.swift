@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import SwiftMath
 import os
+import TurboFieldfareAppPresentation
 
 public enum MathRenderMode: Sendable {
     case inline

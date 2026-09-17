@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import TurboFieldfareAppCore
 import TurboFieldfareMacPresentation
+import TurboFieldfareAppPresentation
 
 /// The list of stored conversations, built as a panel rather than a
 /// `NavigationSplitView` column.

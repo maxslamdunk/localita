@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import TurboFieldfareAppPresentation
 
 @MainActor
 public final class InstructionTranscriptDocumentController {

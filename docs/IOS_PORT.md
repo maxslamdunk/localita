@@ -702,6 +702,21 @@ two options at no cost.
   stranded on an iOS branch. Only the genuinely platform-specific delta
   (`Package.swift` platforms, app target, jetsam handling, on-device delivery,
   no-AppKit paths) is iOS-only.
+  - **Worked example, 2026-09-17 — the app-layer split.**
+    `TurboFieldfareMacInference` takes the `Process`-using socket client out of
+    `TurboFieldfareAppCore` (step 2 above), and `TurboFieldfareAppPresentation`
+    takes the 18 AppKit-free presentation files out of
+    `TurboFieldfareMacPresentation` — streamed-markdown block splitting, fence
+    and math span detection, transcript sync planning, formatting policy. Both
+    are platform-neutral, leave the Mac app's behaviour unchanged, and were
+    recorded by git as renames, which is what keeps them cherry-pickable rather
+    than stranded. Consequence worth stating plainly: an iOS chat UI is a **view
+    layer against `AppModel`**, not a second application, because the state,
+    persistence and formatting layers are now shared and the inference seam's
+    default client is already the in-process one. ⚠️ Nothing about that UI is on
+    this plan yet, and two things would gate it if it were — reopening a
+    conversation replays its history through prefill, which the long case
+    measures at 168 s, and the KV budget at 8K context is still open from step 1.
 
 ### Coordination hazard
 

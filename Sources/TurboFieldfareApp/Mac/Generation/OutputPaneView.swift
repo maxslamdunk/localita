@@ -3,6 +3,7 @@ import TurboFieldfare
 import TurboFieldfareAppCore
 import TurboFieldfareMacPresentation
 import SwiftUI
+import TurboFieldfareAppPresentation
 
 struct OutputPaneView: View {
     let model: AppModel

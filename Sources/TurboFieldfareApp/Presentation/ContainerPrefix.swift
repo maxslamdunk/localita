@@ -5,7 +5,7 @@ import Foundation
 /// interrupts it, and both the splitter and the tail auto-close need the same
 /// answer: a fence at the column is the item's own listing, one before it ends
 /// the list.
-enum ContainerPrefix {
+public enum ContainerPrefix {
     struct ListItem: Equatable {
         /// Columns of indentation before the marker.
         let markerIndent: Int

@@ -1,5 +1,6 @@
 import Testing
 import CoreGraphics
+@testable import TurboFieldfareAppPresentation
 @testable import TurboFieldfareMacPresentation
 
 /// The transcript's auto-follow, which has now been wrong in both directions:

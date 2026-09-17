@@ -1,5 +1,6 @@
 import SwiftUI
 import TurboFieldfareMacPresentation
+import TurboFieldfareAppPresentation
 
 struct HUDMetricView: View {
     let value: String

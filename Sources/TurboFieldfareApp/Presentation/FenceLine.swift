@@ -9,23 +9,23 @@ import Foundation
 /// mask all read it as an opener and boxed the rest of the answer as code,
 /// while the renderer's raw-fallback gate counted delimiters instead of lines
 /// and sent an answer with one mid-line ```` ``` ```` to raw text entirely.
-enum FenceLine {
+public enum FenceLine {
     static let backtick = UInt8(ascii: "`")
     static let tilde = UInt8(ascii: "~")
 
-    struct Run: Equatable {
+    public struct Run: Equatable {
         /// ASCII `` ` `` or `~`.
-        let marker: UInt8
-        let length: Int
+        public let marker: UInt8
+        public let length: Int
         /// The line's own indentation in columns, container included.
-        let indent: Int
+        public let indent: Int
         /// Nothing after the marker run but spaces, which is what a closing
         /// fence is; an opener carries an info string.
-        let isBare: Bool
+        public let isBare: Bool
 
-        var character: Character { Character(UnicodeScalar(marker)) }
+        public var character: Character { Character(UnicodeScalar(marker)) }
 
-        func closes(marker: UInt8, length: Int) -> Bool {
+        public func closes(marker: UInt8, length: Int) -> Bool {
             isBare && self.marker == marker && self.length >= length
         }
     }
@@ -34,7 +34,7 @@ enum FenceLine {
     ///   sits in — a list item's text column, zero at top level. CommonMark
     ///   allows a fence up to three columns past it, and a fence further left
     ///   than the column belongs to whatever encloses the container.
-    static func run(
+    public static func run(
         _ bytes: UnsafeBufferPointer<UInt8>,
         in content: Range<Int>,
         containerIndent: Int = 0
@@ -78,7 +78,7 @@ enum FenceLine {
             infoHasBacktick: infoHasBacktick)
     }
 
-    static func run(
+    public static func run(
         _ characters: some Collection<Character>,
         containerIndent: Int = 0
     ) -> Run? {

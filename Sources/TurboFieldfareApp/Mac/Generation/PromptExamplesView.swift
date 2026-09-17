@@ -1,6 +1,7 @@
 import TurboFieldfareAppCore
 import SwiftUI
 import TurboFieldfareMacPresentation
+import TurboFieldfareAppPresentation
 
 struct PromptExamplesView: View {
     let select: (AppPromptPreset) -> Void

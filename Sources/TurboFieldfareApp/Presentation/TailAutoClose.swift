@@ -12,7 +12,7 @@ import Foundation
 /// the closer is missing. A marker with nothing after it is removed instead,
 /// because closing `**` with `**` writes `****`, which is new structure rather
 /// than the emphasis the model is about to open.
-enum TailAutoClose {
+public enum TailAutoClose {
     /// U+200B. Breaks the "only `-` or `=`" rule that would otherwise turn the
     /// line above a half-typed rule into a setext heading for one tick.
     static let setextGuard: Character = "\u{200B}"
@@ -21,7 +21,7 @@ enum TailAutoClose {
     ///   result. An unfinished `$$` is only worth closing for a pass that turns
     ///   it into an equation; a pass that keeps the LaTeX as source would just
     ///   show two dollars the model never wrote.
-    static func close(_ tail: String, typesetsMath: Bool = true) -> String {
+    public static func close(_ tail: String, typesetsMath: Bool = true) -> String {
         guard !tail.isEmpty else { return tail }
         if let fence = unclosedFence(tail) {
             var closed = tail
