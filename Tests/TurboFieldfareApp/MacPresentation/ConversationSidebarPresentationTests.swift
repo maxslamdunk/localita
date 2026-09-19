@@ -61,8 +61,14 @@ import TurboFieldfare
             for: tomorrow, now: now, calendar: calendar) == .today)
     }
 
+    /// An injected `now`, for the reason the test above gives. On a live clock
+    /// this passes all day and fails between midnight and 01:00, when "an hour
+    /// ago" falls into Yesterday and splits the Today section in two.
+    /// `sections` groups against `Calendar.current`, so the anchor is built in
+    /// that calendar and not the UTC one this suite uses elsewhere.
     @Test func sectionsAreOrderedNewestFirstWithinAndBetween() {
-        let now = Date()
+        let now = Calendar.current.date(from: DateComponents(
+            year: 2026, month: 8, day: 31, hour: 14))!
         let today = meta("today", updatedAt: now.addingTimeInterval(-60))
         let earlierToday = meta("earlier", updatedAt: now.addingTimeInterval(-3_600))
         let old = meta("old", updatedAt: now.addingTimeInterval(-60 * 60 * 24 * 30))
