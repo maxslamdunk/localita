@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+@testable import TurboFieldfareRichText
 @testable import TurboFieldfareMacPresentation
 
 /// A comparable description of what an attributed string draws.

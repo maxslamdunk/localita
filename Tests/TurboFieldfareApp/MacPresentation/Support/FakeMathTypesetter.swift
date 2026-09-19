@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+@testable import TurboFieldfareRichText
 @testable import TurboFieldfareMacPresentation
 
 /// Deterministic stand-in for the typesetter. Renderer tests assert what the

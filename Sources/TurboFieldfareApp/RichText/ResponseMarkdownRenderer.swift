@@ -1,6 +1,11 @@
-import AppKit
 import Foundation
 import TurboFieldfareAppPresentation
+
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 /// The renderer surface the transcript controller depends on. Narrow on
 /// purpose: it is also the seam a test uses to count how many times a block is
@@ -83,12 +88,36 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
     private let mathEnabled: Bool
     private let typesetter: any MathTypesetting
 
+    /// Colour for body text — and so for equations too, since `resolveMath`
+    /// reads the tint back off the run's own `.foregroundColor` rather than
+    /// taking a colour of its own. Setting it therefore reaches the typeset
+    /// image, which a recolour applied after the fact cannot: an attachment is
+    /// a bitmap by then, and `.foregroundColor` no longer governs it.
+    ///
+    /// A defaulted stored property rather than an `init` parameter, and
+    /// deliberately so: adding a parameter changes the initializer's mangled
+    /// name, and every caller already built against the old one links a symbol
+    /// that no longer exists.
+    private var bodyColor: PlatformColor = .transcriptLabel
+
     public init(
         environment: [String: String] = ProcessInfo.processInfo.environment,
         typesetter: any MathTypesetting = SwiftMathTypesetter()
     ) {
         mathEnabled = environment["TURBO_FIELDFARE_DISABLE_MATH"] != "1"
         self.typesetter = typesetter
+    }
+
+    /// A copy that draws body text in `color`.
+    ///
+    /// Reasoning uses it to render the same markdown and LaTeX an answer gets,
+    /// in secondary grey. Quotes, links and inline-code backgrounds keep their
+    /// own colours: they are already relative to the body and re-tinting them
+    /// would flatten the distinctions the renderer draws.
+    public func drawingBody(in color: PlatformColor) -> ResponseMarkdownRenderer {
+        var copy = self
+        copy.bodyColor = color
+        return copy
     }
 
     /// `typesetsMath: false` still lifts every equation out of the markdown
@@ -244,9 +273,9 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
         let blockShaped = span.mode == .display || Self.isBlockShaped(span.latex)
         let alone = blockShaped && Self.isAloneInParagraph(output, sentinel: sentinel)
         let mode: MathRenderMode = span.mode == .display || alone ? .display : .inline
-        let font = attributes[.font] as? NSFont
-            ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
-        let tint = attributes[.foregroundColor] as? NSColor ?? .labelColor
+        let font = attributes[.font] as? PlatformFont
+            ?? PlatformFont.systemFont(ofSize: PlatformFont.systemFontSize)
+        let tint = attributes[.foregroundColor] as? PlatformColor ?? .transcriptLabel
         guard let render = typesetter.render(
             latex: MathCommandNormalizer.normalize(span.latex),
             fontSize: font.pointSize,
@@ -258,12 +287,9 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
         }
         let attachment = MathAttachment(latexSource: span.source)
         // A stored property is not in the accessibility tree; the image is.
-        // The typesetter memoises by latex, size, and tint, so two spans
-        // written with different delimiters share one image and the second
-        // description overwrote the first for both of them. The attachment
-        // takes its own handle on the same drawing instead.
-        let image = render.image.copy() as? NSImage ?? render.image
-        image.accessibilityDescription = span.source
+        // `describingMath` is what takes the private handle — see the note on
+        // it for why sharing one was wrong.
+        let image = render.image.describingMath(span.source)
         attachment.image = image
         attachment.bounds = CGRect(
             x: 0,
@@ -288,9 +314,10 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
             || latex.contains("\\\\")
     }
 
-    /// Paragraph styles are per-paragraph in AppKit, so centring is only safe
-    /// when the equation is the whole paragraph. A cell or code container owns
-    /// its own style through `textBlocks` and keeps it.
+    /// Paragraph styles are per-paragraph, so centring is only safe when the
+    /// equation is the whole paragraph. On macOS a cell or code container also
+    /// owns its own style through `textBlocks` and keeps it, so one of those
+    /// disqualifies the paragraph even when the equation is alone in it.
     private static func isAloneInParagraph(
         _ output: NSAttributedString,
         sentinel: NSRange
@@ -307,11 +334,18 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
               after.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return false
         }
+        #if os(macOS)
         let style = output.attribute(
             .paragraphStyle,
             at: sentinel.location,
             effectiveRange: nil) as? NSParagraphStyle
         return style?.textBlocks.isEmpty ?? true
+        #else
+        // `NSParagraphStyle` has no `textBlocks` on iOS, and nothing there can
+        // put a paragraph inside a cell or a code container in the first place,
+        // so an equation alone in its paragraph is always safe to centre.
+        return true
+        #endif
     }
 
     private func center(_ range: NSRange, in output: NSMutableAttributedString) {
@@ -346,16 +380,24 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
     private func containsUnsupportedBlock(in parsed: AttributedString) -> Bool {
         parsed.runs.contains { run in
             run.inlinePresentationIntent?.contains(.blockHTML) == true
-                || Self.isEnclosedTable(run.presentationIntent)
+                || Self.isUnsupportedTable(run.presentationIntent)
         }
     }
 
-    /// A table nested in a quote or a list item. The cell walk owns the
-    /// paragraph style through `textBlocks`, so the enclosing indent, bar, and
-    /// marker are all lost and the rows draw as a bare table hanging in the
-    /// message. Raw fallback keeps the content with its markers instead;
+    /// A table this renderer cannot rule.
+    ///
+    /// On macOS that means one nested in a quote or a list item: the cell walk
+    /// owns the paragraph style through `textBlocks`, so the enclosing indent,
+    /// bar, and marker are all lost and the rows draw as a bare table hanging
+    /// in the message. Raw fallback keeps the content with its markers instead;
     /// rendering the nesting properly is separate work.
-    private static func isEnclosedTable(_ intent: PresentationIntent?) -> Bool {
+    ///
+    /// On iOS it means *every* table, because `NSTextTable` does not exist
+    /// there and nothing in an attributed string can draw a rule. The transcript
+    /// draws tables as a SwiftUI grid before the source reaches this renderer,
+    /// so a table arriving here is one that escaped that path — and its pipes
+    /// are worth more to a reader than rows silently stripped of their shape.
+    private static func isUnsupportedTable(_ intent: PresentationIntent?) -> Bool {
         guard let components = intent?.components else { return false }
         var table = false
         var enclosing = false
@@ -366,7 +408,11 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
             default: break
             }
         }
+        #if os(macOS)
         return table && enclosing
+        #else
+        return table
+        #endif
     }
 
     /// A bold-only line is how models write a heading they did not mark up.
@@ -752,12 +798,14 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
         style.lineSpacing = 3
         style.paragraphSpacing = 0
         style.alignment = cell.alignment
+        #if os(macOS)
         style.textBlocks = [decoration.tableCell(
             table: cell.table,
             columns: cell.columns,
             row: cell.row,
             column: cell.column,
             isHeader: cell.isHeader)]
+        #endif
         return style
     }
 
@@ -769,29 +817,26 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
     ) {
         var body = text
         if body.hasSuffix("\n") { body.removeLast() }
-        let attributes = codeAttributes(cell: decoration.codeCell(for: block.identity))
+        let attributes = codeAttributes(style: decoration.codeStyle(for: block.identity))
         for line in body.components(separatedBy: "\n") {
             output.append(NSAttributedString(string: line + "\n", attributes: attributes))
         }
     }
 
     /// Attributes for a fenced block that is still arriving. The caller keeps
-    /// the dictionary for the life of that block: the container is an
+    /// the dictionary for the life of that block: on macOS the container is an
     /// `NSTextTableBlock`, and TextKit only joins consecutive paragraphs into
     /// one cell when they carry the same block object, so a fresh dictionary
-    /// per tick would draw a new box per line.
+    /// per tick would draw a new box per line. iOS has no box to join, but the
+    /// caller's contract is the same on both.
     public func streamingCodeAttributes() -> [NSAttributedString.Key: Any] {
-        codeAttributes(cell: BlockDecoration.codeCell())
+        codeAttributes(style: BlockDecoration.codeStyle())
     }
 
-    private func codeAttributes(cell: NSTextTableBlock) -> [NSAttributedString.Key: Any] {
-        let style = NSMutableParagraphStyle()
-        style.lineSpacing = 2
-        style.paragraphSpacing = 0
-        style.textBlocks = [cell]
-        return [
+    private func codeAttributes(style: NSParagraphStyle) -> [NSAttributedString.Key: Any] {
+        [
             .font: font(for: .code, inlineIntent: nil, html: InlineHTMLStyle()),
-            .foregroundColor: NSColor.labelColor,
+            .foregroundColor: bodyColor,
             .paragraphStyle: style,
         ]
     }
@@ -830,10 +875,10 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
         values[.font] = font
 
         if block.kind == .quote {
-            values[.foregroundColor] = NSColor.secondaryLabelColor
+            values[.foregroundColor] = PlatformColor.transcriptSecondaryLabel
         }
         if inlineIntent?.contains(.code) == true || html.monospaced {
-            values[.backgroundColor] = NSColor.quaternarySystemFill
+            values[.backgroundColor] = PlatformColor.transcriptFill
         }
         if inlineIntent?.contains(.strikethrough) == true {
             values[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
@@ -843,7 +888,7 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
         }
         if let link {
             values[.link] = link
-            values[.foregroundColor] = NSColor.linkColor
+            values[.foregroundColor] = PlatformColor.transcriptLink
             values[.underlineStyle] = NSUnderlineStyle.single.rawValue
         }
         return values
@@ -870,8 +915,8 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
 
     private func baseAttributes() -> [NSAttributedString.Key: Any] {
         [
-            .font: NSFont.systemFont(ofSize: NSFont.systemFontSize),
-            .foregroundColor: NSColor.labelColor,
+            .font: PlatformFont.systemFont(ofSize: PlatformFont.systemFontSize),
+            .foregroundColor: bodyColor,
             .paragraphStyle: paragraphStyle(for: .paragraph),
         ]
     }
@@ -880,7 +925,7 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
         for block: BlockKind,
         inlineIntent: InlinePresentationIntent?,
         html: InlineHTMLStyle
-    ) -> NSFont {
+    ) -> PlatformFont {
         let bold = inlineIntent?.contains(.stronglyEmphasized) == true || html.bold
             || block.isHeaderCell
         let italic = inlineIntent?.contains(.emphasized) == true || html.italic
@@ -889,30 +934,26 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
             || html.monospaced
 
         var size: CGFloat
-        var baseWeight: NSFont.Weight
+        var baseWeight: PlatformFont.Weight
         if monospaced {
-            size = NSFont.systemFontSize - 0.5
+            size = PlatformFont.systemFontSize - 0.5
             baseWeight = .regular
         } else if case .heading(let level) = block {
-            size = max(NSFont.systemFontSize + 1, 22 - CGFloat(level - 1) * 2)
+            size = max(PlatformFont.systemFontSize + 1, 22 - CGFloat(level - 1) * 2)
             baseWeight = .semibold
         } else {
-            size = NSFont.systemFontSize
+            size = PlatformFont.systemFontSize
             baseWeight = .regular
         }
         if html.scriptDepth > 0 {
             size *= pow(0.72, CGFloat(min(html.scriptDepth, 2)))
         }
 
-        let weight: NSFont.Weight = bold ? .semibold : baseWeight
-        var font = monospaced
-            ? NSFont.monospacedSystemFont(ofSize: size, weight: weight)
-            : NSFont.systemFont(ofSize: size, weight: weight)
-        if italic {
-            let descriptor = font.fontDescriptor.withSymbolicTraits(.italic)
-            font = NSFont(descriptor: descriptor, size: size) ?? font
-        }
-        return font
+        let weight: PlatformFont.Weight = bold ? .semibold : baseWeight
+        let font = monospaced
+            ? PlatformFont.monospacedSystemFont(ofSize: size, weight: weight)
+            : PlatformFont.systemFont(ofSize: size, weight: weight)
+        return italic ? PlatformFont.italicized(font, size: size) : font
     }
 
     private func paragraphStyle(for block: BlockKind) -> NSParagraphStyle {
@@ -1102,8 +1143,15 @@ extension ResponseMarkdownRenderer {
 /// consecutive paragraphs into one cell only when they share the same
 /// `NSTextBlock` object, so the table must outlive the individual paragraph
 /// styles that reference it.
+///
+/// It vends a *paragraph style* rather than the text block itself so that the
+/// call sites read the same on both platforms. `NSTextTable` is macOS-only and
+/// is deliberately not faked on iOS — there the styles come back carrying
+/// spacing and alignment but no container, and the SwiftUI transcript draws the
+/// box and the rules instead.
 @MainActor
 private final class BlockDecoration {
+    #if os(macOS)
     private var codeCells: [Int: NSTextTableBlock] = [:]
     private var tables: [Int: NSTextTable] = [:]
     private var tableCells: [TableCellKey: NSTextTableBlock] = [:]
@@ -1113,7 +1161,32 @@ private final class BlockDecoration {
         let row: Int
         let column: Int
     }
+    #endif
 
+    /// The style every line of one fenced block shares.
+    static func codeStyle() -> NSParagraphStyle {
+        let style = NSMutableParagraphStyle()
+        style.lineSpacing = 2
+        style.paragraphSpacing = 0
+        #if os(macOS)
+        style.textBlocks = [codeCell()]
+        #endif
+        return style
+    }
+
+    /// The same, for a block this pass has already seen: on macOS the cell is
+    /// reused so consecutive lines land in one box rather than one box per line.
+    func codeStyle(for identity: Int) -> NSParagraphStyle {
+        let style = NSMutableParagraphStyle()
+        style.lineSpacing = 2
+        style.paragraphSpacing = 0
+        #if os(macOS)
+        style.textBlocks = [codeCell(for: identity)]
+        #endif
+        return style
+    }
+
+    #if os(macOS)
     static func codeCell() -> NSTextTableBlock {
         let table = NSTextTable()
         table.numberOfColumns = 1
@@ -1171,4 +1244,5 @@ private final class BlockDecoration {
         tables[identity] = table
         return table
     }
+    #endif
 }

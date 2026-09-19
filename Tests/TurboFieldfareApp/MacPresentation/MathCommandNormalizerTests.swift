@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import Testing
 @testable import TurboFieldfareAppPresentation
+@testable import TurboFieldfareRichText
 @testable import TurboFieldfareMacPresentation
 
 /// The 647-string coverage sweep the pin decision was made on: the 607-entry

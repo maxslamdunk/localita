@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+@testable import TurboFieldfareRichText
 @testable import TurboFieldfareMacPresentation
 
 /// Records what the transcript controller asks the renderer for. "Each

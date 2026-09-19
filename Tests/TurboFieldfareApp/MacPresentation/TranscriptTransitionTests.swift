@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import Testing
 @testable import TurboFieldfareAppPresentation
+@testable import TurboFieldfareRichText
 @testable import TurboFieldfareMacPresentation
 
 @MainActor

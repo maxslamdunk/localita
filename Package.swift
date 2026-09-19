@@ -24,6 +24,12 @@ let package = Package(
         .library(
             name: "TurboFieldfareAppPresentation",
             targets: ["TurboFieldfareAppPresentation"]),
+        // The markdown and math renderer, shared by both apps. A product for the
+        // same reason as the two above: the iOS transcript is an Xcode target,
+        // and Xcode links products rather than bare targets.
+        .library(
+            name: "TurboFieldfareRichText",
+            targets: ["TurboFieldfareRichText"]),
         .executable(name: "TurboFieldfareRepack", targets: ["TurboFieldfareRepack"]),
         .executable(name: "TurboFieldfareCLI", targets: ["TurboFieldfareCLI"]),
         .executable(name: "TurboFieldfareMac", targets: ["TurboFieldfareMac"]),
@@ -118,13 +124,27 @@ let package = Package(
             ],
             path: "Sources/TurboFieldfareApp/Presentation"
         ),
+        // Markdown and LaTeX rendering for both apps: the block walk over
+        // Foundation's own markdown parse, and the SwiftMath typesetter behind
+        // the project's own `MathTypesetting` seam. Platform-neutral apart from
+        // the aliases in `PlatformText.swift`, so the iOS transcript renders
+        // through the same code the Mac does rather than a second
+        // implementation that drifts from it and then lies.
+        .target(
+            name: "TurboFieldfareRichText",
+            dependencies: [
+                "TurboFieldfareAppPresentation",
+                .product(name: "SwiftMath", package: "SwiftMath"),
+            ],
+            path: "Sources/TurboFieldfareApp/RichText"
+        ),
         .target(
             name: "TurboFieldfareMacPresentation",
             dependencies: [
                 "TurboFieldfare",
                 "TurboFieldfareAppCore",
                 "TurboFieldfareAppPresentation",
-                .product(name: "SwiftMath", package: "SwiftMath"),
+                "TurboFieldfareRichText",
             ],
             path: "Sources/TurboFieldfareApp/MacPresentation"
         ),
@@ -224,6 +244,10 @@ let package = Package(
                 "TurboFieldfareAppCore",
                 "TurboFieldfareAppPresentation",
                 "TurboFieldfareMacPresentation",
+                // The renderer and typesetter moved to the shared target; their
+                // tests did not, and reach `MathRenderCache`'s internals from
+                // here rather than being split into a target of their own.
+                "TurboFieldfareRichText",
             ],
             path: "Tests/TurboFieldfareApp/MacPresentation",
             resources: [.copy("Fixtures")]

@@ -1,8 +1,13 @@
-import AppKit
 import Foundation
 import SwiftMath
 import os
 import TurboFieldfareAppPresentation
+
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 public enum MathRenderMode: Sendable {
     case inline
@@ -14,11 +19,11 @@ public enum MathRenderMode: Sendable {
 /// exposes the typesetting library, and so tests can inject a deterministic
 /// stand-in without importing it either.
 public struct MathRender {
-    public let image: NSImage
+    public let image: PlatformImage
     public let ascent: CGFloat
     public let descent: CGFloat
 
-    public init(image: NSImage, ascent: CGFloat, descent: CGFloat) {
+    public init(image: PlatformImage, ascent: CGFloat, descent: CGFloat) {
         self.image = image
         self.ascent = ascent
         self.descent = descent
@@ -30,7 +35,7 @@ public protocol MathTypesetting {
     func render(
         latex: String,
         fontSize: CGFloat,
-        tint: NSColor,
+        tint: PlatformColor,
         mode: MathRenderMode
     ) -> MathRender?
 }
@@ -74,7 +79,7 @@ public struct SwiftMathTypesetter: MathTypesetting {
     public func render(
         latex: String,
         fontSize: CGFloat,
-        tint: NSColor,
+        tint: PlatformColor,
         mode: MathRenderMode
     ) -> MathRender? {
         let key = MathRenderCache.Key(
@@ -154,6 +159,43 @@ public struct SwiftMathTypesetter: MathTypesetting {
                 """)
             return nil
         }
+        guard let raster = rasterize(typeset, size: size, length: latex.count) else {
+            return nil
+        }
+        return Mask(
+            image: raster.image,
+            size: size,
+            ascent: layout.ascent,
+            descent: layout.descent,
+            bytes: raster.bytes)
+    }
+
+    /// The typeset equation as a coverage bitmap at `maskScale`.
+    ///
+    /// The two platforms have no common rasterizer — AppKit draws through an
+    /// `NSBitmapImageRep` it is handed, UIKit through a renderer that owns its
+    /// own backing store — so this is the one function in the file that is
+    /// genuinely written twice.
+    private static func rasterize(
+        _ typeset: MTImage,
+        size: CGSize,
+        length: Int
+    ) -> (image: CGImage, bytes: Int)? {
+        #if canImport(UIKit)
+        let format = UIGraphicsImageRendererFormat.preferred()
+        format.scale = maskScale
+        format.opaque = false
+        let drawn = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            typeset.draw(in: CGRect(origin: .zero, size: size))
+        }
+        guard let mask = drawn.cgImage else {
+            log.error("""
+                math mask has no bitmap: length=\(length, privacy: .public)
+                """)
+            return nil
+        }
+        return (mask, mask.bytesPerRow * mask.height)
+        #else
         guard let rep = NSBitmapImageRep(
             bitmapDataPlanes: nil,
             pixelsWide: Int(ceil(size.width * maskScale)),
@@ -167,7 +209,7 @@ public struct SwiftMathTypesetter: MathTypesetting {
             bitsPerPixel: 0) else {
             log.error("""
                 math mask allocation failed: \
-                length=\(latex.count, privacy: .public)
+                length=\(length, privacy: .public)
                 """)
             return nil
         }
@@ -178,34 +220,48 @@ public struct SwiftMathTypesetter: MathTypesetting {
         guard let context = NSGraphicsContext(bitmapImageRep: rep) else {
             log.error("""
                 math mask has no drawing context: \
-                length=\(latex.count, privacy: .public)
+                length=\(length, privacy: .public)
                 """)
             return nil
         }
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = context
-        typeset.draw(in: NSRect(origin: .zero, size: size))
+        typeset.draw(in: CGRect(origin: .zero, size: size))
         NSGraphicsContext.restoreGraphicsState()
         guard let mask = rep.cgImage else {
             log.error("""
-                math mask has no bitmap: length=\(latex.count, privacy: .public)
+                math mask has no bitmap: length=\(length, privacy: .public)
                 """)
             return nil
         }
-        return Mask(
-            image: mask,
-            size: size,
-            ascent: layout.ascent,
-            descent: layout.descent,
-            bytes: rep.bytesPerRow * rep.pixelsHigh)
+        return (mask, rep.bytesPerRow * rep.pixelsHigh)
+        #endif
     }
 
     private static func tinted(
         _ mask: CGImage,
         size: CGSize,
-        tint: NSColor
-    ) -> NSImage {
-        NSImage(size: size, flipped: false) { rect in
+        tint: PlatformColor
+    ) -> PlatformImage {
+        #if canImport(UIKit)
+        let format = UIGraphicsImageRendererFormat.preferred()
+        format.opaque = false
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            let cg = context.cgContext
+            let rect = CGRect(origin: .zero, size: size)
+            cg.saveGState()
+            // `clip(to:mask:)` resolves the mask in Core Graphics' own space,
+            // whose origin is bottom-left, while a UIKit renderer hands out a
+            // flipped context. Without this the equation is masked upside down.
+            cg.translateBy(x: 0, y: size.height)
+            cg.scaleBy(x: 1, y: -1)
+            cg.clip(to: rect, mask: mask)
+            tint.setFill()
+            cg.fill(rect)
+            cg.restoreGState()
+        }
+        #else
+        return NSImage(size: size, flipped: false) { rect in
             guard let context = NSGraphicsContext.current?.cgContext else { return false }
             context.saveGState()
             context.clip(to: rect, mask: mask)
@@ -214,6 +270,7 @@ public struct SwiftMathTypesetter: MathTypesetting {
             context.restoreGState()
             return true
         }
+        #endif
     }
 }
 

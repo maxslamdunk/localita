@@ -1,17 +1,36 @@
 import SwiftUI
+import TurboFieldfareAppCore
 import UIKit
 
 @main
 struct TurboFieldfareiOSApp: App {
+    /// `--autorun` still launches straight into the benchmark harness.
+    ///
+    /// That path is how `devicectl device process launch` produces a row in
+    /// `MEASUREMENTS.md`, and Track B cannot work without the instrument — so
+    /// the chat UI is added *beside* the harness rather than on top of it. A
+    /// benchmark run must not have a chat screen in front of it, and the chat
+    /// screen keeps the harness reachable by hand through its own sheet.
+    private static let isBenchmarkRun =
+        ProcessInfo.processInfo.arguments.contains("--autorun")
+
+    @State private var model = ChatSession.makeModel()
+
     var body: some Scene {
         WindowGroup {
-            HarnessView()
-                .onAppear {
-                    // A decode run is minutes long and the screen must stay on:
-                    // a locked phone suspends the app mid-generation and the
-                    // run is lost.
-                    UIApplication.shared.isIdleTimerDisabled = true
+            Group {
+                if Self.isBenchmarkRun {
+                    HarnessView()
+                } else {
+                    ChatView(model: model)
                 }
+            }
+            .onAppear {
+                // A decode run is minutes long and the screen must stay on:
+                // a locked phone suspends the app mid-generation and the
+                // run is lost.
+                UIApplication.shared.isIdleTimerDisabled = true
+            }
         }
     }
 }

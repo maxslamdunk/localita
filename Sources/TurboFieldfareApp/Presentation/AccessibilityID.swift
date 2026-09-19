@@ -1,13 +1,18 @@
 import SwiftUI
 
-/// Every control the Mac app exposes to an acceptance pass, named once.
+/// Every control the apps expose to an acceptance pass, named once.
 ///
 /// The pass drives the app through the accessibility API and addresses
 /// controls by these identifiers, never by coordinates: both false readings of
 /// the 2026-09-01 manual pass were clicks at stale coordinates. Raw values are
-/// the strings the accessibility tree carries as `AXIdentifier`;
-/// `Scripts/check_app_case_coverage.rb` fails when one has no case in the
-/// `mac-app-acceptance` skill, so a new control cannot land without its case.
+/// the strings the accessibility tree carries as `AXIdentifier`.
+///
+/// ⚠️ This said "the Mac app" and named `Scripts/check_app_case_coverage.rb` as
+/// the guard that fails when a case has no counterpart in the
+/// `mac-app-acceptance` skill. Both had gone stale: the iOS app now uses these
+/// too, and that script is not in this repository, in CI, or in any shell
+/// script here. Nothing enforces coverage today — so treat adding a case as a
+/// thing to keep honest by hand, not as something a check will catch.
 public enum AccessibilityID: String, CaseIterable, Sendable {
     case stripSidebar = "strip.sidebar"
     case stripNewChat = "strip.newChat"
@@ -29,6 +34,9 @@ public enum AccessibilityID: String, CaseIterable, Sendable {
     case composerMessage = "composer.message"
     case composerGenerate = "composer.generate"
     case composerStop = "composer.stop"
+    /// iOS only today: the Mac exposes no reasoning control yet, though the
+    /// plumbing beneath this one is shared and would serve it unchanged.
+    case composerThinking = "composer.thinking"
     case composerAttach = "composer.attach"
     case composerClear = "composer.clear"
     case composerTips = "composer.tips"
