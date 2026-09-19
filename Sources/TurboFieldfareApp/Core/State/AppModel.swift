@@ -65,6 +65,19 @@ public final class AppModel {
     /// to be redrawn from the answer that now applies, not the one taken when
     /// the row was clicked.
     public private(set) var maxContextTokens: Int = AppContextLengthOption.eightK.tokens
+    /// Whether the model reasons before answering, and so whether the grey
+    /// reasoning text appears above the answer.
+    ///
+    /// Read at send time, so flipping it applies to the next turn and never
+    /// disturbs one in flight — changing it mid-turn would change the token
+    /// sequence that `AppChatTurn.tokenIDs` has already pinned.
+    public var enableThinking: Bool = false
+    /// Reasoning for the turn on screen, kept apart from `outputText`.
+    ///
+    /// Display only. The pinned template re-emits a past thought block solely
+    /// for tool-calling turns, so what the model sees on the next turn does not
+    /// depend on this — which is why it is not persisted with the transcript.
+    public internal(set) var thinkingText: String = ""
     public var temperature: Double = 0.2
     public var topKEnabled: Bool = true
     public var topK: Int = 64
@@ -2170,6 +2183,7 @@ public final class AppModel {
         conversation.startNew()
         outputPromptText = ""
         outputText = ""
+        thinkingText = ""
         generationTranscriptMailbox?.reset()
         diagnostics = nil
         error = nil
@@ -2221,6 +2235,7 @@ public final class AppModel {
         if !carried.isEmpty {
             outputPromptText = ""
             outputText = ""
+            thinkingText = ""
             outputImageAttachments = []
             generationTranscriptMailbox?.reset()
         }
@@ -2341,6 +2356,7 @@ public final class AppModel {
             outputPromptText = turn.prompt
             outputImageAttachments = turn.images.map(ChatImage.staged)
             outputText = ""
+            thinkingText = ""
             isDrawnAsTheLiveTurn = true
             if await !replayIntoKV(id: replayID, turn: turn) {
                 // The machine's `.restoreComposer` effect has already handed
@@ -2414,6 +2430,7 @@ public final class AppModel {
         conversation.attachImagesToPendingTurn(retained)
         outputImageAttachments = retained.map(ChatImage.staged)
         outputText = ""
+        thinkingText = ""
         diagnostics = nil
         error = nil
         hasHandledTerminalEvent = false
@@ -2517,6 +2534,7 @@ public final class AppModel {
         if withdrawingFromTranscript {
             outputPromptText = ""
             outputText = ""
+            thinkingText = ""
             generationTranscriptMailbox?.reset()
         }
         // Dropped, never released: these are the same links the turn below is
@@ -2593,6 +2611,7 @@ public final class AppModel {
             topK: topKEnabled ? topK : nil,
             topP: topKEnabled && topPEnabled ? Float(topP) : nil,
             repetitionPenalty: 1.0,
+            enableThinking: enableThinking,
             runtimeOptions: effective.options(
                 prefillEnabled: runtimeOptions.prefillEnabled,
                 prefillChunkTokens: runtimeOptions.prefillChunkTokens),
@@ -2629,6 +2648,13 @@ public final class AppModel {
             liveTokenCount = token.index + 1
             liveElapsedDecodeSeconds = token.elapsedDecodeSeconds
             sampleLiveMemory()
+            // Both halves can be non-empty for the same token. The delta that
+            // arrives on `<channel|>` is text the detokenizer held back from
+            // inside the thought, while what the router reads after it belongs
+            // to the answer — so these are two appends, not an either/or.
+            if !token.thinkingDelta.isEmpty {
+                thinkingText += token.thinkingDelta
+            }
             if !token.textDelta.isEmpty {
                 outputText += token.textDelta
             }

@@ -21,6 +21,7 @@ The Mac app and CLI expose these generation controls:
 | Temperature | 0...2 in 0.05 steps | `--temperature` | 0.2 | `0` is greedy; positive values sample. |
 | Top-K | Off or 1...256 | `--top-k` | 64 | Keeps at most K candidates. CLI `0` turns it off. |
 | Top-P | Off or 0.01...1 | `--top-p` | 0.95 | Applies nucleus truncation before Top-K and is effective only while Top-K is enabled. |
+| Reasoning | Not exposed on macOS; iOS has a status-bar toggle | *(no flag)* | Off | Whether the model reasons on a thought channel before answering. iOS draws that reasoning in grey above the reply as it streams. ⚠️ **The mechanism runs backwards from the obvious reading:** with reasoning *off* the generation prompt ends with an already-closed empty thought block (`<\|channel>thought\n<channel\|>`), which is what makes the model skip to the answer — so enabling it *removes* that suffix and adds a `<\|think\|>` marker to the first system turn. Applies to the next turn and needs no model reload, since it changes only the prompt's tokens. **It costs real latency:** reasoning tokens decode at the same rate as answer tokens, so on a device at single-digit tok/s they are seconds of wait before the first visible word. |
 
 With positive temperature, a CLI Top-P below `1` requires Top-K between `1`
 and `256`. To disable both truncation controls, pass `--top-k 0 --top-p 1`.

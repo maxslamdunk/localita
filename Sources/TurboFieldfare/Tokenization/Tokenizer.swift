@@ -324,26 +324,77 @@ public struct GFTokenizer: @unchecked Sendable {
     }
 
     /// Text-only, no-tool rendering of the pinned IT checkpoint's bundled
-    /// `chat_template.jinja`, with thinking disabled. Keeping this narrow makes
-    /// unsupported tool/media behavior explicit instead of approximating it.
+    /// `chat_template.jinja`. Keeping this narrow makes unsupported tool/media
+    /// behavior explicit instead of approximating it.
     private static let turnOpen    = "<|turn>"
     private static let turnClose   = "<turn|>"
     private static let bosMark     = "<bos>"
+    /// An already-closed, empty thought block — and counter-intuitively this is
+    /// the **thinking-disabled** form. The template emits it under
+    /// `{%- if not enable_thinking | default(false) -%}`, pre-writing the
+    /// thought channel as already finished so the model opens the answer
+    /// directly. Enabling thinking therefore *removes* this suffix rather than
+    /// adding anything in its place.
+    private static let thoughtOpen = "<|channel>thought\n<channel|>"
+    /// The marker the template injects at the top of the first system turn when
+    /// thinking is on. A real vocabulary entry, so it encodes as a single token;
+    /// the runtime never resolves its ID because nothing downstream routes on
+    /// it, unlike `<|channel>` and `<channel|>`.
+    private static let thinkMark   = "<|think|>"
 
-    public func applyChatTemplate(_ messages: [Message]) throws -> String {
+    /// The generation prompt's tail, which is the whole of the thinking switch.
+    ///
+    /// One helper rather than the literal at three call sites: the polarity here
+    /// reads backwards at a glance, and three copies of a rule nobody remembers
+    /// correctly is how two of them end up disagreeing.
+    private static func modelTurnTail(enableThinking: Bool) -> String {
+        turnOpen + "model\n" + (enableThinking ? "" : thoughtOpen)
+    }
+
+    /// - Parameter enableThinking: render the thinking-enabled form.
+    ///
+    ///   The bundled Jinja merges the marker into the **first system turn**
+    ///   rather than opening a second one, and emits that turn even when there
+    ///   is no system message at all — so a system message given here is
+    ///   consumed into it, which is what `{%- set loop_messages = messages[1:]
+    ///   -%}` does upstream. With it off, every byte is what it was before this
+    ///   parameter existed, which is what keeps the existing template tests
+    ///   meaningful rather than merely passing.
+    public func applyChatTemplate(_ messages: [Message],
+                                  enableThinking: Bool = false) throws -> String {
         var s = Self.bosMark
-        for (index, message) in messages.enumerated() {
+        var remaining = messages[...]
+        var consumedSystem = false
+        if enableThinking {
+            var systemContent = ""
+            if let first = messages.first, first.role == .system {
+                guard let rawContent = first.content else {
+                    throw GFTokenizerError.invalidChatTemplate(
+                        "text-only messages require content")
+                }
+                systemContent = rawContent.trimmingCharacters(in: .whitespacesAndNewlines)
+                remaining = messages.dropFirst()
+                consumedSystem = true
+            }
+            s += Self.turnOpen + "system\n" + Self.thinkMark + "\n"
+                + systemContent + Self.turnClose + "\n"
+        }
+        for (index, message) in remaining.enumerated() {
             guard let rawContent = message.content else {
                 throw GFTokenizerError.invalidChatTemplate("text-only messages require content")
             }
             let content = rawContent.trimmingCharacters(in: .whitespacesAndNewlines)
-            if message.role == .system && index != 0 {
+            // `consumedSystem` keeps the "system must be first" rule honest
+            // once the first message has been folded into the thinking turn:
+            // without it a second system message would land at offset 0 of the
+            // remainder and render as a second system turn.
+            if message.role == .system && (index != 0 || consumedSystem) {
                 throw GFTokenizerError.invalidChatTemplate("system message must be first")
             }
             let role = message.role == .assistant ? "model" : message.role.rawValue
             s += Self.turnOpen + role + "\n" + content + Self.turnClose + "\n"
         }
-        s += Self.turnOpen + "model\n<|channel>thought\n<channel|>"
+        s += Self.modelTurnTail(enableThinking: enableThinking)
         return s
     }
 
@@ -394,11 +445,20 @@ public struct GFTokenizer: @unchecked Sendable {
         ).map(Int32.init)
     }
 
-    public func encodeTextContinuation(userContent: String) -> [Int32] {
+    /// - Parameter enableThinking: as `applyChatTemplate`, with one limit this
+    ///   path cannot lift. A continuation appends to a KV prefix that already
+    ///   exists, so it cannot reach back and add the `<|think|>` system turn a
+    ///   fresh render would open with. Turning thinking on mid-conversation
+    ///   therefore gives the model an open model turn without that marker; it
+    ///   is the tail, not the marker, that decides whether a thought block can
+    ///   be written, so this still works — but it is not byte-identical to a
+    ///   conversation that began with thinking on.
+    public func encodeTextContinuation(userContent: String,
+                                       enableThinking: Bool = false) -> [Int32] {
         let content = userContent.trimmingCharacters(in: .whitespacesAndNewlines)
         return [endOfTurnID] + encode(
             "\n\(Self.turnOpen)user\n\(content)\(Self.turnClose)\n"
-                + "\(Self.turnOpen)model\n<|channel>thought\n<channel|>",
+                + Self.modelTurnTail(enableThinking: enableThinking),
             addBOS: false)
     }
 
@@ -415,7 +475,8 @@ public struct GFTokenizer: @unchecked Sendable {
     public func encodeMultimodalUserContinuation(
         textAndImages: [MultimodalContinuationPart],
         imageTokenCounts: [Int],
-        openingConversation: Bool = false
+        openingConversation: Bool = false,
+        enableThinking: Bool = false
     ) throws -> MultimodalContinuationTokens {
         var text = ""
         var expected = 0
@@ -445,12 +506,13 @@ public struct GFTokenizer: @unchecked Sendable {
             // first turn of a conversation is identical whether or not it
             // carries an image.
             template = encode(
-                try applyChatTemplate([Message(role: .user, content: content)]),
+                try applyChatTemplate([Message(role: .user, content: content)],
+                                      enableThinking: enableThinking),
                 addBOS: false)
         } else {
             template = [endOfTurnID] + encode(
                 "\n\(Self.turnOpen)user\n\(content)\(Self.turnClose)\n"
-                    + "\(Self.turnOpen)model\n<|channel>thought\n<channel|>",
+                    + Self.modelTurnTail(enableThinking: enableThinking),
                 addBOS: false)
         }
         // Count the placeholders the tokenizer actually produced before indexing

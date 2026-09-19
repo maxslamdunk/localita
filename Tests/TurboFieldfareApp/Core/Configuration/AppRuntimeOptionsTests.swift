@@ -6,9 +6,22 @@ import TurboFieldfare
 @Suite struct AppRuntimeOptionsTests {
     @Test func defaultsMatchProduction() throws {
         let options = AppRuntimeOptions()
+        // Literals per platform, for the reason `RuntimeConfigurationTests`
+        // gives: asserting `productionExpertCacheSlots` alone would compare the
+        // constant against itself. The second expectation is the one that
+        // catches a literal being re-hardcoded here — which is how the iOS
+        // default was overridden silently once already, by this very type.
+        #if os(iOS)
+        #expect(options.expertCacheSlots == 32)
+        #else
         #expect(options.expertCacheSlots == 16)
+        #endif
+        #expect(options.expertCacheSlots == RuntimeConfiguration.productionExpertCacheSlots)
         #expect(options.expertCachePolicy == .lfu)
         #expect(options.prefillEnabled)
+        // 128 on every platform, deliberately: the measured-best iOS policy is
+        // `auto`, which depends on prompt length and so cannot be a constant.
+        // A platform that wants otherwise sets it per request.
         #expect(options.prefillChunkTokens == 128)
         #expect(options.rdadvisePolicy == .off)
         #expect(options.modelVerification == .fullSha256)
@@ -16,7 +29,8 @@ import TurboFieldfare
         let runtime = try options.resolvedRuntimeConfiguration(forceLogitsHead: false)
         #expect(runtime == .production)
         #expect(options.resultSummary ==
-            "Cache 16 LFU, prefill 128, FP16 KV, RDADVISE off, full SHA-256")
+            "Cache \(RuntimeConfiguration.productionExpertCacheSlots) LFU, prefill 128, "
+                + "FP16 KV, RDADVISE off, full SHA-256")
     }
 
     @Test func everyPublicChoiceMapsToRuntime() throws {

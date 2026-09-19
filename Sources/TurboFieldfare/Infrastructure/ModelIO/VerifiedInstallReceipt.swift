@@ -109,9 +109,23 @@ public enum VerifiedInstallReceiptReader {
         }
     }
 
+    /// - Parameter requiringDirectoryPath: whether the receipt's recorded
+    ///   absolute path must equal `directoryURL`. True wherever the model stays
+    ///   where it was verified, which is every macOS caller.
+    ///
+    ///   **False is not a weaker check taken for convenience.** It is the only
+    ///   usable setting on a platform that moves the directory out from under
+    ///   the receipt: an iOS app's data container is assigned a fresh UUID on
+    ///   every install, so a receipt written there is void after the next one,
+    ///   and a side-loaded artifact carries the path of the machine that
+    ///   verified it and never matched at all. The content bindings above —
+    ///   schema version and manifest digest — are enforced either way, so what
+    ///   this drops is a statement about *where* the bytes are, not about
+    ///   *which* bytes they are.
     public static func validateManifestBinding(_ receipt: VerifiedInstallReceipt,
                                                directoryURL: URL,
-                                               manifestSha256: String) throws {
+                                               manifestSha256: String,
+                                               requiringDirectoryPath: Bool = true) throws {
         guard receipt.schemaVersion == 1 else {
             throw ModelError.trustedReceiptInvalid(
                 detail: "unsupported schemaVersion \(receipt.schemaVersion)")
@@ -120,6 +134,7 @@ public enum VerifiedInstallReceiptReader {
             throw ModelError.trustedReceiptInvalid(detail: "manifest SHA mismatch")
         }
 
+        guard requiringDirectoryPath else { return }
         let actualPath = directoryURL.standardizedFileURL.path
         guard receipt.modelDirectoryPath == actualPath else {
             throw ModelError.trustedReceiptInvalid(detail: "model directory mismatch")

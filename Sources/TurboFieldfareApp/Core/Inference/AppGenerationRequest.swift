@@ -14,6 +14,14 @@ public struct AppGenerationRequest: Equatable, Sendable {
     public var topK: Int?
     public var topP: Float?
     public var repetitionPenalty: Float
+    /// Whether the model reasons before answering.
+    ///
+    /// Carried on the request rather than in `runtimeOptions`, and deliberately
+    /// so: `AppLoadedRuntimeKey` is built from those options, and anything in it
+    /// makes a change require a model reload. This changes only the tokens of
+    /// the next prompt, so it is per-turn — the same reasoning the prefill
+    /// fields are excluded for.
+    public var enableThinking: Bool
     public var runtimeOptions: AppRuntimeOptions
     /// Append this turn to the retained conversation instead of resetting the
     /// KV and prefilling the whole prompt. The decode service sets it only
@@ -41,6 +49,7 @@ public struct AppGenerationRequest: Equatable, Sendable {
                 topK: Int? = 64,
                 topP: Float? = 0.95,
                 repetitionPenalty: Float = 1.0,
+                enableThinking: Bool = false,
                 runtimeOptions: AppRuntimeOptions = AppRuntimeOptions(),
                 continuesConversation: Bool = false,
                 conversationTokens: Int = 0,
@@ -59,6 +68,7 @@ public struct AppGenerationRequest: Equatable, Sendable {
         self.topK = topK
         self.topP = topP
         self.repetitionPenalty = repetitionPenalty
+        self.enableThinking = enableThinking
         self.runtimeOptions = runtimeOptions
     }
 

@@ -6,17 +6,13 @@ public enum StructuredAssistantEvent: Equatable, Sendable {
 }
 
 public final class StructuredAssistantDecoder: @unchecked Sendable {
-    private enum Channel {
-        case thought
-        case visible
-        case label
-    }
-
     private let tokenizer: GFTokenizer
     private let allowedTools: Set<String>
     private let idGenerator: @Sendable () -> String
-    private var channel: Channel = .visible
-    private var label = ""
+    /// Channel state, shared with the app's streaming path rather than held
+    /// privately here. This decoder drops what the router calls thought; the
+    /// app draws it. Same machine, two renderings — see `ChannelRouter`.
+    private var router = ChannelRouter()
     private var toolTokens: [Int32]?
     private var emittedCalls = 0
     private var failed = false
@@ -52,12 +48,11 @@ public final class StructuredAssistantDecoder: @unchecked Sendable {
         }
 
         if tokenID == tokenizer.channelStartID {
-            label = ""
-            channel = .label
+            router.beginLabel()
             return events
         }
         if tokenID == tokenizer.channelEndID {
-            channel = .visible
+            router.endChannel()
             return events
         }
         if tokenID == tokenizer.toolCallStartID {
@@ -114,24 +109,18 @@ public final class StructuredAssistantDecoder: @unchecked Sendable {
         return routeText(text)
     }
 
+    /// Thought text is dropped here, and only here.
+    ///
+    /// This decoder's contract is visible content plus tool calls, and
+    /// reasoning is neither — an OpenAI-shaped response has nowhere to put it.
+    /// The drop is therefore this type's policy, not the router's, which is
+    /// what lets the app keep the same text instead of re-deriving the split.
     private func routeText(_ delta: String) -> [StructuredAssistantEvent] {
-        switch channel {
-        case .thought:
-            return []
-        case .visible:
-            return delta.isEmpty ? [] : [.content(delta)]
-        case .label:
-            label += delta
-            guard let newline = label.firstIndex(of: "\n") else { return [] }
-            let name = label[..<newline].trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            let contentStart = label.index(after: newline)
-            let content = String(label[contentStart...])
-            channel = name == "final" || name == "answer" ? .visible : .thought
-            label = ""
-            if channel == .visible, !content.isEmpty {
-                return [.content(content)]
+        router.route(delta).compactMap { routed in
+            switch routed {
+            case .visible(let text): return .content(text)
+            case .thought: return nil
             }
-            return []
         }
     }
 

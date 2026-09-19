@@ -56,14 +56,52 @@ import Testing
     @Test func receiptBoundToDifferentPathIsPartial() throws {
         let url = try makeCompleteModelInstall("wrong-path")
         defer { try? FileManager.default.removeItem(at: url) }
-        let receiptURL = url.appendingPathComponent("verified-install.json")
-        var receipt = try JSONSerialization.jsonObject(with: Data(contentsOf: receiptURL)) as! [String: Any]
-        receipt["modelDirectoryPath"] = "/different/model.gturbo"
-        try JSONSerialization.data(withJSONObject: receipt, options: [.sortedKeys]).write(to: receiptURL)
-        guard case .partial = AppModelInstallationProbe.status(at: url) else {
+        try bindReceipt(at: url, toPath: "/different/model.gturbo")
+        // The argument is explicit rather than defaulted, because the default
+        // is now platform-dependent: on iOS the path clause is off, so a test
+        // taking the default would assert the opposite thing there. Naming it
+        // keeps this test about the strict behaviour on either platform.
+        guard case .partial = AppModelInstallationProbe.status(
+            at: url, requiringReceiptDirectoryPath: true) else {
             Issue.record("expected partial status")
             return
         }
+    }
+
+    /// The iOS behaviour, exercised on macOS.
+    ///
+    /// This is the defect that reached the phone: a complete 14.3 GB model was
+    /// reported as "Model required" because its receipt still named the Mac
+    /// directory it had been verified in, and the probe treated that as a
+    /// failed install. `swift test` is macOS-only, so without passing the flag
+    /// explicitly this behaviour would be asserted nowhere at all.
+    @Test func receiptBoundToADifferentPathIsCompleteWhenThePathIsNotBinding() throws {
+        let url = try makeCompleteModelInstall("wrong-path-waived")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try bindReceipt(
+            at: url,
+            toPath: "/Users/someone/turbo-fieldfare/scratch/gemma4.gturbo")
+        #expect(AppModelInstallationProbe.status(
+            at: url, requiringReceiptDirectoryPath: false) == .complete)
+    }
+
+    /// Literals per platform, for the reason `RuntimeConfigurationTests` gives:
+    /// asserting the constant against itself proves nothing.
+    @Test func theReceiptPathDefaultFollowsThePlatform() {
+        #if os(iOS)
+        #expect(AppModelInstallationProbe.receiptBindsDirectoryPath == false)
+        #else
+        #expect(AppModelInstallationProbe.receiptBindsDirectoryPath == true)
+        #endif
+    }
+
+    private func bindReceipt(at directory: URL, toPath path: String) throws {
+        let receiptURL = directory.appendingPathComponent("verified-install.json")
+        var receipt = try JSONSerialization.jsonObject(
+            with: Data(contentsOf: receiptURL)) as! [String: Any]
+        receipt["modelDirectoryPath"] = path
+        try JSONSerialization.data(withJSONObject: receipt, options: [.sortedKeys])
+            .write(to: receiptURL)
     }
 
     @Test func differentCheckpointIsPartial() throws {

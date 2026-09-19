@@ -160,13 +160,30 @@ public struct AppTokenEvent: Equatable, Sendable {
     public var index: Int
     public var textDelta: String
     public var elapsedDecodeSeconds: Double
+    /// Reasoning the model produced on its thought channel, separated from
+    /// `textDelta` rather than mixed into it.
+    ///
+    /// Two deltas instead of one delta plus a flag, because a single token's
+    /// text can cross the boundary: the detokenizer holds bytes back, and the
+    /// delta arriving on `<channel|>` belongs to the thought that is ending
+    /// while everything after it belongs to the answer. One field could not
+    /// carry both halves.
+    ///
+    /// Defaulted to empty so a producer that does no channel routing — the
+    /// decode service, which streams whole-transcript snapshots — stays correct
+    /// without change rather than being made to claim something it cannot know.
+    public var thinkingDelta: String = ""
 
     /// Explicit because a public struct's memberwise initializer is internal,
     /// and the decode-service client now builds these from another module.
-    public init(index: Int, textDelta: String, elapsedDecodeSeconds: Double) {
+    public init(index: Int,
+                textDelta: String,
+                elapsedDecodeSeconds: Double,
+                thinkingDelta: String = "") {
         self.index = index
         self.textDelta = textDelta
         self.elapsedDecodeSeconds = elapsedDecodeSeconds
+        self.thinkingDelta = thinkingDelta
     }
 }
 

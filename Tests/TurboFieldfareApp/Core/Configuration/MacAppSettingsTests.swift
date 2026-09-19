@@ -1,8 +1,33 @@
 import Foundation
 import Testing
+import TurboFieldfare
 @testable import TurboFieldfareAppCore
 
 @Suite struct MacAppSettingsTests {
+    /// The slot default tracks the platform constant rather than a literal.
+    ///
+    /// It was `16` in two places — the stored property and the memberwise
+    /// default — and `AppModel.init` feeds it straight into `runtimeOptions`,
+    /// so on iOS it silently overrode `productionExpertCacheSlots` and held the
+    /// phone at 16 while the constant claimed 32. Measured on the iPhone 17
+    /// that is roughly half the throughput. Exactly the drift `HarnessSettings`
+    /// was fixed for, reaching the app by a second route, and this is the
+    /// assertion that would have caught it.
+    ///
+    /// ⚠️ The `#if os(iOS)` branch does **not** execute today: `swift test` is
+    /// macOS-only and the on-device bundle in `iOS/` does not link
+    /// `TurboFieldfareAppCore`. The constant-tracking expectation above it is
+    /// what actually guards this on either platform.
+    @Test func slotDefaultTracksThePlatformConstant() {
+        #expect(MacAppSettings().expertCacheSlots
+            == RuntimeConfiguration.productionExpertCacheSlots)
+        #if os(iOS)
+        #expect(MacAppSettings().expertCacheSlots == 32)
+        #else
+        #expect(MacAppSettings().expertCacheSlots == 16)
+        #endif
+    }
+
     @Test func settingsFileLivesBesideModelDirectory() {
         let model = URL(fileURLWithPath: "/tmp/TurboFieldfare/gemma4.gturbo",
                         isDirectory: true)

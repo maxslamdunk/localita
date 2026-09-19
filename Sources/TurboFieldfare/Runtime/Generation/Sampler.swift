@@ -15,6 +15,20 @@ public struct GenerationConfig: Sendable {
     public var seed: UInt64? = nil         // nil = nondeterministic
     public var stopStrings: [String] = []
     public var extraStopTokens: Set<Int32> = []
+    /// Whether the model reasons before answering.
+    ///
+    /// A prompt-shape control rather than a sampling one, but it belongs to the
+    /// same per-turn family as `temperature` and rides the same value: `config`
+    /// is already in scope where `MultimodalConversation` encodes a turn, so
+    /// carrying it here reaches every encode site without widening a single
+    /// signature between them.
+    ///
+    /// Off is not a restriction added by this project — it is the bundled
+    /// template's own `default(false)`. Note the polarity of the mechanism:
+    /// when thinking is *off* the generation prompt ends with an already-closed
+    /// empty thought block, which is what makes the model skip to the answer.
+    /// Enabling it removes that suffix rather than adding anything to it.
+    public var enableThinking: Bool = false
 
     public init(maxNewTokens: Int = 256,
                 temperature: Float = 1.0,
@@ -23,7 +37,9 @@ public struct GenerationConfig: Sendable {
                 repetitionPenalty: Float = 1.0,
                 seed: UInt64? = nil,
                 stopStrings: [String] = [],
-                extraStopTokens: Set<Int32> = []) {
+                extraStopTokens: Set<Int32> = [],
+                enableThinking: Bool = false) {
+        self.enableThinking = enableThinking
         self.maxNewTokens = maxNewTokens
         self.temperature = temperature
         self.topK = topK

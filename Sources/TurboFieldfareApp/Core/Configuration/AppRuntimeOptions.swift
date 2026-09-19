@@ -61,7 +61,15 @@ public struct AppRuntimeOptions: Equatable, Sendable {
     public var modelVerification: AppModelVerification
     public var visionResidencyPolicy: VisionResidencyPolicy
 
-    public init(expertCacheSlots: Int = 16,
+    /// `expertCacheSlots` defaults to the platform's production constant rather
+    /// than a literal, so a caller that does not name it gets 16 on macOS and
+    /// 32 on iOS. `prefillChunkTokens` deliberately does not: the measured-best
+    /// iOS policy is `auto`, which depends on the prompt length and so cannot
+    /// be a constant, and `IOS_PORT.md` requires the shared default stay 128 on
+    /// every platform. A platform that wants otherwise sets it per request —
+    /// prefill is outside `AppLoadedRuntimeKey`, so changing it never makes a
+    /// loaded session stale.
+    public init(expertCacheSlots: Int = RuntimeConfiguration.productionExpertCacheSlots,
                 expertCachePolicy: AppExpertCachePolicy = .lfu,
                 prefillEnabled: Bool = true,
                 prefillChunkTokens: Int = 128,

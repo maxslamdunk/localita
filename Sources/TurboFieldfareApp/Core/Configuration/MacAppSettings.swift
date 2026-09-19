@@ -7,7 +7,14 @@ struct MacAppSettings: Codable, Equatable, Sendable {
 
     var version: Int = currentVersion
     var contextTokens: Int = AppContextLengthOption.eightK.tokens
-    var expertCacheSlots: Int = 16
+    /// The platform's production default, **not** a literal. 16 on macOS and 32
+    /// on iOS, where 32 measured +59 / +56 / +34% over 16 on the iPhone 17.
+    /// A hardcoded 16 here is indistinguishable from a deliberate choice once
+    /// it reaches `AppModel.runtimeOptions`, so it silently held the phone at
+    /// the old value while the constant claimed otherwise — the same drift
+    /// `HarnessSettings` was fixed for, reaching the app by a second route.
+    /// No macOS behaviour change: the constant *is* 16 there.
+    var expertCacheSlots: Int = RuntimeConfiguration.productionExpertCacheSlots
     var temperature: Double = 0.2
     var topKEnabled: Bool = true
     var topK: Int = 64
@@ -50,7 +57,7 @@ struct MacAppSettings: Codable, Equatable, Sendable {
 
     init(version: Int = currentVersion,
          contextTokens: Int = AppContextLengthOption.eightK.tokens,
-         expertCacheSlots: Int = 16,
+         expertCacheSlots: Int = RuntimeConfiguration.productionExpertCacheSlots,
          temperature: Double = 0.2,
          topKEnabled: Bool = true,
          topK: Int = 64,

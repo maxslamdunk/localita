@@ -43,6 +43,63 @@ struct ChatTemplateTests {
         #expect(p.hasSuffix("<|turn>model\n<|channel>thought\n<channel|>"))
     }
 
+    /// The switch, and its counter-intuitive polarity.
+    ///
+    /// Thinking *off* is the form that ends with a closed, empty thought block:
+    /// the template pre-writes the channel as already finished so the model
+    /// opens the answer directly. Turning thinking on therefore takes that
+    /// suffix away and leaves the model turn open for the model to fill.
+    @Test("Thinking on opens a think turn and leaves the model turn open")
+    func thinkingOnChangesBothEnds() throws {
+        let p = try tok.applyChatTemplate([Message(role: .user, content: "Hi")],
+                                          enableThinking: true)
+        #expect(p.hasPrefix("<bos><|turn>system\n<|think|>\n<turn|>\n"))
+        #expect(p.contains("<|turn>user\nHi<turn|>\n"))
+        #expect(p.hasSuffix("<|turn>model\n"))
+        #expect(!p.contains("<|channel>thought"))
+    }
+
+    /// What keeps every other assertion in this suite honest: the new parameter
+    /// changes nothing at all when it is not asked for.
+    @Test("The default is byte-identical to thinking explicitly off")
+    func defaultMatchesExplicitOff() throws {
+        let messages = [Message(role: .user, content: "Hi")]
+        #expect(try tok.applyChatTemplate(messages)
+                == tok.applyChatTemplate(messages, enableThinking: false))
+    }
+
+    /// The bundled Jinja merges the marker into the first system turn rather
+    /// than adding a second one, and drops that message from the main loop.
+    @Test("A system message is folded into the think turn, not duplicated")
+    func systemMessageMergesIntoTheThinkTurn() throws {
+        let p = try tok.applyChatTemplate([
+            Message(role: .system, content: "Be terse."),
+            Message(role: .user, content: "Hi"),
+        ], enableThinking: true)
+        #expect(p.hasPrefix("<bos><|turn>system\n<|think|>\nBe terse.<turn|>\n"))
+        #expect(p.components(separatedBy: "<|turn>system").count - 1 == 1)
+        #expect(p.hasSuffix("<|turn>model\n"))
+    }
+
+    /// Written to falsify a claim made from a `grep` count rather than from the
+    /// vocabulary: that `<|think|>` is a real token. If it is not, it encodes as
+    /// several byte-fallback pieces and the system turn above is malformed.
+    @Test("The think marker is a single vocabulary token")
+    func thinkMarkerEncodesAsOneToken() throws {
+        #expect(tok.encode("<|think|>", addBOS: false).count == 1)
+    }
+
+    /// A continuation cannot reach back to add the system turn, so only the
+    /// tail differs — which is the half that decides whether a thought block
+    /// can be written at all.
+    @Test("A text continuation honours the flag in its tail")
+    func continuationTailFollowsTheFlag() throws {
+        let off = tok.encodeTextContinuation(userContent: "Hi")
+        let on = tok.encodeTextContinuation(userContent: "Hi", enableThinking: true)
+        #expect(off != on)
+        #expect(on.count < off.count)
+    }
+
     @Test("System message renders as a leading turn")
     func systemTurn() throws {
         let p = try tok.applyChatTemplate([

@@ -504,6 +504,7 @@ public actor MultimodalConversation {
 
         let cached = kvTokenIDs.count
         let turn = try await encodeTurn(parts: parts, images: images,
+                                        enableThinking: config.enableThinking,
                                         checkCancellation: checkCancellation)
         // A run that stopped on max tokens or was cancelled left its final
         // token outside the KV. Replay it ahead of this turn, exactly as the
@@ -799,6 +800,7 @@ public actor MultimodalConversation {
     private func encodeTurn(
         parts: [MultimodalContinuationPart],
         images: [URL],
+        enableThinking: Bool,
         checkCancellation: @Sendable () throws -> Void
     ) async throws -> EncodedTurn {
         guard !images.isEmpty, let visionRuntime else {
@@ -807,9 +809,11 @@ public actor MultimodalConversation {
             let ids = kvTokenIDs.isEmpty
                 ? tokenizer.encode(
                     try tokenizer.applyChatTemplate(
-                        [GFTokenizer.Message(role: .user, content: text)]),
+                        [GFTokenizer.Message(role: .user, content: text)],
+                        enableThinking: enableThinking),
                     addBOS: false)
-                : tokenizer.encodeTextContinuation(userContent: text)
+                : tokenizer.encodeTextContinuation(userContent: text,
+                                                   enableThinking: enableThinking)
             return EncodedTurn(effectiveTokenIDs: ids, prefillInput: nil)
         }
 
@@ -829,7 +833,8 @@ public actor MultimodalConversation {
             textAndImages: parts, imageTokenCounts: counts,
             // An empty KV means this is the conversation's first turn, which
             // needs the chat template's opening rather than a continuation's.
-            openingConversation: kvTokenIDs.isEmpty)
+            openingConversation: kvTokenIDs.isEmpty,
+            enableThinking: enableThinking)
         var spans: [MultimodalImageSpan] = []
         for (range, plan) in zip(bridge.imageTokenRanges, plans) {
             try checkCancellation()

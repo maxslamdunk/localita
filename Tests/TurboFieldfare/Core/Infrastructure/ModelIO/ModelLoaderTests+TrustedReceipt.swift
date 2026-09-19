@@ -195,6 +195,58 @@ extension ModelLoaderTests {
     }
   }
 
+  /// Waiving the directory path must not waive anything else.
+  ///
+  /// A receipt states both *which* bytes were verified (schema, manifest
+  /// digest) and *where* they were. Only the second is environment-specific,
+  /// and on iOS it cannot hold at all: the OS renames an app's data container
+  /// on every install, so the recorded path is stale by construction. Leaving
+  /// the clause enabled reported a complete, fully present model as missing.
+  /// These three expectations pin the relaxation as a narrowing rather than a
+  /// hole — no fixture or Metal device needed, since the receipt is a value.
+  @Test func manifestBindingCanWaiveTheDirectoryPathWithoutWaivingContent() throws {
+    let manifestSha = String(repeating: "a", count: 64)
+    let receipt = VerifiedInstallReceipt(
+      manifestSha256: manifestSha,
+      modelDirectoryPath: "/Users/someone/turbo-fieldfare/scratch/gemma4.gturbo",
+      verificationTimestamp: "2026-09-18T00:00:00Z",
+      toolVersion: "ModelLoaderTests",
+      files: [:])
+    let live = URL(
+      fileURLWithPath:
+        "/var/mobile/Containers/Data/Application/1C5CF722/Library/Application Support"
+        + "/TurboFieldfare/gemma4.gturbo")
+
+    // Waived: a different path is accepted.
+    try VerifiedInstallReceiptReader.validateManifestBinding(
+      receipt, directoryURL: live, manifestSha256: manifestSha,
+      requiringDirectoryPath: false)
+
+    // Still enforced by default, which is what every macOS caller gets.
+    #expect {
+      try VerifiedInstallReceiptReader.validateManifestBinding(
+        receipt, directoryURL: live, manifestSha256: manifestSha)
+    } throws: { error in
+      if case ModelError.trustedReceiptInvalid(let detail) = error {
+        return detail.contains("model directory mismatch")
+      }
+      return false
+    }
+
+    // And waiving the path does not waive the digest.
+    #expect {
+      try VerifiedInstallReceiptReader.validateManifestBinding(
+        receipt, directoryURL: live,
+        manifestSha256: String(repeating: "b", count: 64),
+        requiringDirectoryPath: false)
+    } throws: { error in
+      if case ModelError.trustedReceiptInvalid(let detail) = error {
+        return detail.contains("manifest SHA mismatch")
+      }
+      return false
+    }
+  }
+
   @Test func trustedReceiptModeRejectsDifferentModelDirectoryBinding() throws {
     let dir = try Self.writeToySynthetic()
     defer { try? FileManager.default.removeItem(at: dir) }

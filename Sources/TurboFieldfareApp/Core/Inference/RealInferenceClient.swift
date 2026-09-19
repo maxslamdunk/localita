@@ -509,7 +509,8 @@ actor RealInferenceSession {
                          temperature: request.temperature,
                          topK: request.topK,
                          topP: request.topP,
-                         repetitionPenalty: request.repetitionPenalty)
+                         repetitionPenalty: request.repetitionPenalty,
+                         enableThinking: request.enableThinking)
     }
 
     static func effectiveMaxNewTokens(requested: Int,
@@ -554,9 +555,13 @@ actor RealInferenceSession {
             let promptIds: [Int32]
             let multimodalInput: MultimodalPrefillInput?
             if request.imageAttachments.isEmpty {
-                let renderedPrompt = try tokenizer.applyChatTemplate([
-                    GFTokenizer.Message(role: .user, content: request.prompt)
-                ])
+                // The one-shot path renders its own prompt and never sees
+                // `GenerationConfig`, so the flag is taken from the request
+                // here rather than riding the config as it does on the
+                // conversation path.
+                let renderedPrompt = try tokenizer.applyChatTemplate(
+                    [GFTokenizer.Message(role: .user, content: request.prompt)],
+                    enableThinking: request.enableThinking)
                 promptIds = tokenizer.encode(renderedPrompt, addBOS: false)
                 multimodalInput = nil
             } else {
@@ -800,6 +805,21 @@ actor RealInferenceSession {
                                                                  executedMode: executedPrefillMode,
                                                                  kvStorageMode: .fp16)
 
+            // Channel state has to survive between token callbacks, and the
+            // closure is `@Sendable`, so it goes in a `Mutex` like every other
+            // cross-callback value on this type.
+            //
+            // Routing is **unconditional**, not gated on `enableThinking`: if
+            // the model opens a thought channel, that text must not reach the
+            // answer whatever the toggle said. The flag decides what is
+            // displayed; this decides which of the two things it is.
+            let channelRouter = Mutex(ChannelRouter())
+            // Hoisted rather than capturing the tokenizer: two `Int32`s are
+            // trivially `Sendable`, so the closure holds numbers instead of a
+            // reference type whose conformance it would be relying on.
+            let channelStartID = tokenizer.channelStartID
+            let channelEndID = tokenizer.channelEndID
+
             let report: @Sendable (RawDecodeProgress) -> Void = { event in
                 switch event {
                 case .prefill(let done, let total):
@@ -810,19 +830,35 @@ actor RealInferenceSession {
                         progress.countersAtDecodeStart = RunnerCounterSnapshot(runner)
                     }
                     continuation.yield(.prefillProgress(done: done, total: total))
-                case .token(let index, _, let delta):
+                case .token(let index, let id, let delta):
                     if progress.firstTokenDate == nil { progress.firstTokenDate = Date() }
                     progress.generated = index + 1
                     if index % 8 == 0 { _ = memorySampler.sample() }
+                    // This ID used to be discarded. It is the only thing that
+                    // says which channel the text belongs to: `skipSpecialTokens`
+                    // is on, so `<|channel>` arrives as an *empty* delta whose
+                    // meaning is carried solely by its ID.
+                    let routed = channelRouter.withLock {
+                        $0.consume(tokenID: id,
+                                   delta: delta,
+                                   channelStartID: channelStartID,
+                                   channelEndID: channelEndID)
+                    }
                     continuation.yield(.token(AppTokenEvent(
                         index: index,
-                        textDelta: delta,
-                        elapsedDecodeSeconds: progress.elapsedDecodeSeconds)))
+                        textDelta: routed.visibleText,
+                        elapsedDecodeSeconds: progress.elapsedDecodeSeconds,
+                        thinkingDelta: routed.thoughtText)))
                 case .tail(let text):
+                    // Routed too, not passed through: a run stopped inside a
+                    // thought block would otherwise flush the bytes the
+                    // detokenizer was still holding straight into the answer.
+                    let routed = channelRouter.withLock { $0.routeTail(text) }
                     continuation.yield(.token(AppTokenEvent(
                         index: max(progress.generated - 1, 0),
-                        textDelta: text,
-                        elapsedDecodeSeconds: progress.elapsedDecodeSeconds)))
+                        textDelta: routed.visibleText,
+                        elapsedDecodeSeconds: progress.elapsedDecodeSeconds,
+                        thinkingDelta: routed.thoughtText)))
                 }
             }
 
