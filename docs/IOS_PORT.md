@@ -644,6 +644,35 @@ below makes that deferral structural rather than a matter of remembering to.
        - ⚠️ Also not upstreamable as that line claimed: the slot default is
          iOS-only by design, and the `auto` policy lives in the iOS app rather
          than in shared code. Nothing here is a platform-neutral change.
+   - **Prefill chunk cap 256 → 1024 on iOS — DONE 2026-09-22 (`78ac25d`).** The
+     0.0% prefill hit rate that stood as an open item since step 0 is
+     **structural and cannot be fixed**: chunks loop outside layers, and within a
+     chunk `PrefillMoEGrouping` already coalesces the token×top-8 pairs to one
+     read per distinct expert, so no repeat request exists for a cache to hit.
+     At the floor — one chunk covering the prompt — every expert is read once and
+     the hit rate is *still* 0.0%. The metric is prefill bytes, and it moved:
+     **−70.6% long** (104,248.91 → 30,605.86 MiB) and **−42.1% medium**, with
+     short unchanged by construction. Token counts identical.
+     - **Medium reached the floor.** `auto` gives a 430-token prompt 512, one
+       chunk, 92.4 of 128 experts per layer read once. No further cap raise can
+       help a prompt of ≤512 tokens. Long is not at its floor — 32.09 GB against
+       ~12.1 — but taking it needs cap 4096, ~377 MB of scratch, and its own
+       prediction.
+     - ⚠️ **The time prediction missed and its falsifier fired on one run of
+       two.** Predicted −35 to −42%, measured −24.6% hot and −36.9% cooled, mean
+       −30.9%, against a tight 120/121 s baseline. **The 19% spread between two
+       byte-identical treatment runs is the lesson**: prefill bytes are
+       deterministic on this device, prefill time is not.
+     - ⚠️ **The cap costs +152.4 MB of KV ring unconditionally**, because
+       `RealForwardRunner` sizes the ring from the static cap rather than the
+       configured chunk. Hence platform-split, with macOS on 256.
+       `KVRingChunkCapTests` pins it, filed under `Runtime/Configuration` because
+       that is the directory the iOS test bundle compiles.
+     - ⚠️ **An unrelated regression surfaced and is logged, not claimed:** decode
+       is 7.8–13.2% slower than the 2026-09-16 rows at identical byte profiles,
+       with long-case `io` +15.9% at constant bytes. Artifact aging (6 days vs
+       0 h) and the 0.8 merge are both candidates and are unseparated at n=1.
+       See the second 2026-09-22 row in `MEASUREMENTS.md`.
    - Routing locality, prefetch, router lookahead.
    - Disk layout, expert co-location, read coalescing.
    - **Attention over long context**, which is not a bytes lever at all but is
