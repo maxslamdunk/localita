@@ -32,12 +32,14 @@ import Metal
 
     @Test func layoutClampsChunkSizeToRuntimeBounds() {
         #expect(PrefillChunkScratchLayout(config: .gemma4_26B_A4B, chunkTokens: 0).chunkTokens == 1)
-        // The ceiling is 256: every size up to the 280-token pooled image span
-        // produces identical ring geometry, so 256 costs nothing the image path
-        // was not already paying. 512 is the first size that would.
-        #expect(PrefillChunkScratchLayout(config: .gemma4_26B_A4B, chunkTokens: 512).chunkTokens
+        // Anything past the cap clamps to it. The cap itself is platform-split
+        // - 256 on macOS, 1024 on iOS, because the KV ring it sizes costs
+        // +152.4 MB there and the phone is the only platform with the headroom
+        // - so this asks for a size above whatever the cap is rather than
+        // naming one. `KVRingChunkCapTests` is where the values are pinned.
+        let aboveCap = PrefillRuntimeConfig.maxChunkTokens * 2
+        #expect(PrefillChunkScratchLayout(config: .gemma4_26B_A4B, chunkTokens: aboveCap).chunkTokens
                 == PrefillRuntimeConfig.maxChunkTokens)
-        #expect(PrefillRuntimeConfig.maxChunkTokens == 256)
         #expect(PrefillChunkScratchLayout(config: .gemma4_26B_A4B, chunkTokens: 256).chunkTokens == 256)
     }
 
@@ -48,15 +50,23 @@ import Metal
         #expect(PrefillRuntimeConfig.autoChunkTokens(promptTokens: 32) == 32)
         #expect(PrefillRuntimeConfig.autoChunkTokens(promptTokens: 33) == 64)
         #expect(PrefillRuntimeConfig.autoChunkTokens(promptTokens: 200) == 256)
-        // Beyond the ceiling it saturates rather than inventing a size.
-        #expect(PrefillRuntimeConfig.autoChunkTokens(promptTokens: 7_019) == 256)
+        // Beyond the ceiling it saturates rather than inventing a size. The
+        // ceiling is the platform's cap, which is what a long prompt reaches.
+        #expect(PrefillRuntimeConfig.autoChunkTokens(promptTokens: 7_019)
+                == PrefillRuntimeConfig.maxChunkTokens)
         // A cap below the ceiling is honoured, so a caller can stay smaller.
         #expect(PrefillRuntimeConfig.autoChunkTokens(promptTokens: 7_019, cap: 64) == 64)
     }
 
     /// The env door and the flag door have to agree on what is legal.
     @Test func requestedChunkSizesSnapToTheAllowedList() {
+        // Snaps down to the largest allowed size at or below the request, so
+        // the answer depends on which sizes the platform offers.
+        #if os(iOS)
+        #expect(PrefillRuntimeConfig.supportedChunkTokens(999) == 512)
+        #else
         #expect(PrefillRuntimeConfig.supportedChunkTokens(999) == 256)
+        #endif
         #expect(PrefillRuntimeConfig.supportedChunkTokens(200) == 128)
         #expect(PrefillRuntimeConfig.supportedChunkTokens(64) == 64)
         // Below the smallest allowed size there is nothing to snap to, so it

@@ -216,21 +216,59 @@ public struct PrefillRuntimeConfig: Sendable, Equatable {
     }
 
     /// Chunked prefill loops chunks outside layers, so each chunk streams that
-    /// layer's experts again and read volume tracks chunk count and nothing
-    /// else. On an 11,612-token prompt that meant 578 GB read from a 12 GB pool
-    /// with no cache hits at all.
+    /// layer's experts again. On an 11,612-token prompt that meant 578 GB read
+    /// from a 12 GB pool with no cache hits at all.
     ///
-    /// 256 is free: the runner floors the chunk at
-    /// `VisionConfig().maximumPooledTokens` (280) for the KV ring and for the
-    /// multimodal scratch layout, so every size up to 280 produces byte-identical
-    /// geometry. 512 is the first size that costs anything, and raising this past
-    /// 280 should come with a test that asserts ring bytes the way
-    /// `PrefillChunkScratchTests` asserts scratch.
-    public static let maxChunkTokens = 256
+    /// Chunk count is the dominant term but **not the only one**: a wider chunk
+    /// also routes to more distinct experts, so doubling the size does not halve
+    /// the bytes. Measured on the iPhone 17 over a 3,015-token prompt, the
+    /// distinct experts one layer reads per chunk went 79.7 at 128 to 90.5 at
+    /// 256 — +13.5% per doubling against a hard ceiling of `numExperts`, which
+    /// is why the floor is one chunk and not zero: every expert read once.
+    ///
+    /// **The cap is platform-split because raising it costs memory on every
+    /// run, not only on the runs that use a big chunk.** `RealForwardRunner`
+    /// sizes the KV ring from this constant rather than from the configured
+    /// chunk, because the server picks a per-request size and the ring cannot be
+    /// reallocated per request. So the cost below is unconditional:
+    ///
+    /// - Up to 280 is free. The runner floors the chunk at
+    ///   `VisionConfig().maximumPooledTokens` (280) for the ring and for the
+    ///   multimodal scratch layout, so every size up to 280 produces
+    ///   byte-identical geometry. 512 is the first size that costs anything.
+    /// - 1024 costs **+152.4 MB of KV ring** — `swaCapacity` goes
+    ///   `slidingWindow + 280 = 1304` to `slidingWindow + 1024 = 2048` tokens
+    ///   across the 25 sliding-window layers, at 4,096 B/token for K and V each
+    ///   — plus **+94.1 MB of prefill scratch** when a chunk that size is
+    ///   actually selected, for **+246.5 MB** in total.
+    ///
+    /// On the iPhone 17 that is ~14% of the 1.79 GB headroom between a measured
+    /// 3.81 GB peak and the 5.60 GB jetsam floor, and it buys a predicted −68%
+    /// of prefill bytes on the long case. On the 8 GB macOS validation host
+    /// there is no such headroom to spend and CACHE-03 measured what
+    /// overcommitting it does, so that host keeps 256.
+    ///
+    /// `KVRingChunkCapTests` asserts the ring bytes this cap implies, which is
+    /// the test the previous revision of this comment asked any change past 280
+    /// to bring with it.
+    public static let maxChunkTokens: Int = {
+        #if os(iOS)
+        return 1024
+        #else
+        return 256
+        #endif
+    }()
 
     /// Chunk sizes a caller may select. Capped at `maxChunkTokens` - see there
-    /// for why the larger sizes the scratch layout can handle are not offered.
-    public static let allowedChunkTokens = [32, 64, 128, 256]
+    /// for why the larger sizes the scratch layout can handle are not offered,
+    /// and why the list is shorter on macOS.
+    public static let allowedChunkTokens: [Int] = {
+        #if os(iOS)
+        return [32, 64, 128, 256, 512, 1024]
+        #else
+        return [32, 64, 128, 256]
+        #endif
+    }()
 
     /// The largest selectable chunk no greater than `requested`.
     ///

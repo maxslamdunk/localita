@@ -41,11 +41,13 @@ public struct RuntimeConfiguration: Sendable, Equatable {
     ///
     /// This is memory-funded speed, not a free win — report it as such.
     ///
-    /// Prefill chunk size deliberately gets **no** equivalent constant. The
+    /// Prefill chunk *size* deliberately gets **no** equivalent constant. The
     /// measured-best iOS policy is `auto`, which picks the smallest allowed
     /// size covering the prompt and so cannot be expressed as a fixed default;
     /// it is resolved where the prompt length is known, as `Run.swift` does for
-    /// the CLI.
+    /// the CLI. The *ceiling* `auto` may reach is platform-split in the same
+    /// spirit as this constant — see `PrefillRuntimeConfig.maxChunkTokens`,
+    /// where the memory that ceiling costs is what differs between platforms.
     public static let productionExpertCacheSlots: Int = {
         #if os(iOS)
         return 32
