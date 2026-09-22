@@ -1,0 +1,53 @@
+1, 9, start, footprint=9814720 available=6432636224, os=iOS 26.6 free=40456747812 thermal=nominal battery=100%/full
+2, 14, metal-device, footprint=10175192 available=6432275752, name=Apple A19 GPU apple10=true
+3, 21, shaders-compiled, footprint=11551472 available=6430899472, ms=6
+4, 21, model-found, footprint=11551472 available=6430899472, /var/mobile/Containers/Data/Application/12D8A0D4-9739-4FEE-9CBF-74477BF34F7E/Library/Application Support/TurboFieldfare/gemma4.gturbo
+5, 997, tokenizer-loaded, footprint=158335992 available=6284114952
+6, 1000, prompt-encoded, footprint=158401528 available=6284049416, case=medium-review sha256=23add7976db2069c9927affd13c2f5120508702a1c4915ea88b7de565bdd4b33 messages=1 tokens=430
+7, 1000, prefill-chunk-auto, footprint=158401528 available=6284049416, resolved=512 for 430 prompt tokens
+8, 1000, receipt-path-mismatch, footprint=158401528 available=6284049416, receipt names /Users/max/ml_projects/iphone-port/turbo-fieldfare/scratch/gemma4.gturbo but the model is at /var/mobile/Containers/Data/Application/12D8A0D4-9739-4FEE-9CBF-74477BF34F7E/Library/Application Support/TurboFieldfare/gemma4.gturbo — falling back to fullSha256, so io timings from this run are contaminated
+9, 1897, model-loaded, footprint=169444344 available=6273006600, policy=fullSha256 ms=897
+10, 1911, runner-ready, footprint=171263640 available=6271187304, slots=32 prefillChunk=512 prefillChunkSource=auto prefill=chunked
+11, 15614, token, footprint=4033597936 available=2408853008, index=0 thermal=nominal battery=100%/full
+12, 20180, token, footprint=3970945520 available=2471505424, index=16 thermal=nominal battery=100%/full
+13, 23415, token, footprint=3970879984 available=2471570960, index=32 thermal=nominal battery=100%/full
+14, 26800, token, footprint=3970863600 available=2471587344, index=48 thermal=nominal battery=100%/full
+15, 30872, token, footprint=3970830832 available=2471620112, index=64 thermal=nominal battery=100%/full
+16, 34229, token, footprint=3970781680 available=2471669264, index=80 thermal=nominal battery=100%/full
+17, 37912, token, footprint=3970748912 available=2471702032, index=96 thermal=nominal battery=100%/full
+18, 41018, token, footprint=3970732528 available=2471718416, index=112 thermal=nominal battery=100%/full
+19, 44891, token, footprint=3970716144 available=2471734800, index=128 thermal=nominal battery=100%/full
+20, 47776, token, footprint=3970716144 available=2471734800, index=144 thermal=nominal battery=100%/full
+21, 50892, token, footprint=3970716144 available=2471734800, index=160 thermal=nominal battery=100%/full
+22, 54498, token, footprint=3970814448 available=2471636496, index=176 thermal=nominal battery=100%/full
+23, 59135, token, footprint=3970814448 available=2471636496, index=192 thermal=nominal battery=100%/full
+24, 62613, token, footprint=3970814448 available=2471636496, index=208 thermal=nominal battery=100%/full
+25, 65558, token, footprint=3970814448 available=2471636496, index=224 thermal=nominal battery=100%/full
+26, 69160, token, footprint=3971060208 available=2471390736, index=240 thermal=nominal battery=100%/full
+27, 73019, token, footprint=3970896368 available=2471554576, index=256 thermal=nominal battery=100%/full
+28, 77588, token, footprint=3965653488 available=2476797456, index=272 thermal=nominal battery=100%/full
+29, 81323, token, footprint=3962704368 available=2479746576, index=288 thermal=nominal battery=100%/full
+30, 84789, token, footprint=3961459184 available=2480991760, index=304 thermal=nominal battery=100%/full
+31, 87813, token, footprint=3960410608 available=2482040336, index=320 thermal=nominal battery=100%/full
+32, 90570, token, footprint=3960410608 available=2482040336, index=336 thermal=nominal battery=100%/full
+33, 93954, token, footprint=3960410608 available=2482040336, index=352 thermal=nominal battery=100%/full
+34, 96957, token, footprint=3960410608 available=2482040336, index=368 thermal=fair battery=100%/full
+35, 99756, token, footprint=3960607216 available=2481843728, index=384 thermal=fair battery=100%/full
+36, 102975, token, footprint=3960410608 available=2482040336, index=400 thermal=fair battery=100%/full
+37, 105429, token, footprint=3960410608 available=2482040336, index=416 thermal=fair battery=100%/full
+38, 108969, token, footprint=3960607216 available=2481843728, index=432 thermal=fair battery=100%/full
+39, 111698, token, footprint=3960410608 available=2482040336, index=448 thermal=fair battery=100%/full
+40, 114376, token, footprint=3960410608 available=2482040336, index=464 thermal=fair battery=100%/full
+41, 117430, token, footprint=3960410608 available=2482040336, index=480 thermal=fair battery=100%/full
+42, 120557, token, footprint=3960410608 available=2482040336, index=496 thermal=fair battery=100%/full
+43, 123428, token, footprint=3960410608 available=2482040336, index=512 thermal=fair battery=100%/full
+44, 126123, token, footprint=3960410608 available=2482040336, index=528 thermal=fair battery=100%/full
+45, 128843, token, footprint=3960656368 available=2481794576, index=544 thermal=fair battery=100%/full
+46, 131296, token, footprint=3960410608 available=2482040336, index=560 thermal=fair battery=100%/full
+47, 134353, token, footprint=3960656368 available=2481794576, index=576 thermal=fair battery=100%/full
+48, 136877, token, footprint=3960410608 available=2482040336, index=592 thermal=fair battery=100%/full
+49, 140067, token, footprint=3960410608 available=2482040336, index=608 thermal=fair battery=100%/full
+50, 143260, token, footprint=3959394800 available=2483056144, index=624 thermal=fair battery=100%/full
+51, 144739, done, footprint=3959525872 available=2482925072, [stop=endOfTurn prefill=430tok new=632tok decode=129.13s tok/s=4.894]
+52, 144754, expert-io, footprint=3959525872 available=2482925072, [expert-io decode bytes/tok=131.40MB hit-rate=82.9% req/tok=240.00 reads/tok=41.02 forwards=631 | prefill bytes=8875.86MB hit-rate=0.0% reads=2771]
+53, 144755, phase-time, footprint=3959525872 available=2482925072, [phase-time decode ms/fwd cb1=1.65 cb1-wait=65.10 io=120.90 cb2=1.02 routed-drain=1.32 head=9.47 wall=204.65 forwards=631 | sequential per layer; io hides the shared-expert branch]

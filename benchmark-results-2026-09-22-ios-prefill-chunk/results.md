@@ -5,6 +5,13 @@ cap change and before any run. Binary at `78ac25d`, clean tree. iPhone 17,
 8 GB, iOS 26.6. Side-loaded `gemma4.gturbo`, installed 2026-09-16, so **6 days
 old** at these runs. Seven runs, logs in `logs/`.
 
+⚠️ Those logs are committed here, which the 2026-09-16 benchmark directories
+did not do — they name their logs and leave them on the phone. `.gitignore`
+excludes `*.log`, so these were force-added deliberately: an app container's
+UUID changes on every install, so a log left only on the device is one
+reinstall from gone, and these are the primary evidence for a row that
+records a fired falsifier.
+
 Every arm ran on the **same binary**. The 2026-09-16 chunk-256 rows were taken
 on a different one, so they are not used as the baseline; each case has its own
 baseline run here.

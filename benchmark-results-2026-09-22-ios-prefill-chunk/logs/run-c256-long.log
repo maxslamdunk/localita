@@ -1,0 +1,50 @@
+1, 8, start, footprint=9978608 available=6432472336, os=iOS 26.6 free=40435552823 thermal=nominal battery=100%/full
+2, 15, metal-device, footprint=10355464 available=6432095480, name=Apple A19 GPU apple10=true
+3, 26, shaders-compiled, footprint=11666208 available=6430784736, ms=10
+4, 26, model-found, footprint=11666208 available=6430784736, /var/mobile/Containers/Data/Application/12D8A0D4-9739-4FEE-9CBF-74477BF34F7E/Library/Application Support/TurboFieldfare/gemma4.gturbo
+5, 978, tokenizer-loaded, footprint=158467088 available=6283983856
+6, 996, prompt-encoded, footprint=158549032 available=6283901912, case=long-synthesis sha256=b12e4a71493ad151d7a85b91e878ba784b116ef65de9fcb1b1b1c05198b537b8 messages=1 tokens=3015
+7, 996, receipt-path-mismatch, footprint=158549032 available=6283901912, receipt names /Users/max/ml_projects/iphone-port/turbo-fieldfare/scratch/gemma4.gturbo but the model is at /var/mobile/Containers/Data/Application/12D8A0D4-9739-4FEE-9CBF-74477BF34F7E/Library/Application Support/TurboFieldfare/gemma4.gturbo — falling back to fullSha256, so io timings from this run are contaminated
+8, 1879, model-loaded, footprint=169591848 available=6272859096, policy=fullSha256 ms=883
+9, 1896, runner-ready, footprint=171443912 available=6271007032, slots=32 prefillChunk=256 prefillChunkSource=explicit prefill=chunked
+10, 122046, token, footprint=3965243888 available=2477207056, index=0 thermal=nominal battery=100%/full
+11, 127289, token, footprint=3938046448 available=2504404496, index=16 thermal=nominal battery=100%/full
+12, 132630, token, footprint=3937980912 available=2504470032, index=32 thermal=nominal battery=100%/full
+13, 137256, token, footprint=3937931760 available=2504519184, index=48 thermal=nominal battery=100%/full
+14, 141739, token, footprint=3937931760 available=2504519184, index=64 thermal=nominal battery=100%/full
+15, 146135, token, footprint=3937931760 available=2504519184, index=80 thermal=nominal battery=100%/full
+16, 150191, token, footprint=3937898992 available=2504551952, index=96 thermal=nominal battery=100%/full
+17, 154431, token, footprint=3938128368 available=2504322576, index=112 thermal=nominal battery=100%/full
+18, 159236, token, footprint=3938226672 available=2504224272, index=128 thermal=nominal battery=100%/full
+19, 163248, token, footprint=3938079216 available=2504371728, index=144 thermal=nominal battery=100%/full
+20, 166568, token, footprint=3938079216 available=2504371728, index=160 thermal=nominal battery=100%/full
+21, 170384, token, footprint=3938324976 available=2504125968, index=176 thermal=nominal battery=100%/full
+22, 174172, token, footprint=3938030064 available=2504420880, index=192 thermal=nominal battery=100%/full
+23, 177999, token, footprint=3938030064 available=2504420880, index=208 thermal=nominal battery=100%/full
+24, 181316, token, footprint=3935130096 available=2507320848, index=224 thermal=nominal battery=100%/full
+25, 184561, token, footprint=3931738608 available=2510712336, index=240 thermal=nominal battery=100%/full
+26, 188136, token, footprint=3928592880 available=2513858064, index=256 thermal=nominal battery=100%/full
+27, 191411, token, footprint=3927544304 available=2514906640, index=272 thermal=nominal battery=100%/full
+28, 194489, token, footprint=3927790064 available=2514660880, index=288 thermal=nominal battery=100%/full
+29, 197547, token, footprint=3927544304 available=2514906640, index=304 thermal=nominal battery=100%/full
+30, 201362, token, footprint=3927740912 available=2514710032, index=320 thermal=nominal battery=100%/full
+31, 205174, token, footprint=3927544304 available=2514906640, index=336 thermal=nominal battery=100%/full
+32, 208395, token, footprint=3927544304 available=2514906640, index=352 thermal=nominal battery=100%/full
+33, 211564, token, footprint=3927544304 available=2514906640, index=368 thermal=nominal battery=100%/full
+34, 214835, token, footprint=3927544304 available=2514906640, index=384 thermal=nominal battery=100%/full
+35, 217862, token, footprint=3927544304 available=2514906640, index=400 thermal=nominal battery=100%/full
+36, 221086, token, footprint=3927544304 available=2514906640, index=416 thermal=nominal battery=100%/full
+37, 224270, token, footprint=3927544304 available=2514906640, index=432 thermal=nominal battery=100%/full
+38, 227288, token, footprint=3927544304 available=2514906640, index=448 thermal=nominal battery=100%/full
+39, 230613, token, footprint=3927544304 available=2514906640, index=464 thermal=nominal battery=100%/full
+40, 233437, token, footprint=3927544304 available=2514906640, index=480 thermal=nominal battery=100%/full
+41, 236452, token, footprint=3927544304 available=2514906640, index=496 thermal=nominal battery=100%/full
+42, 240306, token, footprint=3927577072 available=2514873872, index=512 thermal=nominal battery=100%/full
+43, 243089, token, footprint=3927577072 available=2514873872, index=528 thermal=nominal battery=100%/full
+44, 245889, token, footprint=3927544304 available=2514906640, index=544 thermal=nominal battery=100%/full
+45, 248508, token, footprint=3927544304 available=2514906640, index=560 thermal=fair battery=100%/full
+46, 251355, token, footprint=3926495728 available=2515955216, index=576 thermal=fair battery=100%/full
+47, 254109, token, footprint=3926495728 available=2515955216, index=592 thermal=fair battery=100%/full
+48, 256114, done, footprint=3926495728 available=2515955216, [stop=endOfTurn prefill=3015tok new=602tok decode=134.07s tok/s=4.490]
+49, 256138, expert-io, footprint=3926495728 available=2515955216, [expert-io decode bytes/tok=147.89MB hit-rate=80.8% req/tok=240.00 reads/tok=46.17 forwards=601 | prefill bytes=104248.91MB hit-rate=0.0% reads=32546]
+50, 256139, phase-time, footprint=3926479344 available=2515971600, [phase-time decode ms/fwd cb1=2.09 cb1-wait=77.58 io=127.13 cb2=0.97 routed-drain=1.33 head=9.09 wall=223.07 forwards=601 | sequential per layer; io hides the shared-expert branch]
