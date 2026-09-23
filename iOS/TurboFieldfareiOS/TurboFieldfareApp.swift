@@ -1,6 +1,7 @@
 import SwiftUI
 import TurboFieldfareAppCore
 import UIKit
+import os
 
 @main
 struct TurboFieldfareiOSApp: App {
@@ -15,6 +16,7 @@ struct TurboFieldfareiOSApp: App {
         ProcessInfo.processInfo.arguments.contains("--autorun")
 
     @State private var model = ChatSession.makeModel()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -25,12 +27,94 @@ struct TurboFieldfareiOSApp: App {
                     ChatView(model: model)
                 }
             }
-            .onAppear {
-                // A decode run is minutes long and the screen must stay on:
-                // a locked phone suspends the app mid-generation and the
-                // run is lost.
-                UIApplication.shared.isIdleTimerDisabled = true
+            // A turn, a load or an install is minutes long, and a locked phone
+            // suspends the app in the middle of it. Only then, though: pinning
+            // the screen on for good drained the battery of a phone left
+            // sitting on an idle chat.
+            .onChange(of: keepsScreenOn, initial: true) { _, on in
+                UIApplication.shared.isIdleTimerDisabled = on
             }
+            .onChange(of: scenePhase) { _, phase in
+                guard !Self.isBenchmarkRun else { return }
+                Suspension.handle(phase, model: model)
+            }
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
+                // Logged, not acted on. Stopping the turn frees nothing, since
+                // the KV and the expert slots stay allocated, and nobody yet
+                // knows whether a 4 GB process gets these as routine. Stopping
+                // on a routine warning would cut off every reply.
+                Suspension.log.warning(
+                    "memory warning; turn running: \(model.isRunning, privacy: .public)")
+            }
+        }
+    }
+
+    private var keepsScreenOn: Bool {
+        // The benchmark harness drives its own session, so the chat model's
+        // state says nothing about it. It keeps the screen on for the whole
+        // launch, as it always has.
+        Self.isBenchmarkRun
+            || model.isTurnInFlight
+            || model.loadState.isLoading
+            || model.isInstallingModel
+            || model.isInstallingVisionPack
+    }
+}
+
+/// What leaving the app does to a turn in flight.
+///
+/// The model stays loaded, because reloading takes minutes. The turn is ended
+/// and kept, because iOS may end the process at any point after this, and a
+/// kept turn reopens from disk while a half-streamed one is simply lost.
+@MainActor
+enum Suspension {
+    static let log = Logger(subsystem: "TurboFieldfare", category: "lifecycle")
+
+    static func handle(_ phase: ScenePhase, model: AppModel) {
+        switch phase {
+        case .inactive:
+            // Stop here, before the app is backgrounded. A backgrounded app may
+            // not submit GPU work, and decode submits some for every token,
+            // so a stop requested at `.background` could land after the next
+            // token's encode had already failed. The cost: pulling down
+            // Control Center or taking a call also stops the reply.
+            if model.canCancel { model.cancel() }
+        case .background:
+            flush(model)
+        case .active:
+            break
+        @unknown default:
+            break
+        }
+    }
+
+    /// Waits for the stopped turn to be written, inside the time iOS grants a
+    /// backgrounded app.
+    private static func flush(_ model: AppModel) {
+        let app = UIApplication.shared
+        let task = BackgroundTask()
+        task.id = app.beginBackgroundTask(withName: "Save conversation") {
+            task.end()
+        }
+        Task {
+            // Under the roughly 30 s iOS grants, so it ends the task itself
+            // instead of being cut off by expiry.
+            let saved = await model.prepareForSuspension(timeout: .seconds(20))
+            if !saved {
+                log.error("conversation not saved before suspension")
+            }
+            task.end()
+        }
+    }
+
+    private final class BackgroundTask {
+        var id = UIBackgroundTaskIdentifier.invalid
+
+        func end() {
+            guard id != .invalid else { return }
+            UIApplication.shared.endBackgroundTask(id)
+            id = .invalid
         }
     }
 }
@@ -73,6 +157,13 @@ struct HarnessView: View {
         .padding()
         .task {
             if autorun { await harness.run() }
+        }
+        // Started by hand from the chat screen, a run is minutes long and the
+        // chat model's state does not cover it. Under `--autorun` the app
+        // already holds the screen on for the whole launch.
+        .onChange(of: harness.running) { _, running in
+            guard !autorun else { return }
+            UIApplication.shared.isIdleTimerDisabled = running
         }
     }
 }

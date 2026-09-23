@@ -5,7 +5,7 @@ import TurboFieldfareDecodeProtocol
 
 @testable import TurboFieldfareAppCore
 
-final class FakeInferenceClient: AppModelLifecycleClient, Sendable {
+final class FakeInferenceClient: AppModelLifecycleClient, AppInferenceStopping, Sendable {
     private struct State: Sendable {
         var loadedKey: AppLoadedRuntimeKey?
         var conversationEpochs: [UUID] = []
@@ -31,7 +31,12 @@ final class FakeInferenceClient: AppModelLifecycleClient, Sendable {
         var imageSoftTokens = 0
     }
 
-    enum CancelSemantics: Sendable { case hardAbort, cooperativeStop }
+    /// `hardAbort` is a client with no cooperative stop at all: both entry
+    /// points rewind. `cooperativeStop` is the Mac's socket client, whose
+    /// cancel the service turns into a stop. `inProcess` is
+    /// `RealInferenceClient`: `cancel()` rewinds and `stop()` keeps the turn,
+    /// so which one the app calls decides the outcome.
+    enum CancelSemantics: Sendable { case hardAbort, cooperativeStop, inProcess }
 
     private final class StateBox: Sendable {
         let value = Mutex(State())
@@ -256,9 +261,18 @@ final class FakeInferenceClient: AppModelLifecycleClient, Sendable {
 
     func cancel() {
         switch cancelSemantics {
-        case .hardAbort:
+        case .hardAbort, .inProcess:
             generationTasks.takeCurrent()?.cancel()
         case .cooperativeStop:
+            state.value.withLock { $0.stopRequested = true }
+        }
+    }
+
+    func stop() {
+        switch cancelSemantics {
+        case .hardAbort:
+            generationTasks.takeCurrent()?.cancel()
+        case .cooperativeStop, .inProcess:
             state.value.withLock { $0.stopRequested = true }
         }
     }

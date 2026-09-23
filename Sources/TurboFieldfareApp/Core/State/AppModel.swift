@@ -2571,7 +2571,35 @@ public final class AppModel {
     public func cancel() {
         guard canCancel else { return }
         isCancellationPending = true
-        client.cancel()
+        if let stopping = client as? AppInferenceStopping {
+            stopping.stop()
+        } else {
+            client.cancel()
+        }
+    }
+
+    /// Readies the app to be suspended: ends a running turn the way Stop does,
+    /// then waits for the stored conversation to finish writing.
+    ///
+    /// The model stays loaded. Reloading it takes minutes, and if iOS ends the
+    /// process instead, the conversation reopens from disk. Returns whether
+    /// everything finished before `timeout`. That time is short and set by the
+    /// platform, so nothing here may wait unbounded.
+    @discardableResult
+    public func prepareForSuspension(timeout: Duration) async -> Bool {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: timeout)
+        cancel()
+        // Polled: the send pipeline has no awaitable end that a timeout could
+        // abandon without cancelling it, and cancelling it is exactly what
+        // would rewind the turn this is here to keep.
+        while isTurnInFlight, clock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        guard !isTurnInFlight else { return false }
+        let remaining = clock.now.duration(to: deadline)
+        guard remaining > .zero else { return false }
+        return await awaitPendingPersistence(timeout: remaining)
     }
 
     /// The request the composer would build right now, for the callers that

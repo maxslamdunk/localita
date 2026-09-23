@@ -43,10 +43,10 @@ import Testing
         await SendWaiting.turnEnds(model)
     }
 
-    /// The shipping client stops cooperatively: the turn ends at a token
+    /// The Mac's client stops cooperatively: the turn ends at a token
     /// boundary and arrives as `.finished`, so it is committed and its partial
-    /// reply stays. Every other cancel test models the in-process client, which
-    /// does the opposite — so this path had no coverage at all.
+    /// reply stays. Most other cancel tests model a client with no cooperative
+    /// stop, which does the opposite — so this path had no coverage at all.
     @MainActor
     @Test func acooperativeStopCommitsTheTurnAndKeepsWhatItProduced() async throws {
         let client = FakeInferenceClient(eventDelay: .milliseconds(40),
@@ -79,6 +79,56 @@ import Testing
                 "the follow-up turn was stopped by a flag left set")
     }
 
+    /// The in-process client is the only client on iOS, and its `cancel()`
+    /// rewinds. Stop called that, so every stopped reply on the phone was
+    /// thrown away and its prompt handed back. Stop must reach `stop()`.
+    @MainActor
+    @Test func stopKeepsTheTurnOnTheInProcessClient() async throws {
+        let client = FakeInferenceClient(eventDelay: .milliseconds(40),
+                                         cancelSemantics: .inProcess)
+        let model = try await readyModel(client)
+        model.promptText = "one"
+        model.send()
+        while model.isTurnInFlight, model.liveTokenCount == 0 { await Task.yield() }
+        model.cancel()
+        await finish(model)
+
+        #expect(model.conversation.committedTurns == 1)
+        #expect(model.conversation.turns.map(\.role) == [.user, .assistant])
+        #expect(model.error == nil, "stopping is not an error")
+        #expect(model.promptText.isEmpty, "the prompt was handed back as if rewound")
+    }
+
+    /// Backgrounding on iOS: the running turn ends as Stop would, is kept, and
+    /// the model stays loaded, so coming back costs nothing.
+    @MainActor
+    @Test func suspensionKeepsTheTurnAndTheModel() async throws {
+        let client = FakeInferenceClient(eventDelay: .milliseconds(40),
+                                         cancelSemantics: .inProcess)
+        let model = try await readyModel(client)
+        model.promptText = "one"
+        model.send()
+        while model.isTurnInFlight, model.liveTokenCount == 0 { await Task.yield() }
+
+        let finished = await model.prepareForSuspension(timeout: .seconds(10))
+
+        #expect(finished)
+        #expect(!model.isTurnInFlight)
+        #expect(model.conversation.committedTurns == 1)
+        #expect(model.loadState.isReady, "suspension unloaded the model")
+    }
+
+    /// Nothing running is the common case, and it must return at once.
+    @MainActor
+    @Test func suspensionWithNothingRunningIsImmediate() async throws {
+        let model = try await readyModel(FakeInferenceClient())
+        let clock = ContinuousClock()
+        let start = clock.now
+        #expect(await model.prepareForSuspension(timeout: .seconds(10)))
+        #expect(start.duration(to: clock.now) < .seconds(1))
+        #expect(model.loadState.isReady)
+    }
+
     /// Pins the *double's* flag hygiene, which every other cooperative-stop
     /// assertion depends on: a fake that never lowered its stop flag made the
     /// following run break at its first token, quietly emptying them. The real
@@ -106,8 +156,9 @@ import Testing
                 "the next run stopped at one token")
     }
 
-    /// The in-process client rewinds the turn instead, and the app must not
-    /// count it. Both clients exist, and the app has to be right for both.
+    /// A client with no cooperative stop rewinds the turn instead, and the app
+    /// must not count it. The in-process client does the same during prefill,
+    /// where there is no token boundary to stop at.
     @MainActor
     @Test func ahardAbortDoesNotCountTheTurnItRewound() async throws {
         let client = FakeInferenceClient(eventDelay: .milliseconds(40),

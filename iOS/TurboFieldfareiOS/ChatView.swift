@@ -14,6 +14,7 @@ struct ChatView: View {
     @State private var blocks = StreamingBlocks()
     @State private var thinkingBlocks = StreamingBlocks(.reasoning)
     @State private var isShowingBenchmark = false
+    @State private var thermalState = ProcessInfo.processInfo.thermalState
 
     var body: some View {
         VStack(spacing: 0) {
@@ -42,6 +43,10 @@ struct ChatView: View {
             ChatComposer(model: model)
         }
         .background(Color(uiColor: .systemBackground))
+        .onReceive(NotificationCenter.default.publisher(
+            for: ProcessInfo.thermalStateDidChangeNotification)) { _ in
+            thermalState = ProcessInfo.processInfo.thermalState
+        }
         .sheet(isPresented: $isShowingBenchmark) {
             // The harness stays reachable. It is the instrument every device
             // row in `MEASUREMENTS.md` came from, and `--autorun` still drives
@@ -81,6 +86,19 @@ struct ChatView: View {
             statusPill(presentation)
 
             Spacer(minLength: 8)
+
+            // Informational only. On this phone `serious` measured 11.6% off
+            // throughput, almost all of it in the expert fetch, so a slow reply
+            // gets its explanation on screen. `fair` measured as no visible
+            // throttling, so it is not shown.
+            if thermalState == .serious || thermalState == .critical {
+                Image(systemName: "thermometer.high")
+                    .font(.caption)
+                    .foregroundStyle(thermalState == .critical ? .red : .orange)
+                    .accessibilityLabel("Phone is hot")
+                    .accessibilityValue(thermalState == .critical
+                                        ? "Critical" : "Serious")
+            }
 
             if model.isRunning, model.liveTokensPerSecond > 0 {
                 Text("\(MetricFormat.rate(model.liveTokensPerSecond)) tok/s")

@@ -57,7 +57,8 @@ final class GenerationTaskRegistry: Sendable {
 /// loop the CLI uses (`runRawCompletion`, BOS + verbatim encode, no chat
 /// template) behind the `AppInferenceClient` event stream, with an explicit
 /// load lifecycle so the resident weights stay warm across generations.
-public final class RealInferenceClient: AppModelLifecycleClient, @unchecked Sendable {
+public final class RealInferenceClient: AppModelLifecycleClient, AppInferenceStopping,
+    @unchecked Sendable {
     private let session: RealInferenceSession
     /// Bytes of image tower held mapped, readable without awaiting the session.
     public var currentVisionTowerBytes: UInt64? {

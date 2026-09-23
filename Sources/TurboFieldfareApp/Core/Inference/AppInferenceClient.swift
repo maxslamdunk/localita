@@ -5,6 +5,18 @@ public protocol AppInferenceClient: Sendable {
     func cancel()
 }
 
+/// A client that can end a turn at a token boundary and keep what it produced.
+///
+/// `cancel()` means different things to the two shipping clients. The Mac's
+/// socket client sends `.cancel` to the decode service, and the service stops
+/// cooperatively. The in-process client cancels the task, so the turn throws
+/// out of decode and is rewound. On iOS, the in-process client is the only
+/// client, so Stop threw away every partial reply. `AppModel.cancel()` prefers
+/// this, which makes Stop mean the same thing on both platforms.
+public protocol AppInferenceStopping: AnyObject {
+    func stop()
+}
+
 /// A client that owns a loadable model session. Loading is split from
 /// generation so the UI can pre-load the ~1.6 GB resident weights once and
 /// keep them warm across runs. Generation never loads or replaces a session.
