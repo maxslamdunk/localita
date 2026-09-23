@@ -17,20 +17,31 @@ import TurboFieldfareRichText
 enum ChatSession {
     /// Prompt tokens per chunked-prefill step.
     ///
-    /// Pinned rather than left at the shared 128 default. Measured on the
-    /// iPhone 17 at a fixed 32 slots, 256 gives **7.596 / 6.204 / 5.206 tok/s**
-    /// against 128's 7.005 / 6.181 / 4.786, cuts prefill time 31.9–32.3%, and
-    /// changes no output — for about 36 MB of prefill scratch.
+    /// Pinned to the platform's cap rather than left at the shared 128 default,
+    /// so it follows `PrefillRuntimeConfig.maxChunkTokens` (1024 on iOS). The
+    /// KV ring is sized from that cap whatever is set here, so a smaller pin
+    /// pays the ring's +152.4 MB and gets nothing for it. Measured on the
+    /// iPhone 17 at a fixed 32 slots (2026-09-22), 1024 against 256 cuts
+    /// prefill bytes **−70.6%** on the long case and **−42.1%** on medium, and
+    /// changes no output. The cost that is actually this pin's is prefill
+    /// scratch, which is sized from the configured chunk: about +94 MB over 256.
     ///
-    /// `auto` is the measured-best *policy* but is not reachable from here:
-    /// it resolves against the prompt length, and `RealInferenceSession.run`
+    /// A pin at the cap loses nothing to `auto` on short prompts. The cap is
+    /// a ceiling, so a prompt shorter than one chunk still runs as one chunk
+    /// and reads the same bytes. The 64-vs-256 short-case gap once cited against
+    /// `auto` was run-to-run variance, not an effect.
+    /// `auto` stays unreachable from here anyway: `RealInferenceSession.run`
     /// reads `runtimeOptions.prefillConfig` before the turn tokenizes its
-    /// prompt. It would also not help — on a short prompt `auto` picks 64,
-    /// which measured **slower** than 256 (7.209 against 7.596).
+    /// prompt.
+    ///
+    /// Where this pays in a chat: a first turn with a long prompt, and reopening
+    /// a stored conversation, which replays the whole lineage through prefill.
+    /// A follow-up turn prefills only its new message, since the conversation
+    /// path reuses the retained KV.
     ///
     /// Safe to set per session: prefill size is deliberately outside
     /// `AppLoadedRuntimeKey`, so changing it never makes a loaded model stale.
-    static let prefillChunkTokens = 256
+    static let prefillChunkTokens = PrefillRuntimeConfig.maxChunkTokens
 
     static func makeModel() -> AppModel {
         let model = AppModel(
@@ -51,7 +62,8 @@ enum ChatSession {
         // .productionExpertCacheSlots` and so resolves to 32 on iOS. That is
         // memory-funded speed, not a free win: slots are per layer, so 30 × 32
         // buffers is +1.61 GB, taking peak footprint to about 3.77 GB against
-        // the measured 5.60 GB ceiling.
+        // the measured 5.60 GB ceiling. That was measured at a 256 cap; the 1024
+        // cap and the pin above add about 0.25 GB of ring and scratch.
         model.runtimeOptions.prefillChunkTokens = prefillChunkTokens
         return model
     }
