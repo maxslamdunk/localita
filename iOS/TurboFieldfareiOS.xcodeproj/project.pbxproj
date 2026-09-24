@@ -13,6 +13,7 @@
 		FE00AA00BB00CC00DD00EE30 /* TurboFieldfareAppCore in Frameworks */ = {isa = PBXBuildFile; productRef = FE00AA00BB00CC00DD00EE31 /* TurboFieldfareAppCore */; };
 		FE00AA00BB00CC00DD00EE32 /* TurboFieldfareAppPresentation in Frameworks */ = {isa = PBXBuildFile; productRef = FE00AA00BB00CC00DD00EE33 /* TurboFieldfareAppPresentation */; };
 		FE00AA00BB00CC00DD00EE34 /* TurboFieldfareRichText in Frameworks */ = {isa = PBXBuildFile; productRef = FE00AA00BB00CC00DD00EE35 /* TurboFieldfareRichText */; };
+		FE00AA00BB00CC00DD00EE41 /* VisionResizeParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00AA00BB00CC00DD00EE40 /* VisionResizeParityTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -28,6 +29,7 @@
 /* Begin PBXFileReference section */
 		FE00AA00BB00CC00DD00EE01 /* TurboFieldfareiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TurboFieldfareiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FE00AA00BB00CC00DD00EE13 /* TurboFieldfareiOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TurboFieldfareiOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		FE00AA00BB00CC00DD00EE40 /* VisionResizeParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VisionResizeParityTests.swift; path = ../Tests/TurboFieldfare/Core/Runtime/Vision/VisionResizeParityTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -115,6 +117,7 @@
 				FE00AA00BB00CC00DD00EE14 /* Kernels */,
 				FE00AA00BB00CC00DD00EE15 /* Reference */,
 				FE00AA00BB00CC00DD00EE24 /* Configuration */,
+				FE00AA00BB00CC00DD00EE40 /* VisionResizeParityTests.swift */,
 				FE00AA00BB00CC00DD00EE05 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -254,7 +257,14 @@
 		FE00AA00BB00CC00DD00EE1A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
+			/*
+			 * One file from Runtime/Vision, by reference rather than as a
+			 * synchronized group: it is the only GPU-vs-CPU comparison there,
+			 * and it is self-contained. The rest of that directory needs
+			 * fixtures and model plumbing this bundle does not carry.
+			 */
 			files = (
+				FE00AA00BB00CC00DD00EE41 /* VisionResizeParityTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

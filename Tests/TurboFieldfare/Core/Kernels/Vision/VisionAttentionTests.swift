@@ -1,6 +1,7 @@
 import Metal
 import Testing
 @testable import TurboFieldfare
+import TurboFieldfareValidationSupport
 
 private let visionMPPTensorOpsAvailable = MTLCreateSystemDefaultDevice()?
     .supportsFamily(.apple8) == true
@@ -91,6 +92,7 @@ private let visionMPPTensorOpsAvailable = MTLCreateSystemDefaultDevice()?
             #expect(slice.contains { $0 != 0 },
                     "row \(row) of the fallback output was never written")
         }
+        Margin.recordAbsolute(RelError.maxAbsDiff(fallback, fused), label: "fused")
         for index in fallback.indices {
             let detail = "row-major fallback diverged at \(index): "
                 + "\(fallback[index]) vs fused \(fused[index])"
@@ -165,6 +167,7 @@ private let visionMPPTensorOpsAvailable = MTLCreateSystemDefaultDevice()?
         let (native, nativePhases) = try run(
             try VisionAttention(context: context, environment: [:]))
         #expect(nativePhases == [.core])
+        Margin.recordAbsolute(RelError.maxAbsDiff(roundtrip, native), label: "native")
         for index in roundtrip.indices {
             #expect(abs(roundtrip[index] - native[index]) <= 0.02,
                     "roundtrip diverged at \(index): \(roundtrip[index]) vs native \(native[index])")
@@ -252,6 +255,7 @@ private let visionMPPTensorOpsAvailable = MTLCreateSystemDefaultDevice()?
 
             let actualBits = output.contents().bindMemory(
                 to: UInt16.self, capacity: q.count)
+            var worst: Float = 0
             for query in 0..<length {
                 for head in 0..<heads {
                     var scores = [Float](repeating: 0, count: length)
@@ -273,11 +277,18 @@ private let visionMPPTensorOpsAvailable = MTLCreateSystemDefaultDevice()?
                         expected /= denominator
                         let index = (query * heads + head) * dimension + d
                         let actual = Quantization.bf16ToFloat(actualBits[index])
+                        worst = max(worst, abs(actual - expected))
                         #expect(abs(actual - expected) <= 0.02,
                                 "variant=\(attention.variant) index=\(index) actual=\(actual) expected=\(expected)")
                     }
                 }
             }
+            // One line per variant and length. The environment, not the
+            // variant alone, names it: three MPP runs share a variant.
+            let name = environment.keys.sorted()
+                .map { $0.replacingOccurrences(of: "TURBO_FIELDFARE_VISION_", with: "") }
+                .joined(separator: "+")
+            Margin.recordAbsolute(worst, label: "len=\(length) env=\(name.isEmpty ? "default" : name)")
         }
     }
 
@@ -341,6 +352,7 @@ private let visionMPPTensorOpsAvailable = MTLCreateSystemDefaultDevice()?
             magnitude = max(magnitude, abs(serial[index]))
         }
         #expect(magnitude > 0)
+        Margin.record(maximumDifference / max(magnitude, 1e-6), file: #fileID, line: #line)
         #expect(maximumDifference <= 0.01 * magnitude,
                 "max difference \(maximumDifference) against magnitude \(magnitude)")
     }

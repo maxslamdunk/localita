@@ -17,12 +17,24 @@ import Foundation
 /// ⚠️ This reports the raw error and its source location, **not** a ratio,
 /// because the tolerance lives at the call site and this function cannot see
 /// it. Read the ratio by looking up the `Tolerance` constant on the named
-/// line. ⚠️ It also covers only comparisons that route through `RelError`;
-/// suites asserting bytewise or structural equality — including both Vision
-/// kernel suites — have no margin to report by construction.
+/// line. ⚠️ It also covers only comparisons that route through `RelError` or
+/// call `recordAbsolute`; suites asserting bytewise or structural equality
+/// have no margin to report by construction.
 public enum Margin {
     public static func record(_ relErr: Float, file: StaticString, line: UInt) {
         print("[margin] rel=\(relErr) at \(file):\(line)")
+    }
+
+    /// For comparisons bounded by an absolute tolerance, as the Vision suites'
+    /// BF16 comparisons are. Printed as `abs=` so it is never read against a
+    /// relative bound. `label` separates several comparisons asserted on one
+    /// line, such as one per kernel variant; it follows the location, after a
+    /// space, so a `[^ ]*` extraction of the location still works.
+    public static func recordAbsolute(_ absErr: Float, label: String? = nil,
+                                      file: StaticString = #fileID,
+                                      line: UInt = #line) {
+        let suffix = label.map { " [\($0)]" } ?? ""
+        print("[margin] abs=\(absErr) at \(file):\(line)\(suffix)")
     }
 }
 

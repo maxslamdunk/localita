@@ -1,0 +1,150 @@
+        ➜ Explicit dependency on target 'TurboFieldfareiOS' in project 'TurboFieldfareiOS'
+        ➜ Explicit dependency on target 'TurboFieldfare' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareValidationSupport' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareValidationSupport' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareFormat' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfare' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'TurboFieldfareFormat' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfare' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'TurboFieldfare' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareAppCore' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareAppPresentation' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareRichText' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareRichText' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareFormat' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfare' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareRepackCore' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareAppCore' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareAppPresentation' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'SwiftMath' in project 'SwiftMath'
+        ➜ Explicit dependency on target 'TurboFieldfareFormat' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfare' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareRepackCore' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareAppCore' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareAppPresentation' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'SwiftMath' in project 'SwiftMath'
+        ➜ Explicit dependency on target 'SwiftMath' in project 'SwiftMath'
+        ➜ Explicit dependency on target 'SwiftMath_SwiftMath' in project 'SwiftMath'
+        ➜ Explicit dependency on target 'SwiftMath_SwiftMath' in project 'SwiftMath'
+        ➜ Explicit dependency on target 'TurboFieldfareAppPresentation' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareFormat' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfare' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareRepackCore' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareAppCore' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'TurboFieldfareFormat' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfare' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareRepackCore' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareAppCore' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'TurboFieldfareAppCore' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfare_TurboFieldfareAppCore' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareFormat' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfare' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareRepackCore' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'TurboFieldfare_TurboFieldfareAppCore' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareFormat' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfare' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareRepackCore' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'TurboFieldfareFormat' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfare' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfare_TurboFieldfare' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareFormat' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'TurboFieldfare_TurboFieldfare' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'TurboFieldfareFormat' in project 'TurboFieldfare'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'swift-transformers_Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+        ➜ Explicit dependency on target 'HuggingFace' in project 'swift-huggingface'
+        ➜ Explicit dependency on target 'OrderedCollections' in project 'swift-collections'
+        ➜ Explicit dependency on target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'yyjson' in project 'yyjson'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+        ➜ Explicit dependency on target 'HuggingFace' in project 'swift-huggingface'
+        ➜ Explicit dependency on target 'OrderedCollections' in project 'swift-collections'
+        ➜ Explicit dependency on target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'yyjson' in project 'yyjson'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+        ➜ Explicit dependency on target 'HuggingFace' in project 'swift-huggingface'
+        ➜ Explicit dependency on target 'OrderedCollections' in project 'swift-collections'
+        ➜ Explicit dependency on target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'yyjson' in project 'yyjson'
+        ➜ Explicit dependency on target 'swift-transformers_Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+        ➜ Explicit dependency on target 'HuggingFace' in project 'swift-huggingface'
+        ➜ Explicit dependency on target 'OrderedCollections' in project 'swift-collections'
+        ➜ Explicit dependency on target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'yyjson' in project 'yyjson'
+        ➜ Explicit dependency on target 'yyjson' in project 'yyjson'
+        ➜ Explicit dependency on target 'HuggingFace' in project 'swift-huggingface'
+        ➜ Explicit dependency on target 'EventSource' in project 'EventSource'
+        ➜ Explicit dependency on target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'EventSource' in project 'EventSource'
+        ➜ Explicit dependency on target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'swift-crypto_Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'swift-crypto_Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'EventSource' in project 'EventSource'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+        ➜ Explicit dependency on target 'OrderedCollections' in project 'swift-collections'
+        ➜ Explicit dependency on target 'OrderedCollections' in project 'swift-collections'
+        ➜ Explicit dependency on target 'OrderedCollections' in project 'swift-collections'
+        ➜ Explicit dependency on target 'InternalCollectionsUtilities' in project 'swift-collections'
+        ➜ Explicit dependency on target 'InternalCollectionsUtilities' in project 'swift-collections'
+Test Suite 'TurboFieldfareiOSTests.xctest' passed at 2026-09-24 14:29:58.507.
+Test Suite 'Selected tests' passed at 2026-09-24 14:29:58.507.
+[margin] abs=0.0 at TurboFieldfareiOSTests/VisionAttentionTests.swift:170 [native]
+[margin] abs=0.0 at TurboFieldfareiOSTests/VisionAttentionTests.swift:95 [fused]
+[margin] abs=0.0 at TurboFieldfareiOSTests/VisionLinearBF16Tests.swift:48 [default]
+[margin] abs=0.0 at TurboFieldfareiOSTests/VisionLinearBF16Tests.swift:48 [register]
+[margin] abs=0.0007993579 at TurboFieldfareiOSTests/VisionAttentionTests.swift:291 [len=5 env=ATTENTION_Q8]
+[margin] abs=0.0007993579 at TurboFieldfareiOSTests/VisionAttentionTests.swift:291 [len=5 env=default]
+[margin] abs=0.0007993579 at TurboFieldfareiOSTests/VisionAttentionTests.swift:291 [len=5 env=ATTENTION_PAD80]
+[margin] abs=0.001953125 at TurboFieldfareiOSTests/VisionLinearBF16Tests.swift:107 [wide]
+[margin] abs=0.001953125 at TurboFieldfareiOSTests/VisionLinearBF16Tests.swift:108 [tail]
+[margin] abs=0.0007993579 at TurboFieldfareiOSTests/VisionAttentionTests.swift:291 [len=5 env=ATTENTION_MPP]
+[margin] abs=0.0007993579 at TurboFieldfareiOSTests/VisionAttentionTests.swift:291 [len=5 env=ATTENTION_MPP+PAD_ROUNDTRIP]
+✔ Test registerMatchesMPPReductionAtProductionK() passed after 0.189 seconds.
+✔ Test mppWithoutThePaddedStoreStillRunsTheMPPKernel() passed after 0.189 seconds.
+✔ Test nativePathsProduceExpectedConstantProduct() passed after 0.189 seconds.
+✔ Test registerPathHandlesNonconstantTailShape() passed after 0.189 seconds.
+✔ Test rowMajorInputsAreHonouredEvenWhenTheFusedLayoutIsAvailable() passed after 0.189 seconds.
+✔ Suite VisionLinearBF16Tests passed after 0.190 seconds.
+[margin] abs=0.0007993579 at TurboFieldfareiOSTests/VisionAttentionTests.swift:291 [len=5 env=ATTENTION_MPP+ATTENTION_PARALLEL_SOFTMAX]
+[margin] abs=0.0007993579 at TurboFieldfareiOSTests/VisionAttentionTests.swift:291 [len=5 env=ATTENTION_MPP+ATTENTION_SERIAL_SOFTMAX]
+​[margin] rel=0.0011682243 at TurboFieldfareiOSTests/VisionAttentionTests.swift:355
+✔ Test parallelSoftmaxStaysWithinRoundingOfSerialPhase() passed after 0.236 seconds.
+✔ Test singleAxisReductionsMatch() passed after 0.609 seconds.
+[margin] abs=1.5191734e-05 at TurboFieldfareiOSTests/VisionAttentionTests.swift:291 [len=200 env=ATTENTION_Q8]
+[margin] abs=1.5191734e-05 at TurboFieldfareiOSTests/VisionAttentionTests.swift:291 [len=200 env=default]
+[margin] abs=1.5191734e-05 at TurboFieldfareiOSTests/VisionAttentionTests.swift:291 [len=200 env=ATTENTION_PAD80]
+[margin] abs=1.5191734e-05 at TurboFieldfareiOSTests/VisionAttentionTests.swift:291 [len=200 env=ATTENTION_MPP]
+[margin] abs=1.5191734e-05 at TurboFieldfareiOSTests/VisionAttentionTests.swift:291 [len=200 env=ATTENTION_MPP+PAD_ROUNDTRIP]
+[margin] abs=1.5191734e-05 at TurboFieldfareiOSTests/VisionAttentionTests.swift:291 [len=200 env=ATTENTION_MPP+ATTENTION_PARALLEL_SOFTMAX]
+[margin] abs=1.5191734e-05 at TurboFieldfareiOSTests/VisionAttentionTests.swift:291 [len=200 env=ATTENTION_MPP+ATTENTION_SERIAL_SOFTMAX]
+​✔ Test onlineAttentionMatchesFP32Reference(length:) with 2 test cases passed after 8.617 seconds.
+✔ Suite VisionAttentionTests passed after 8.618 seconds.
+✔ Test theGPUFilterIsByteIdenticalToTheCPUOracle() passed after 25.956 seconds.
+✔ Suite VisionResizeParityTests passed after 25.957 seconds.
+✔ Test run with 9 tests in 3 suites passed after 25.957 seconds.

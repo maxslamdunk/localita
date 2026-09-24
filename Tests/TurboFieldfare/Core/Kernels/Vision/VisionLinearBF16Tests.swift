@@ -2,6 +2,7 @@ import Foundation
 import Metal
 import Testing
 @testable import TurboFieldfare
+import TurboFieldfareValidationSupport
 
 private let visionMPPTensorOpsAvailable = MTLCreateSystemDefaultDevice()?
     .supportsFamily(.apple8) == true
@@ -44,6 +45,8 @@ private let visionMPPTensorOpsAvailable = MTLCreateSystemDefaultDevice()?
                     maximumError,
                     abs(Quantization.bf16ToFloat(values[index]) - 36))
             }
+            Margin.recordAbsolute(maximumError,
+                                  label: environment.isEmpty ? "default" : "register")
             #expect(maximumError == 0, "environment: \(environment)")
         }
     }
@@ -101,6 +104,8 @@ private let visionMPPTensorOpsAvailable = MTLCreateSystemDefaultDevice()?
                 }
             }
         }
+        Margin.recordAbsolute(maximumWideError, label: "wide")
+        Margin.recordAbsolute(maximumTailError, label: "tail")
         #expect(maximumWideError < 0.016)
         #expect(maximumTailError < 0.016)
     }

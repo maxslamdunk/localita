@@ -1,0 +1,25 @@
+Test Suite 'Selected tests' started at 2026-09-24 14:30:41.150.
+Test Suite 'TurboFieldfarePackageTests.xctest' started at 2026-09-24 14:30:41.180.
+Test Suite 'TurboFieldfarePackageTests.xctest' passed at 2026-09-24 14:30:41.180.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.000) seconds
+Test Suite 'Selected tests' passed at 2026-09-24 14:30:41.180.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.030) seconds
+◇ Test run started.
+↳ Testing Library Version: 1902
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite VisionAttentionTests started.
+➜ Test rowMajorInputsAreHonouredEvenWhenTheFusedLayoutIsAvailable() skipped: "vision MPP tensor shapes require Apple8 or newer"
+➜ Test mppWithoutThePaddedStoreStillRunsTheMPPKernel() skipped: "vision MPP tensor shapes require Apple8 or newer"
+◇ Test onlineAttentionMatchesFP32Reference(length:) started.
+◇ Test case passing 1 argument length → 5 to onlineAttentionMatchesFP32Reference(length:) started.
+[margin] abs=0.0007993579 at TurboFieldfareTestsCore/VisionAttentionTests.swift:291 [len=5 env=ATTENTION_Q8]
+[margin] abs=0.0007993579 at TurboFieldfareTestsCore/VisionAttentionTests.swift:291 [len=5 env=default]
+[margin] abs=0.0007993579 at TurboFieldfareTestsCore/VisionAttentionTests.swift:291 [len=5 env=ATTENTION_PAD80]
+◇ Test case passing 1 argument length → 200 to onlineAttentionMatchesFP32Reference(length:) started.
+[margin] abs=1.5191734e-05 at TurboFieldfareTestsCore/VisionAttentionTests.swift:291 [len=200 env=ATTENTION_Q8]
+[margin] abs=1.5191734e-05 at TurboFieldfareTestsCore/VisionAttentionTests.swift:291 [len=200 env=default]
+[margin] abs=1.5191734e-05 at TurboFieldfareTestsCore/VisionAttentionTests.swift:291 [len=200 env=ATTENTION_PAD80]
+✔ Test onlineAttentionMatchesFP32Reference(length:) with 2 test cases passed after 5.605 seconds.
+➜ Test parallelSoftmaxStaysWithinRoundingOfSerialPhase() skipped: "vision MPP tensor shapes require Apple8 or newer"
+✔ Suite VisionAttentionTests passed after 5.606 seconds.
+✔ Test run with 4 tests in 1 suite passed after 5.607 seconds.
