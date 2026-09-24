@@ -869,6 +869,29 @@ public final class AppModel {
             renderID: UUID())))
     }
 
+    /// Puts sampling, context and slots back to what a fresh install starts
+    /// with, and saves them.
+    ///
+    /// The defaults come from `MacAppSettings()`, which is where a new settings
+    /// file gets them, so a reset cannot drift from a first launch. That
+    /// includes the platform's slot count: 32 on iOS, 16 on macOS. Context and
+    /// slots are part of the loaded runtime, so if they change, the model needs
+    /// a reload (`hasStaleLoadedRuntime`), as with any other change to them.
+    public func resetSettingsToDefaults() {
+        let defaults = MacAppSettings()
+        temperature = defaults.temperature
+        topKEnabled = defaults.topKEnabled
+        topK = defaults.topK
+        topPEnabled = defaults.topPEnabled
+        topP = defaults.topP
+        runtimeOptions.expertCacheSlots = defaults.expertCacheSlots
+        // Through the setter, so a stored conversation on screen is redrawn
+        // against the restored context. It saves the settings when the
+        // context changes and not otherwise, so the save below is still needed.
+        setMaxContextTokens(defaults.contextTokens)
+        persistSettings()
+    }
+
     public func setSidebarVisible(_ visible: Bool) {
         guard isSidebarVisible != visible else { return }
         isSidebarVisible = visible
@@ -2589,6 +2612,11 @@ public final class AppModel {
     public func prepareForSuspension(timeout: Duration) async -> Bool {
         let clock = ContinuousClock()
         let deadline = clock.now.advanced(by: timeout)
+        // The Mac saves settings changed through direct bindings at
+        // termination. iOS delivers no termination to a suspended app, and a
+        // force-quit passes through here first, so this is where they are
+        // kept.
+        persistSettings()
         cancel()
         // Polled: the send pipeline has no awaitable end that a timeout could
         // abandon without cancelling it, and cancelling it is exactly what

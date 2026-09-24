@@ -13,7 +13,7 @@ struct ChatView: View {
 
     @State private var blocks = StreamingBlocks()
     @State private var thinkingBlocks = StreamingBlocks(.reasoning)
-    @State private var isShowingBenchmark = false
+    @State private var isShowingSettings = false
     @State private var isShowingHistory = false
     @State private var thermalState = ProcessInfo.processInfo.thermalState
 
@@ -53,34 +53,8 @@ struct ChatView: View {
         .sheet(isPresented: $isShowingHistory) {
             HistoryView(model: model)
         }
-        .sheet(isPresented: $isShowingBenchmark) {
-            // The harness stays reachable. It is the instrument every device
-            // row in `MEASUREMENTS.md` came from, and `--autorun` still drives
-            // it headlessly for `devicectl`; this only adds a way to start one
-            // by hand without a rebuild.
-            //
-            // Titled and dismissable, because as a bare sheet it read as an
-            // unexplained window with one mystery button and no way out but a
-            // swipe.
-            NavigationStack {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Run generates the frozen real-generation-v1 prompts "
-                         + "and writes a timing log to Documents. It is the "
-                         + "measurement instrument, not part of chatting — a "
-                         + "run takes minutes and loads the model itself.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 16)
-                    HarnessView()
-                }
-                .navigationTitle("Benchmark harness")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("Done") { isShowingBenchmark = false }
-                    }
-                }
-            }
+        .sheet(isPresented: $isShowingSettings) {
+            SettingsView(model: model)
         }
     }
 
@@ -156,13 +130,13 @@ struct ChatView: View {
             .accessibilityIdentifier(.composerThinking)
 
             Button {
-                isShowingBenchmark = true
+                isShowingSettings = true
             } label: {
-                Image(systemName: "speedometer")
+                Image(systemName: "gearshape")
             }
             .buttonStyle(.glass)
             .controlSize(.small)
-            .accessibilityLabel("Benchmark harness")
+            .accessibilityLabel("Settings")
 
             if model.canStartNewChat {
                 Button {

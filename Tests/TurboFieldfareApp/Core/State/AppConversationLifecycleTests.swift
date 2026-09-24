@@ -118,6 +118,69 @@ import Testing
         #expect(model.loadState.isReady, "suspension unloaded the model")
     }
 
+    /// A slot count changed through a direct binding is saved at the next send
+    /// or at termination. iOS never delivers termination to a suspended app,
+    /// so without this a force-quit after changing slots lost the change.
+    @MainActor
+    @Test func suspensionSavesSettingsChangedThroughBindings() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("suspend-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("gemma4.gturbo", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: directory, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: directory.deletingLastPathComponent())
+        }
+        let model = AppModel(modelDirectory: directory, client: FakeInferenceClient(),
+                             settingsPersistenceEnabled: true)
+        let changed = model.runtimeOptions.expertCacheSlots == 24 ? 16 : 24
+        model.runtimeOptions.expertCacheSlots = changed
+
+        await model.prepareForSuspension(timeout: .seconds(5))
+
+        let saved = MacAppSettingsFileStore.loadOrCreate(forModelDirectory: directory)
+        #expect(saved.expertCacheSlots == changed)
+    }
+
+    /// Reset restores what a fresh settings file holds, and saves it, so the
+    /// restored values survive a relaunch.
+    @MainActor
+    @Test func resetRestoresFreshInstallSettingsAndSavesThem() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("reset-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("gemma4.gturbo", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: directory, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: directory.deletingLastPathComponent())
+        }
+        let model = AppModel(modelDirectory: directory, client: FakeInferenceClient(),
+                             settingsPersistenceEnabled: true)
+        let fresh = MacAppSettings()
+        model.temperature = 1.3
+        model.topKEnabled = false
+        model.topK = 7
+        model.topPEnabled = false
+        model.topP = 0.4
+        model.runtimeOptions.expertCacheSlots = fresh.expertCacheSlots == 24 ? 16 : 24
+        model.setMaxContextTokens(AppContextLengthOption.fourK.tokens)
+
+        model.resetSettingsToDefaults()
+
+        #expect(model.temperature == fresh.temperature)
+        #expect(model.topKEnabled == fresh.topKEnabled)
+        #expect(model.topK == fresh.topK)
+        #expect(model.topPEnabled == fresh.topPEnabled)
+        #expect(model.topP == fresh.topP)
+        #expect(model.runtimeOptions.expertCacheSlots == fresh.expertCacheSlots)
+        #expect(model.maxContextTokens == fresh.contextTokens)
+        let saved = MacAppSettingsFileStore.loadOrCreate(forModelDirectory: directory)
+        #expect(saved.temperature == fresh.temperature)
+        #expect(saved.topK == fresh.topK)
+        #expect(saved.expertCacheSlots == fresh.expertCacheSlots)
+        #expect(saved.contextTokens == fresh.contextTokens)
+    }
+
     /// Nothing running is the common case, and it must return at once.
     @MainActor
     @Test func suspensionWithNothingRunningIsImmediate() async throws {
