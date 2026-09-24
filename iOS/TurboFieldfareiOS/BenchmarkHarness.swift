@@ -144,6 +144,18 @@ enum DeviceState {
         }
     }
 
+    /// Low Power Mode caps CPU/GPU clocks, so a run taken with it on is not
+    /// comparable with one taken without it — and nothing else in the log
+    /// would show why.
+    static func lowPower() -> String {
+        ProcessInfo.processInfo.isLowPowerModeEnabled ? "on" : "off"
+    }
+
+    /// Seconds since boot. The entitled jetsam point was highest right after a
+    /// reboot (2026-09-16), so memory-sensitive runs are not comparable across
+    /// a restart without knowing this.
+    static func uptime() -> Int { Int(ProcessInfo.processInfo.systemUptime) }
+
     static func battery() -> String {
         UIDevice.current.isBatteryMonitoringEnabled = true
         let level = Int((UIDevice.current.batteryLevel * 100).rounded())
@@ -298,7 +310,8 @@ final class Harness: ObservableObject {
         self.log = log
         emit("start", "os=\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
             + " free=\(DeviceState.freeSpaceBytes())"
-            + " thermal=\(DeviceState.thermal()) battery=\(DeviceState.battery())")
+            + " thermal=\(DeviceState.thermal()) battery=\(DeviceState.battery())"
+            + " lowPower=\(DeviceState.lowPower()) uptime=\(DeviceState.uptime())s")
 
         do {
             try await generate(settings: settings)
@@ -494,7 +507,8 @@ final class Harness: ObservableObject {
                     if index % 16 == 0 {
                         _ = self.log?.write("token", "index=\(index) "
                             + "thermal=\(DeviceState.thermal()) "
-                            + "battery=\(DeviceState.battery())")
+                            + "battery=\(DeviceState.battery()) "
+                            + "lowPower=\(DeviceState.lowPower())")
                     }
                 case .tail(let tail):
                     text += tail
