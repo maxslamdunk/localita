@@ -52,11 +52,10 @@ enum ChatSession {
             // Images are out of this pass: the companion pack is side-loaded
             // and there is no attach affordance to reach it with.
             visionRuntimeSupported: false,
-            // No settings file and no conversation store yet. Reopening a chat
-            // is the history step; a store writing rows nothing can reopen is
-            // state accumulating out of sight. One argument to flip when the
-            // history UI lands.
-            settingsPersistenceEnabled: false)
+            // Settings file and conversation store, both beside the model in
+            // Application Support and so inside the container. `HistoryView`
+            // is what reopens what the store writes.
+            settingsPersistenceEnabled: true)
         // Slot count is *not* set here on purpose — it comes from
         // `MacAppSettings`, which tracks `RuntimeConfiguration
         // .productionExpertCacheSlots` and so resolves to 32 on iOS. That is
@@ -64,6 +63,10 @@ enum ChatSession {
         // buffers is +1.61 GB, taking peak footprint to about 3.77 GB against
         // the measured 5.60 GB ceiling. That was measured at a 256 cap; the 1024
         // cap and the pin above add about 0.25 GB of ring and scratch.
+        // After init, which is when the settings file is applied. The file does
+        // not carry the chunk size, and `applyPersistedSettings` rebuilds the
+        // options without it, back to the shared 128. It runs again only from
+        // `setModelURL`, the Mac's model picker, which nothing on iOS calls.
         model.runtimeOptions.prefillChunkTokens = prefillChunkTokens
         return model
     }

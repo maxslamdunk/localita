@@ -14,6 +14,7 @@ struct ChatView: View {
     @State private var blocks = StreamingBlocks()
     @State private var thinkingBlocks = StreamingBlocks(.reasoning)
     @State private var isShowingBenchmark = false
+    @State private var isShowingHistory = false
     @State private var thermalState = ProcessInfo.processInfo.thermalState
 
     var body: some View {
@@ -34,6 +35,8 @@ struct ChatView: View {
                 errorBanner
             }
 
+            ConversationNoticeView(model: model)
+
             // Not disabled when no model is installed. It was, and that made
             // the keyboard refuse to appear at all — a dead end on top of a
             // dead end, since the reason no model was recognised was itself
@@ -46,6 +49,9 @@ struct ChatView: View {
         .onReceive(NotificationCenter.default.publisher(
             for: ProcessInfo.thermalStateDidChangeNotification)) { _ in
             thermalState = ProcessInfo.processInfo.thermalState
+        }
+        .sheet(isPresented: $isShowingHistory) {
+            HistoryView(model: model)
         }
         .sheet(isPresented: $isShowingBenchmark) {
             // The harness stays reachable. It is the instrument every device
@@ -83,6 +89,15 @@ struct ChatView: View {
     private var statusBar: some View {
         let presentation = model.presentation
         return HStack(spacing: 10) {
+            Button {
+                isShowingHistory = true
+            } label: {
+                Image(systemName: "sidebar.left")
+            }
+            .buttonStyle(.glass)
+            .controlSize(.small)
+            .accessibilityLabel("Chats")
+
             statusPill(presentation)
 
             Spacer(minLength: 8)
