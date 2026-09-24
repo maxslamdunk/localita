@@ -25,7 +25,14 @@ enum ModelLocation {
 
 /// `phys_footprint` and the jetsam headroom, the two numbers A1 was measured in.
 enum Mem {
-    static func footprint() -> UInt64 {
+    static func footprint() -> UInt64 { vmInfo()?.phys_footprint ?? 0 }
+
+    /// The kernel's own high-water mark for `phys_footprint` over the process's
+    /// life. Jetsam acts on the peak. A footprint sampled every 16 tokens can
+    /// miss a spike inside prefill, where nothing is sampled at all.
+    static func peak() -> UInt64 { UInt64(max(0, vmInfo()?.ledger_phys_footprint_peak ?? 0)) }
+
+    private static func vmInfo() -> task_vm_info_data_t? {
         var info = task_vm_info_data_t()
         var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<natural_t>.size)
         let result = withUnsafeMutablePointer(to: &info) {
@@ -33,7 +40,7 @@ enum Mem {
                 task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
             }
         }
-        return result == KERN_SUCCESS ? UInt64(info.phys_footprint) : 0
+        return result == KERN_SUCCESS ? info : nil
     }
 
     static func available() -> Int { os_proc_available_memory() }
@@ -41,7 +48,36 @@ enum Mem {
     /// ⚠️ With the increased-memory-limit entitlement this overstates the real
     /// kill point by ~841 MB (measured 2026-09-16). Log it, never size against it.
     static func line() -> String {
-        "footprint=\(footprint()) available=\(available())"
+        "footprint=\(footprint()) peak=\(peak()) available=\(available())"
+            + system()
+    }
+
+    /// Phone-wide VM counters, in MB, plus cumulative compressor traffic.
+    ///
+    /// Added 2026-09-24, after the app was killed for `proc-thrashing` at
+    /// 4.44 GB, 1.2 GB under its own ceiling. The kill report showed 49 MB
+    /// free, 3.29 GB wired, and a compressor with 14M compressions. These are
+    /// the counters that separate "the app is too big" from "the app's pages
+    /// are cycling through the compressor". Other processes' memory cannot be
+    /// read from inside the sandbox; these host-wide totals can.
+    private static func system() -> String {
+        var stats = vm_statistics64_data_t()
+        var count = mach_msg_type_number_t(
+            MemoryLayout<vm_statistics64_data_t>.size / MemoryLayout<integer_t>.size)
+        let result = withUnsafeMutablePointer(to: &stats) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+            }
+        }
+        guard result == KERN_SUCCESS else { return " sys=unavailable" }
+        let page = UInt64(vm_kernel_page_size)
+        func mb(_ pages: natural_t) -> UInt64 { UInt64(pages) * page / 1_000_000 }
+        return " sys-free=\(mb(stats.free_count))"
+            + " sys-wired=\(mb(stats.wire_count))"
+            + " sys-compressor=\(mb(stats.compressor_page_count))"
+            + " sys-filebacked=\(mb(stats.external_page_count))"
+            + " compressions=\(stats.compressions)"
+            + " decompressions=\(stats.decompressions)"
     }
 }
 
@@ -440,8 +476,13 @@ final class Harness: ObservableObject {
             scratch: scratch,
             prefillConfig: runtime.prefillConfig) { progress in
                 switch progress {
-                case .prefill:
-                    break
+                case .prefill(let done, let total):
+                    // One line per chunk. A 14K-token prefill runs for many
+                    // minutes. With nothing logged during it, a run in progress,
+                    // a jetsam kill and an app the user restarted all left the
+                    // same log. The peak field shows a prefill-time spike here.
+                    _ = self.log?.write("prefill", "done=\(done) total=\(total) "
+                        + "thermal=\(DeviceState.thermal())")
                 case .token(let index, _, let delta):
                     text += delta
                     // Footprint every 16 tokens: the jetsam-survival evidence

@@ -1,0 +1,16 @@
+1, 8, start, footprint=10060528 peak=10076912 available=6432390416, os=iOS 26.6 free=36836302172 thermal=nominal battery=100%/full
+2, 13, metal-device, footprint=10420976 peak=10420976 available=6432029968, name=Apple A19 GPU apple10=true
+3, 21, shaders-compiled, footprint=11764488 peak=11764488 available=6430686456, ms=7
+4, 21, model-found, footprint=11764488 peak=11764488 available=6430686456, /var/mobile/Containers/Data/Application/1D8EEE5A-AFB8-419B-860F-B6110FA66D2F/Library/Application Support/TurboFieldfare/gemma4.gturbo
+5, 938, tokenizer-loaded, footprint=141624312 peak=332350480 available=6300826632
+6, 957, prompt-encoded, footprint=141804560 peak=332350480 available=6300646384, case=fill-8k sha256=030893ae50720f95d797d379f9452495bd74427bd79217c3ef1af8cb6cd377e2 messages=1 tokens=7012
+7, 957, receipt-path-mismatch, footprint=141804560 peak=332350480 available=6300646384, receipt names /Users/max/ml_projects/iphone-port/turbo-fieldfare/scratch/gemma4.gturbo but the model is at /var/mobile/Containers/Data/Application/1D8EEE5A-AFB8-419B-860F-B6110FA66D2F/Library/Application Support/TurboFieldfare/gemma4.gturbo — falling back to fullSha256, so io timings from this run are contaminated
+8, 1875, model-loaded, footprint=164807696 peak=332350480 available=6277643248, policy=fullSha256 ms=918
+9, 1884, runner-ready, footprint=166725344 peak=332350480 available=6275725600, slots=32 prefillChunk=1024 prefillChunkSource=explicit prefill=chunked
+10, 208992, token, footprint=4245590560 peak=4271903264 available=2196860384, index=0 thermal=fair battery=100%/full
+11, 213471, token, footprint=4115501600 peak=4271903264 available=2326949344, index=16 thermal=fair battery=100%/full
+12, 216685, token, footprint=4115501600 peak=4271903264 available=2326949344, index=32 thermal=fair battery=100%/full
+13, 220147, token, footprint=4115501600 peak=4271903264 available=2326949344, index=48 thermal=fair battery=100%/full
+14, 223023, done, footprint=4115501600 peak=4271903264 available=2326949344, [stop=maxTokens prefill=7012tok new=64tok decode=14.03s tok/s=4.561]
+15, 223038, expert-io, footprint=4115501600 peak=4271903264 available=2326949344, [expert-io decode bytes/tok=172.36MB hit-rate=77.6% req/tok=240.00 reads/tok=53.81 forwards=63 | prefill bytes=68835.16MB hit-rate=0.0% reads=21490]
+16, 223039, phase-time, footprint=4115501600 peak=4271903264 available=2326949344, [phase-time decode ms/fwd cb1=1.64 cb1-wait=78.47 io=128.24 cb2=0.95 routed-drain=1.29 head=7.94 wall=222.75 forwards=63 | sequential per layer; io hides the shared-expert branch]

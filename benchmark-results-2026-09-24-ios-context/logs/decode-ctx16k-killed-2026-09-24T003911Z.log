@@ -1,0 +1,9 @@
+1, 8, start, footprint=10076912 peak=10093296 available=6432374032, os=iOS 26.6 free=38517902748 thermal=fair battery=100%/full
+2, 11, metal-device, footprint=10437360 peak=10437360 available=6432013584, name=Apple A19 GPU apple10=true
+3, 20, shaders-compiled, footprint=11780872 peak=11780872 available=6430670072, ms=8
+4, 20, model-found, footprint=11780872 peak=11780872 available=6430670072, /var/mobile/Containers/Data/Application/1D8EEE5A-AFB8-419B-860F-B6110FA66D2F/Library/Application Support/TurboFieldfare/gemma4.gturbo
+5, 1095, tokenizer-loaded, footprint=158761976 peak=332612624 available=6283688968
+6, 1134, prompt-encoded, footprint=159040528 peak=332612624 available=6283410416, case=fill-16k sha256=3d219e2487eafcd8d14ac4aa76fa95cd89c03e7f4e94b89ef786115192959c90 messages=1 tokens=14011
+7, 1134, receipt-path-mismatch, footprint=159040528 peak=332612624 available=6283410416, receipt names /Users/max/ml_projects/iphone-port/turbo-fieldfare/scratch/gemma4.gturbo but the model is at /var/mobile/Containers/Data/Application/1D8EEE5A-AFB8-419B-860F-B6110FA66D2F/Library/Application Support/TurboFieldfare/gemma4.gturbo — falling back to fullSha256, so io timings from this run are contaminated
+8, 2009, model-loaded, footprint=170083344 peak=332612624 available=6272367600, policy=fullSha256 ms=875
+9, 2023, runner-ready, footprint=171951792 peak=332612624 available=6270499152, slots=32 prefillChunk=1024 prefillChunkSource=explicit prefill=chunked
