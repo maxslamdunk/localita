@@ -50,4 +50,11 @@ import Testing
             return reportedRequired == required && actual < required
         }
     }
+
+    @Test func purgeableSpaceCountsWhenTheSystemReportsIt() {
+        #expect(DiskSpaceChecker.availableBytes(free: 10, importantUsage: 40) == 40)
+        #expect(DiskSpaceChecker.availableBytes(free: 10, importantUsage: 5) == 10)
+        #expect(DiskSpaceChecker.availableBytes(free: 10, importantUsage: nil) == 10)
+        #expect(DiskSpaceChecker.availableBytes(free: 10, importantUsage: -1) == 10)
+    }
 }
