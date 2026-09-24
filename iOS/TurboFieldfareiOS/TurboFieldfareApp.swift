@@ -38,6 +38,14 @@ struct TurboFieldfareiOSApp: App {
                 guard !Self.isBenchmarkRun else { return }
                 Suspension.handle(phase, model: model)
             }
+            .onChange(of: model.isTurnInFlight) { _, inFlight in
+                guard !Self.isBenchmarkRun else { return }
+                if inFlight {
+                    TurnMemoryLog.shared.begin()
+                } else {
+                    TurnMemoryLog.shared.end(images: model.outputImageAttachments.count)
+                }
+            }
             .onReceive(NotificationCenter.default.publisher(
                 for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
                 // Logged, not acted on. Stopping the turn frees nothing, since
@@ -164,6 +172,62 @@ struct HarnessView: View {
         .onChange(of: harness.running) { _, running in
             guard !autorun else { return }
             UIApplication.shared.isIdleTimerDisabled = running
+        }
+    }
+}
+
+/// Memory around each chat turn, appended to `Documents/app-memory.log`.
+///
+/// The harness cannot send an image, so the chat app is the instrument for
+/// what image input costs, and it runs the exact configuration a user gets.
+/// Lifetime peak alone cannot separate turns: an image turn peaking below an
+/// earlier text turn would read the same. So the turn is also sampled every
+/// 0.5 s and its own maximum logged. The sampler reads counters only; it does
+/// not touch the GPU, so it is safe while the app is backgrounded.
+@MainActor
+final class TurnMemoryLog {
+    static let shared = TurnMemoryLog()
+
+    private let url = FileManager.default.urls(for: .documentDirectory,
+                                               in: .userDomainMask)[0]
+        .appendingPathComponent("app-memory.log")
+    private var sampler: Task<Void, Never>?
+    private var turnMax: UInt64 = 0
+    private var started: ContinuousClock.Instant?
+
+    func begin() {
+        turnMax = Mem.footprint()
+        started = .now
+        write("turn-start " + Mem.line() + " thermal=\(DeviceState.thermal())")
+        sampler?.cancel()
+        sampler = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard let self else { return }
+                self.turnMax = max(self.turnMax, Mem.footprint())
+            }
+        }
+    }
+
+    func end(images: Int) {
+        sampler?.cancel()
+        sampler = nil
+        turnMax = max(turnMax, Mem.footprint())
+        let seconds = started.map { (ContinuousClock.now - $0).components.seconds } ?? 0
+        write("turn-end images=\(images) seconds=\(seconds) turn-max=\(turnMax) "
+              + Mem.line() + " thermal=\(DeviceState.thermal())")
+    }
+
+    private func write(_ line: String) {
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        let data = Data("\(stamp) \(line)\n".utf8)
+        if let handle = try? FileHandle(forWritingTo: url) {
+            defer { try? handle.close() }
+            _ = try? handle.seekToEnd()
+            try? handle.write(contentsOf: data)
+            try? handle.synchronize()
+        } else {
+            try? data.write(to: url)
         }
     }
 }

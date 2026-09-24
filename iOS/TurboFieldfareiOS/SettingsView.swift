@@ -38,6 +38,7 @@ struct SettingsView: View {
             Form {
                 generationSection
                 memorySection
+                imageSection
                 resetSection
                 modelSection
                 Section {
@@ -57,6 +58,17 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .confirmationDialog("Remove image support?",
+                                isPresented: $model.isConfirmingVisionPackRemoval,
+                                titleVisibility: .visible) {
+                Button("Remove Image Support", role: .destructive) {
+                    model.removeVisionPack()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Text chats keep working. Getting images back means "
+                     + "downloading the pack again.")
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
@@ -182,6 +194,151 @@ struct SettingsView: View {
             Text("Both apply after the model reloads.")
         }
         .disabled(model.isRunning || model.loadState.isLoading)
+    }
+
+    // MARK: - Image support
+
+    /// The Mac inspector's Image Support section, which is the reference for
+    /// every state below. The pack downloads from Hugging Face into the app
+    /// container, beside the model, and only while the app is in front: the
+    /// idle timer is held off for it (`TurboFieldfareApp.keepsScreenOn`).
+    private var imageSection: some View {
+        Section {
+            LabeledContent("State", value: visionStatusLabel)
+            if model.isVisionRuntimeSupported && !model.isVisionPackInstalled {
+                LabeledContent("Download", value: MetricFormat.storage(
+                    model.visionInstallDescriptor.approximateDownloadBytes))
+            }
+            if let fraction = model.visionInstallProgressFraction {
+                ProgressView(value: fraction)
+                HStack {
+                    Text(MetricFormat.percent(fraction * 100))
+                    Spacer()
+                    if let eta = model.visionInstallETAText { Text(eta) }
+                }
+                .font(.footnote.monospacedDigit())
+                .foregroundStyle(.secondary)
+            } else if model.isInstallingVisionPack {
+                ProgressView()
+            }
+            if let note = visionNote {
+                Text(note.text)
+                    .font(.footnote)
+                    .foregroundStyle(note.color)
+            }
+            visionActions
+        } header: {
+            Text("Image Support")
+        } footer: {
+            Text("Lets you attach photos to a message. Keep the app open while "
+                 + "it downloads; leaving pauses it, and it resumes from where "
+                 + "it stopped.")
+        }
+    }
+
+    @ViewBuilder
+    private var visionActions: some View {
+        if model.isInstallingVisionPack {
+            Button("Cancel Download", action: model.cancelVisionInstall)
+                .disabled(!model.canCancelVisionInstall)
+                .accessibilityIdentifier(.visionCancel)
+        } else if case .readyToActivate = model.visionInstallState {
+            if model.isVisionRuntimeSupported {
+                Button("Activate", action: model.activateVisionPack)
+                    .disabled(!model.canActivateVisionPack)
+                    .accessibilityIdentifier(.visionActivate)
+            }
+            Button("Discard Download", role: .destructive) {
+                model.discardVisionPackDownload()
+            }
+            .disabled(!model.canDiscardVisionPackDownload)
+            .accessibilityIdentifier(.visionDiscard)
+        } else if model.isVisionPackInstalled {
+            Button("Remove Image Support", role: .destructive) {
+                model.requestVisionPackRemoval()
+            }
+            .disabled(!model.canRemoveVisionPack)
+            .accessibilityIdentifier(.visionRemove)
+        } else {
+            if model.isVisionRuntimeSupported {
+                Button(visionInstallButtonLabel) { model.installVisionPack() }
+                    .disabled(!model.canInstallVisionPack)
+                    .accessibilityIdentifier(.visionInstall)
+            }
+            if model.hasPartialVisionPackDownload {
+                Button("Discard Download", role: .destructive) {
+                    model.discardVisionPackDownload()
+                }
+                .disabled(!model.canDiscardVisionPackDownload)
+                .accessibilityIdentifier(.visionDiscard)
+            }
+            if model.hasVisionPackDirectory {
+                Button("Remove", role: .destructive) {
+                    model.requestVisionPackRemoval()
+                }
+                .disabled(!model.canRemoveVisionPack)
+                .accessibilityIdentifier(.visionRemove)
+            }
+        }
+    }
+
+    private var visionInstallButtonLabel: String {
+        if model.hasPartialVisionPackDownload { return "Resume Download" }
+        if model.hasVisionPackDirectory { return "Repair" }
+        return "Download Image Support"
+    }
+
+    private var visionStatusLabel: String {
+        guard model.isVisionRuntimeSupported else { return "Not supported" }
+        if model.visionInstallState != .idle { return model.visionInstallPhaseLabel }
+        switch model.visionInstallationStatus {
+        case .missing: return "Not installed"
+        case .partial: return "Needs repair"
+        case .complete: return "Installed"
+        case .unsupportedLayout: return "Not available for this model"
+        }
+    }
+
+    /// One explanatory line, in the Mac's order of precedence.
+    private var visionNote: (text: String, color: Color)? {
+        if !model.isVisionRuntimeSupported {
+            return ("This iPhone's GPU cannot run the image model. Text chats "
+                    + "are unaffected.", .secondary)
+        }
+        if case .failed(let message) = model.visionInstallState { return (message, .red) }
+        if case .recoverable(let message) = model.visionInstallState {
+            return (message, .orange)
+        }
+        if case .partial(let message) = model.visionInstallationStatus,
+           !model.isInstallingVisionPack {
+            return (message, .orange)
+        }
+        if case .unsupportedLayout = model.visionInstallationStatus {
+            return ("Image support needs a model folder named “<name>.gturbo”, "
+                    + "which is where the pack lives.", .secondary)
+        }
+        if case .failed(let message) = model.visionInstallReadiness,
+           !model.isInstallingVisionPack {
+            return (message, .orange)
+        }
+        if case .insufficientSpace(let requirement) = model.visionInstallReadiness,
+           !model.isInstallingVisionPack {
+            return ("Free \(MetricFormat.storage(requirement.shortfallBytes)) more "
+                    + "storage.", .orange)
+        }
+        if model.isVisionFilesystemMutationInProgress {
+            return ("Model actions wait until this finishes. Your message, "
+                    + "images and chat are kept.", .secondary)
+        }
+        if !model.isVisionPackInstalled && model.loadState.isReady {
+            return ("Unload the model below before downloading image support.",
+                    .secondary)
+        }
+        if model.isVisionPackInstalled && model.loadState.isReady {
+            return ("Unload the model below before removing image support.",
+                    .secondary)
+        }
+        return nil
     }
 
     // MARK: - Reset

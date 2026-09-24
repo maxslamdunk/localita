@@ -45,6 +45,7 @@ struct ChatTranscriptView: View {
                         // history — populating `ConversationRecord.thinking`,
                         // which exists and is unused, is what would change that.
                         turn(prompt: pair.user.text,
+                             images: pair.user.images,
                              response: pair.assistant.text,
                              responseSplit: nil)
                     }
@@ -111,6 +112,7 @@ struct ChatTranscriptView: View {
 
     private var liveTurn: some View {
         turn(prompt: model.outputPromptText,
+             images: model.outputImageAttachments,
              response: model.outputResponsePlainText,
              responseSplit: blocks.split,
              streaming: blocks,
@@ -128,6 +130,7 @@ struct ChatTranscriptView: View {
 
     @ViewBuilder
     private func turn(prompt: String,
+                      images: [ChatImage] = [],
                       response: String,
                       responseSplit: ResponseBlockSplitter.Split?,
                       streaming: StreamingBlocks? = nil,
@@ -136,6 +139,15 @@ struct ChatTranscriptView: View {
                       thinkingStreaming: StreamingBlocks? = nil,
                       isTerminal: Bool = true) -> some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Above the prompt, on the user's side, in the order attached.
+            if !images.isEmpty {
+                HStack(spacing: 8) {
+                    ForEach(images) { image in
+                        ImageThumbnail(image: image, side: 96)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
             if !prompt.isEmpty {
                 Text(prompt)
                     .textSelection(.enabled)

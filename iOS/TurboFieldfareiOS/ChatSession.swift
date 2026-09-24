@@ -49,9 +49,9 @@ enum ChatSession {
             // `AppModelLocation.resolve` falls through to inside a bundle,
             // where the package-root probe cannot match.
             modelDirectory: ModelLocation.directory,
-            // Images are out of this pass: the companion pack is side-loaded
-            // and there is no attach affordance to reach it with.
-            visionRuntimeSupported: false,
+            // The image tower needs Apple8; the A19 is Apple10. The pack itself
+            // downloads from Settings, beside the model in the container.
+            visionRuntimeSupported: AppModel.currentDeviceSupportsVisionRuntime,
             // Settings file and conversation store, both beside the model in
             // Application Support and so inside the container. `HistoryView`
             // is what reopens what the store writes.
