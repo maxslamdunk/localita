@@ -225,6 +225,28 @@ Steps:
    now a library product, and the `iOS/` app target links it and compiles for
    `generic/platform=iOS`, so this is verified rather than asserted. The
    `Installation/` half is therefore reachable and on-device install is unblocked.
+   ✅ **In-app download added 2026-09-24.** When no model is installed, the
+   chat is replaced by a download screen driving the Mac's
+   `RepackModelInstallerClient`, unchanged apart from a network flag. It runs
+   only in the foreground:
+   - The screen is kept on while it runs.
+   - Leaving the app cancels it at a checkpoint, and returning resumes it.
+   - It never uses mobile data or a hotspot without asking first
+     (`RemoteDownloadSessionPolicy.allowsExpensiveNetworkAccess`).
+
+   Two fixes came with it:
+   - **Free space was undercounted.** `DiskSpaceChecker` counted only `statfs`
+     free blocks, which leaves out the purgeable space iOS reports as free. It
+     refused a 15.43 GB install on a phone with 66.4 GB available. On iOS it
+     now uses "available for important usage".
+   - **Nothing marked the model to skip iCloud backup.** Every `.gturbo`
+     folder and download file is now excluded (`BackupExclusion`).
+
+   The first real download on the iPhone 17 took about an hour, including one
+   pause, and passed its own verification. A test-only `--model-dir <name>`
+   launch argument installs it beside the side-loaded model without touching
+   it. Whether the scattered write order it inherits costs read speed on the
+   phone is measured in `benchmark-results-2026-09-24-ios-download-order/`.
 3. **Port the runtime — started 2026-09-16, app target building and running on
    the device.** 16-slot expert cache untouched, no optimization.
    - **The runtime needed no porting to compile.** `TurboFieldfare` (85 files,

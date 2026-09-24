@@ -1308,7 +1308,12 @@ public final class AppModel {
         }
     }
 
-    public func installModel() {
+    /// Starts the download, or resumes it from its checkpoint.
+    ///
+    /// `allowsExpensiveNetwork: false` keeps it off mobile data and hotspots,
+    /// waiting for another network instead. The Mac passes nothing and keeps
+    /// downloading over whatever it has.
+    public func installModel(allowsExpensiveNetwork: Bool = true) {
         guard !isRunning, !loadState.isLoading, !isInstallingModel,
               requiresModelInstallation else {
             return
@@ -1324,7 +1329,9 @@ public final class AppModel {
         installState = .checking
         installTask = Task { [weak self, installer] in
             do {
-                for try await event in installer.installDefaultModel(outputDirectory: outputDirectory) {
+                for try await event in installer.installDefaultModel(
+                    outputDirectory: outputDirectory,
+                    allowsExpensiveNetwork: allowsExpensiveNetwork) {
                     guard let self else { return }
                     self.applyInstallEvent(event, generation: generation)
                 }

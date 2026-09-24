@@ -10,6 +10,7 @@ import TurboFieldfareAppPresentation
 /// button that does nothing — the case its own comments record.
 struct ChatView: View {
     let model: AppModel
+    let network: DownloadNetwork
 
     @State private var blocks = StreamingBlocks()
     @State private var thinkingBlocks = StreamingBlocks(.reasoning)
@@ -22,7 +23,7 @@ struct ChatView: View {
             statusBar
 
             if model.requiresModelInstallation {
-                modelMissing
+                ModelDownloadView(model: model, network: network)
             } else {
                 ChatTranscriptView(model: model,
                                    blocks: blocks,
@@ -200,45 +201,6 @@ struct ChatView: View {
     }
 
     // MARK: - Empty and error states
-
-    /// Shown for both `.missing` and `.partial`, and it must tell them apart.
-    ///
-    /// `AppModelInstallationProbe` returns `.partial(reason)` carrying a real
-    /// diagnostic, and nothing displayed it: `AppPresentationState.resolve`
-    /// collapses every non-installed case to "Model required". A complete,
-    /// correct 14.3 GB model was rejected over a stale absolute path in its
-    /// receipt, and the app's only account of that was an empty screen. The
-    /// reason goes on screen now, whatever it turns out to be next time.
-    private var modelMissing: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "externaldrive.badge.questionmark")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
-
-            if case .partial(let reason) = model.installationStatus {
-                Text("Model not usable")
-                    .font(.headline)
-                Text(reason)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .textSelection(.enabled)
-            } else {
-                Text("No model installed")
-                    .font(.headline)
-            }
-
-            // Deliberately a path and not a download button: there is no
-            // in-app installer on iOS, and the 14.3 GB artifact is side-loaded.
-            Text(model.modelPathText)
-                .font(.caption2.monospaced())
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-                .textSelection(.enabled)
-        }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
 
     private var errorBanner: some View {
         HStack(alignment: .top, spacing: 10) {

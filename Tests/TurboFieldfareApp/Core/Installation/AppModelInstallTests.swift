@@ -99,6 +99,22 @@ import TurboFieldfareRepackCore
   }
 
   @MainActor
+  @Test func installPassesTheExpensiveNetworkChoiceToTheInstaller() async throws {
+    let installer = MockModelInstallerClient()
+    let model = AppModel(
+      modelDirectory: temporaryInstallPath("network"),
+      client: MockLifecycleInferenceClient(),
+      installer: installer)
+
+    model.installModel(allowsExpensiveNetwork: false)
+    for _ in 0..<200 where installer.allowsExpensiveNetwork.isEmpty {
+      try await Task.sleep(for: .milliseconds(10))
+    }
+
+    #expect(installer.allowsExpensiveNetwork == [false])
+  }
+
+  @MainActor
   @Test func installedModelShowsLoadNotInstall() throws {
     let directory = try makeCompleteModelInstall("installed")
     defer { try? FileManager.default.removeItem(at: directory) }

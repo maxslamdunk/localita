@@ -15,11 +15,32 @@ import TurboFieldfare
 /// inside a bundle the package-root probe cannot match, so it lands here.
 enum ModelLocation {
     static var directory: URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory,
-                                            in: .userDomainMask)[0]
-        return base
+        root.appendingPathComponent(folderName, isDirectory: true)
+    }
+
+    /// Where the model folders live. Everything the model owns is under here;
+    /// so are the conversations and the settings file.
+    static var root: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory,
+                                 in: .userDomainMask)[0]
             .appendingPathComponent("TurboFieldfare", isDirectory: true)
-            .appendingPathComponent("gemma4.gturbo", isDirectory: true)
+    }
+
+    /// `--model-dir <name>` points the app at a different folder beside the
+    /// usual one. Test-only: it lets the in-app download run for real on a
+    /// phone that already holds the side-loaded model, without touching it,
+    /// and lets the harness benchmark the downloaded copy. A name with a path
+    /// separator is ignored rather than allowed to escape the folder.
+    private static var folderName: String {
+        let arguments = ProcessInfo.processInfo.arguments
+        if let flag = arguments.firstIndex(of: "--model-dir"),
+           arguments.indices.contains(flag + 1) {
+            let name = arguments[flag + 1]
+            if !name.isEmpty, !name.contains("/"), name.hasSuffix(".gturbo") {
+                return name
+            }
+        }
+        return "gemma4.gturbo"
     }
 }
 

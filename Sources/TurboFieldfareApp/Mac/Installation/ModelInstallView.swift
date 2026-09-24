@@ -181,8 +181,9 @@ struct ModelInstallView: View {
                 .disabled(model.isInstallingModel)
                 .accessibilityIdentifier(.installCheckAgain)
 
-                Button(model.hasPartialModelDownload ? "Resume" : "Download",
-                       action: model.installModel)
+                Button(model.hasPartialModelDownload ? "Resume" : "Download") {
+                    model.installModel()
+                }
                     .buttonStyle(.borderedProminent)
                     .disabled(!model.canInstallModel)
                     .accessibilityIdentifier(.installDownload)

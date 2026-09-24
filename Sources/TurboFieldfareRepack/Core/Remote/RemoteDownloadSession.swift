@@ -6,17 +6,24 @@ public struct RemoteDownloadSessionPolicy: Sendable, Equatable {
     public var waitsForConnectivity: Bool
     public var maximumConnectionsPerHost: Int
     public var maximumRedirects: Int
+    /// Whether requests may use a network the system marks expensive: mobile
+    /// data, or a Mac tethered to a phone's hotspot. When false, requests wait
+    /// for another network instead, under `waitsForConnectivity`, so a
+    /// 14.6 GB download never lands on a data plan without the user's say.
+    public var allowsExpensiveNetworkAccess: Bool
 
     public init(requestTimeoutSeconds: TimeInterval = 300,
                 resourceTimeoutSeconds: TimeInterval = 7 * 24 * 60 * 60,
                 waitsForConnectivity: Bool = true,
                 maximumConnectionsPerHost: Int = 1,
-                maximumRedirects: Int = 5) {
+                maximumRedirects: Int = 5,
+                allowsExpensiveNetworkAccess: Bool = true) {
         self.requestTimeoutSeconds = requestTimeoutSeconds
         self.resourceTimeoutSeconds = resourceTimeoutSeconds
         self.waitsForConnectivity = waitsForConnectivity
         self.maximumConnectionsPerHost = maximumConnectionsPerHost
         self.maximumRedirects = maximumRedirects
+        self.allowsExpensiveNetworkAccess = allowsExpensiveNetworkAccess
     }
 }
 
@@ -33,6 +40,7 @@ public final class RemoteDownloadSession: @unchecked Sendable {
         configuration.timeoutIntervalForResource = policy.resourceTimeoutSeconds
         configuration.waitsForConnectivity = policy.waitsForConnectivity
         configuration.httpMaximumConnectionsPerHost = policy.maximumConnectionsPerHost
+        configuration.allowsExpensiveNetworkAccess = policy.allowsExpensiveNetworkAccess
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         configuration.urlCache = nil
         if let protocolClasses {
@@ -81,7 +89,8 @@ public final class RemoteDownloadSession: @unchecked Sendable {
             waitsForConnectivity: configuration.waitsForConnectivity,
             maximumConnectionsPerHost: configuration.httpMaximumConnectionsPerHost,
             requestCachePolicy: configuration.requestCachePolicy,
-            hasURLCache: configuration.urlCache != nil)
+            hasURLCache: configuration.urlCache != nil,
+            allowsExpensiveNetworkAccess: configuration.allowsExpensiveNetworkAccess)
     }
 }
 
@@ -92,6 +101,7 @@ struct RemoteDownloadSessionConfigurationSnapshot: Equatable {
     let maximumConnectionsPerHost: Int
     let requestCachePolicy: URLRequest.CachePolicy
     let hasURLCache: Bool
+    let allowsExpensiveNetworkAccess: Bool
 }
 
 private final class MetadataRedirectDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {

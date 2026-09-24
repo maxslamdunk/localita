@@ -19,6 +19,7 @@ struct RemoteDownloadSessionTests {
         #expect(configuration.maximumConnectionsPerHost == 1)
         #expect(configuration.requestCachePolicy == .reloadIgnoringLocalCacheData)
         #expect(!configuration.hasURLCache)
+        #expect(configuration.allowsExpensiveNetworkAccess)
     }
 
     @Test func injectedPolicyIsAppliedToOwnedConfiguration() {
@@ -27,7 +28,8 @@ struct RemoteDownloadSessionTests {
             resourceTimeoutSeconds: 34,
             waitsForConnectivity: false,
             maximumConnectionsPerHost: 1,
-            maximumRedirects: 2)
+            maximumRedirects: 2,
+            allowsExpensiveNetworkAccess: false)
         let session = RemoteDownloadSession(policy: policy)
         let configuration = session.configurationSnapshot
 
@@ -36,6 +38,7 @@ struct RemoteDownloadSessionTests {
         #expect(!configuration.waitsForConnectivity)
         #expect(configuration.maximumConnectionsPerHost == 1)
         #expect(session.policy.maximumRedirects == 2)
+        #expect(!configuration.allowsExpensiveNetworkAccess)
     }
 
     @Test func metadataRedirectsFollowOnlyBoundedSameHostHTTPS() {

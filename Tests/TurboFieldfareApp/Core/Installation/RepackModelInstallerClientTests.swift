@@ -5,6 +5,23 @@ import Testing
 @testable import TurboFieldfareAppCore
 
 @Suite struct RepackModelInstallerClientTests {
+    @Test func passesTheExpensiveNetworkChoiceToTheRunner() async throws {
+        let output = FileManager.default.temporaryDirectory
+            .appendingPathComponent("network.gturbo")
+        let seen = Mutex<[Bool]>([])
+        let client = RepackModelInstallerClient(
+            runInstall: { outputDirectory, allowsExpensiveNetwork, _ in
+                seen.withLock { $0.append(allowsExpensiveNetwork) }
+                return outputDirectory
+            })
+
+        for try await _ in client.installDefaultModel(
+            outputDirectory: output, allowsExpensiveNetwork: false) {}
+        for try await _ in client.installDefaultModel(outputDirectory: output) {}
+
+        #expect(seen.withLock { $0 } == [false, true])
+    }
+
     @Test func mapsCoreProgressAndCompletion() async throws {
         let output = FileManager.default.temporaryDirectory
             .appendingPathComponent("scripted.gturbo")

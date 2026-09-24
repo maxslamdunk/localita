@@ -14,6 +14,7 @@ final class MockModelInstallerClient: AppModelInstallerClient, Sendable {
         var cancelCalled = false
         var cancellationAcknowledgementPending = false
         var discardCalled = false
+        var allowsExpensiveNetwork: [Bool] = []
     }
     private final class TaskState: Sendable {
         let value = Mutex(State())
@@ -26,6 +27,10 @@ final class MockModelInstallerClient: AppModelInstallerClient, Sendable {
         taskState.value.withLock { $0.cancellationAcknowledgementPending }
     }
     var discardCalled: Bool { taskState.value.withLock { $0.discardCalled } }
+    /// What each install call was told about expensive networks, in order.
+    var allowsExpensiveNetwork: [Bool] {
+        taskState.value.withLock { $0.allowsExpensiveNetwork }
+    }
 
     init(events: [AppModelInstallEvent] = [],
          failure: Error? = nil,
@@ -47,8 +52,10 @@ final class MockModelInstallerClient: AppModelInstallerClient, Sendable {
         requirement
     }
 
-    func installDefaultModel(outputDirectory: URL) -> AsyncThrowingStream<AppModelInstallEvent, Error> {
-        AsyncThrowingStream { continuation in
+    func installDefaultModel(outputDirectory: URL, allowsExpensiveNetwork: Bool)
+        -> AsyncThrowingStream<AppModelInstallEvent, Error> {
+        taskState.value.withLock { $0.allowsExpensiveNetwork.append(allowsExpensiveNetwork) }
+        return AsyncThrowingStream { continuation in
             let events = self.events
             let failure = self.failure
             let holdOpen = self.holdOpen

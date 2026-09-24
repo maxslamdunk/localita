@@ -5,6 +5,7 @@ import Synchronization
 public final class RepackModelInstallerClient: AppModelInstallerClient, Sendable {
     typealias InstallRunner = @Sendable (
         URL,
+        _ allowsExpensiveNetwork: Bool,
         @escaping @Sendable (ModelInstallProgress) -> Void
     ) async throws -> URL
     typealias DiscardRunner = @Sendable (URL) async throws -> Void
@@ -25,7 +26,7 @@ public final class RepackModelInstallerClient: AppModelInstallerClient, Sendable
 
     public init(descriptor: AppModelInstallDescriptor = .default) {
         self.descriptor = descriptor
-        self.runInstall = { outputDirectory, progress in
+        self.runInstall = { outputDirectory, allowsExpensiveNetwork, progress in
             let paths = try RemoteInstallPaths(outputDirectory: outputDirectory.path)
             let resume = FileManager.default.fileExists(atPath: paths.checkpointFile)
             let options = RemoteStreamingRepackOptions(
@@ -36,7 +37,9 @@ public final class RepackModelInstallerClient: AppModelInstallerClient, Sendable
                 requireKnownSource: true,
                 minFreeReserveBytes: descriptor.reserveBytes,
                 overwrite: true,
-                resume: resume)
+                resume: resume,
+                downloadSession: RemoteDownloadSession(policy: RemoteDownloadSessionPolicy(
+                    allowsExpensiveNetworkAccess: allowsExpensiveNetwork)))
             let result = try await RemoteStreamingRepacker(options: options).run(progress: progress)
             return URL(fileURLWithPath: result.outputDir).standardizedFileURL
         }
@@ -52,6 +55,18 @@ public final class RepackModelInstallerClient: AppModelInstallerClient, Sendable
         self.descriptor = descriptor
         self.runInstall = runInstall
         self.runDiscard = runDiscard
+    }
+
+    /// For tests that do not care which networks the download may use.
+    convenience init(descriptor: AppModelInstallDescriptor = .default,
+                     runInstall: @escaping @Sendable (
+                        URL,
+                        @escaping @Sendable (ModelInstallProgress) -> Void
+                     ) async throws -> URL,
+                     runDiscard: @escaping DiscardRunner = { _ in }) {
+        self.init(descriptor: descriptor,
+                  runInstall: { url, _, progress in try await runInstall(url, progress) },
+                  runDiscard: runDiscard)
     }
 
     public func checkInstallRequirement(outputDirectory: URL) throws -> AppModelInstallRequirement {
@@ -87,13 +102,16 @@ public final class RepackModelInstallerClient: AppModelInstallerClient, Sendable
                                           availableBytes: requirement.availableBytes)
     }
 
-    public func installDefaultModel(outputDirectory: URL) -> AsyncThrowingStream<AppModelInstallEvent, Error> {
+    public func installDefaultModel(outputDirectory: URL, allowsExpensiveNetwork: Bool)
+        -> AsyncThrowingStream<AppModelInstallEvent, Error> {
         AsyncThrowingStream { continuation in
             let id = UUID()
             let task = Task { [runInstall] in
                 do {
                     continuation.yield(.checking)
-                    let completedDirectory = try await runInstall(outputDirectory) { progress in
+                    let completedDirectory = try await runInstall(
+                        outputDirectory, allowsExpensiveNetwork
+                    ) { progress in
                         continuation.yield(Self.event(for: progress))
                     }
                     try Task.checkCancellation()
