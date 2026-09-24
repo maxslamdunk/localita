@@ -14,8 +14,9 @@ import TurboFieldfareAppPresentation
 /// - **Slots are 16, 24 and 32**, the three counts measured on this phone
 ///   (2026-09-16). 8 was never run here.
 ///
-/// Tuning these further, and the lag that 32 slots causes through compressor
-/// churn, is deliberately left for later.
+/// The default is 24, not the fastest 32: at 32 the app rests at about 4.1 GB,
+/// and the system photo picker could not open beside it without the app being
+/// killed (2026-09-24). Memory labels are relative to that default.
 struct SettingsView: View {
     @Bindable var model: AppModel
     @Environment(\.dismiss) private var dismiss
@@ -28,9 +29,9 @@ struct SettingsView: View {
     /// throughput is the 2026-09-16 short case at 4K. It says how the options
     /// compare, not what any given chat will reach.
     static let slotOptions: [(slots: Int, label: String)] = [
-        (16, "16 · about 4.4 tok/s · −1.6 GB"),
-        (24, "24 · about 6.0 tok/s · −0.8 GB"),
-        (32, "32 · about 7.0 tok/s · default"),
+        (16, "16 · about 4.4 tok/s · −0.8 GB"),
+        (24, "24 · about 6.0 tok/s · default"),
+        (32, "32 · about 7.0 tok/s · +0.8 GB"),
     ]
 
     var body: some View {
@@ -358,7 +359,7 @@ struct SettingsView: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Temperature 0.20, Top-K 64, Top-P 0.95, 8K context and "
-                     + "32 expert slots. If context or slots change, the model "
+                     + "24 expert slots. If context or slots change, the model "
                      + "needs a reload.")
             }
         } footer: {

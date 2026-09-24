@@ -573,6 +573,9 @@ below makes that deferral structural rather than a matter of remembering to.
        record thermal beside every device number and treat a run that reached
        `serious` as **understating** its gain — which includes the long case
        above, whose baseline ran cooler than its 24- and 32-slot runs.
+     - ⚠️ **Lowered to 24 on 2026-09-24.** At 32 the chat app rests at about
+       4.1 GB, and the system photo picker could not open beside it without the
+       app being killed. See `benchmark-results-2026-09-24-ios-vision-memory/`.
      - **32 is now the iOS default — DONE 2026-09-16 (`bf95248`).** Expressed as
        `RuntimeConfiguration.productionExpertCacheSlots`: 32 on iOS, 16 on
        macOS, because CACHE-03 measured 32 as actively harmful on the 8 GB Mac

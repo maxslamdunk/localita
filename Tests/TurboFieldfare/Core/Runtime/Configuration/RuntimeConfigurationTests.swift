@@ -11,7 +11,7 @@ import Testing
         // in `iOS/`, which is the only thing that stops the iOS default from
         // drifting unnoticed.
         #if os(iOS)
-        #expect(runtime.expertCacheSlots == 32)
+        #expect(runtime.expertCacheSlots == 24)
         #else
         #expect(runtime.expertCacheSlots == 16)
         #endif

@@ -32,12 +32,15 @@ public struct RuntimeConfiguration: Sendable, Equatable {
     /// validation host, where the cache thrashed and decode collapsed to
     /// 1.578 tok/s with `io` at 318.3 ms/token.
     ///
-    /// **32 on iOS.** The iPhone 17 supplies the memory condition CACHE-03
-    /// deferred the experiment on: peak `phys_footprint` 3.77 GB against a
-    /// measured 5.60 GB jetsam ceiling. Measured 2026-09-16 at **+59 / +56 /
-    /// +34%** over 16 slots, hit rate 67.7/64.9/62.3% → 86.5/83.0/80.6%, and
-    /// bytes/token −58.3 / −51.7 / −48.7%. The Mac's thrashing failure does not
-    /// reproduce there: `io` falls monotonically as slots rise.
+    /// **24 on iOS, since 2026-09-24 (32 from 2026-09-16).** 32 measured
+    /// fastest on the iPhone 17, **+59 / +56 / +34%** over 16 slots, and 24
+    /// measured +37 / +28 / +21% (2026-09-16). But at 32 the chat app rests at
+    /// about 4.1 GB. That left no room for the system photo picker: the app was
+    /// killed for `proc-thrashing` with it open, and iOS starts killing other
+    /// processes from about 3.9 GB. At 24 the app rests at about 3.3 GB, and the
+    /// same text-and-two-photos session completed with the compressor running
+    /// at half the rate (`benchmark-results-2026-09-24-ios-vision-memory/`).
+    /// 32 stays selectable in the iOS Settings sheet.
     ///
     /// This is memory-funded speed, not a free win — report it as such.
     ///
@@ -50,7 +53,7 @@ public struct RuntimeConfiguration: Sendable, Equatable {
     /// where the memory that ceiling costs is what differs between platforms.
     public static let productionExpertCacheSlots: Int = {
         #if os(iOS)
-        return 32
+        return 24
         #else
         return 16
         #endif

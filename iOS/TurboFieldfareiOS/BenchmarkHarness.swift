@@ -161,8 +161,9 @@ struct HarnessSettings {
     /// measured rows are 4K regardless of the 8K CLI default.
     var maxContext = 4096
     var maxNewTokens = 128
-    /// The platform's production default, **not** a literal. Since 2026-09-16
-    /// that is 32 on iOS, measured at +59 / +56 / +34% over 16. Hardcoding 16
+    /// The platform's production default, **not** a literal. On iOS that was
+    /// 32 from 2026-09-16 and is 24 since 2026-09-24, so a run comparable with
+    /// the 32-slot rows passes `--slots 32`. Hardcoding 16
     /// here would silently override the shared constant and hold every device
     /// run at the old value while the runtime claimed otherwise — which is
     /// exactly the drift the constant exists to prevent.

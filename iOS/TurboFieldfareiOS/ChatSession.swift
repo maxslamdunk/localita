@@ -58,11 +58,11 @@ enum ChatSession {
             settingsPersistenceEnabled: true)
         // Slot count is *not* set here on purpose — it comes from
         // `MacAppSettings`, which tracks `RuntimeConfiguration
-        // .productionExpertCacheSlots` and so resolves to 32 on iOS. That is
-        // memory-funded speed, not a free win: slots are per layer, so 30 × 32
-        // buffers is +1.61 GB, taking peak footprint to about 3.77 GB against
-        // the measured 5.60 GB ceiling. That was measured at a 256 cap; the 1024
-        // cap and the pin above add about 0.25 GB of ring and scratch.
+        // .productionExpertCacheSlots` and so resolves to 24 on iOS. That is
+        // memory-funded speed, not a free win: slots are per layer, and 24
+        // rests at about 3.3 GB in this app against about 4.1 GB at 32, which
+        // left no room for the photo picker (2026-09-24). A settings file saved
+        // before then keeps the count it holds.
         // After init, which is when the settings file is applied. The file does
         // not carry the chunk size, and `applyPersistedSettings` rebuilds the
         // options without it, back to the shared 128. It runs again only from
