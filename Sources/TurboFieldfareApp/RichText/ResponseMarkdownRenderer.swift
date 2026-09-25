@@ -100,6 +100,10 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
     /// that no longer exists.
     private var bodyColor: PlatformColor = .transcriptLabel
 
+    /// Sizes and spacing. A stored property with a copy-modifier, like
+    /// `bodyColor` and for the same reason.
+    private var typography: ResponseTypography = .compact
+
     public init(
         environment: [String: String] = ProcessInfo.processInfo.environment,
         typesetter: any MathTypesetting = SwiftMathTypesetter()
@@ -117,6 +121,14 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
     public func drawingBody(in color: PlatformColor) -> ResponseMarkdownRenderer {
         var copy = self
         copy.bodyColor = color
+        return copy
+    }
+
+    /// A copy that sets text with `typography`. The default is `.compact`,
+    /// which is what the Mac draws.
+    public func setting(_ typography: ResponseTypography) -> ResponseMarkdownRenderer {
+        var copy = self
+        copy.typography = typography
         return copy
     }
 
@@ -274,7 +286,7 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
         let alone = blockShaped && Self.isAloneInParagraph(output, sentinel: sentinel)
         let mode: MathRenderMode = span.mode == .display || alone ? .display : .inline
         let font = attributes[.font] as? PlatformFont
-            ?? PlatformFont.systemFont(ofSize: PlatformFont.systemFontSize)
+            ?? bodyFont(size: typography.bodySize, weight: .regular)
         let tint = attributes[.foregroundColor] as? PlatformColor ?? .transcriptLabel
         guard let render = typesetter.render(
             latex: MathCommandNormalizer.normalize(span.latex),
@@ -574,7 +586,8 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
         let adjacentListItems = previous.kind.isList && next.kind.isList
         let sameTable = previous.kind.tableIdentity != nil
             && previous.kind.tableIdentity == next.kind.tableIdentity
-        let requiredNewlines = adjacentListItems || sameTable ? 1 : 2
+        let requiredNewlines = adjacentListItems || sameTable
+            || !typography.blankLineBetweenBlocks ? 1 : 2
         let trailingNewlines = output.string.reversed().prefix { $0 == "\n" }.count
         output.append(separator(
             trailingNewlines: trailingNewlines,
@@ -585,7 +598,8 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
     /// progressive render appends one block at a time and has to reproduce it
     /// exactly, or a streamed answer would not match its own finalize pass.
     public func blockSeparator(trailingNewlines: Int) -> NSAttributedString {
-        separator(trailingNewlines: trailingNewlines, required: 2)
+        separator(trailingNewlines: trailingNewlines,
+                  required: typography.blankLineBetweenBlocks ? 2 : 1)
     }
 
     private func separator(trailingNewlines: Int, required: Int) -> NSAttributedString {
@@ -631,9 +645,14 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
         }
         let prefix = self.prefix(for: block.kind, taskGlyph: taskGlyph)
         if !prefix.isEmpty {
+            var markerAttributes = attributes(block: block)
+            if typography.boldListMarkers, block.kind.isList {
+                markerAttributes[.font] = bodyFont(size: typography.bodySize,
+                                                   weight: .semibold)
+            }
             output.append(NSAttributedString(
                 string: prefix,
-                attributes: attributes(block: block)))
+                attributes: markerAttributes))
         }
 
         var html = InlineHTMLState()
@@ -915,7 +934,7 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
 
     private func baseAttributes() -> [NSAttributedString.Key: Any] {
         [
-            .font: PlatformFont.systemFont(ofSize: PlatformFont.systemFontSize),
+            .font: bodyFont(size: typography.bodySize, weight: .regular),
             .foregroundColor: bodyColor,
             .paragraphStyle: paragraphStyle(for: .paragraph),
         ]
@@ -936,13 +955,13 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
         var size: CGFloat
         var baseWeight: PlatformFont.Weight
         if monospaced {
-            size = PlatformFont.systemFontSize - 0.5
+            size = typography.bodySize - 0.5
             baseWeight = .regular
         } else if case .heading(let level) = block {
-            size = max(PlatformFont.systemFontSize + 1, 22 - CGFloat(level - 1) * 2)
+            size = typography.headingSize(level: level)
             baseWeight = .semibold
         } else {
-            size = PlatformFont.systemFontSize
+            size = typography.bodySize
             baseWeight = .regular
         }
         if html.scriptDepth > 0 {
@@ -952,30 +971,38 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
         let weight: PlatformFont.Weight = bold ? .semibold : baseWeight
         let font = monospaced
             ? PlatformFont.monospacedSystemFont(ofSize: size, weight: weight)
-            : PlatformFont.systemFont(ofSize: size, weight: weight)
+            : bodyFont(size: size, weight: weight)
         return italic ? PlatformFont.italicized(font, size: size) : font
+    }
+
+    /// The prose face: the system font, or its serif design when the
+    /// typography asks for one.
+    private func bodyFont(size: CGFloat, weight: PlatformFont.Weight) -> PlatformFont {
+        let font = PlatformFont.systemFont(ofSize: size, weight: weight)
+        return typography.serif ? PlatformFont.serif(font, size: size) : font
     }
 
     private func paragraphStyle(for block: BlockKind) -> NSParagraphStyle {
         let style = NSMutableParagraphStyle()
-        style.lineSpacing = 3
-        style.paragraphSpacing = 6
+        style.lineSpacing = typography.lineSpacing
+        style.paragraphSpacing = typography.paragraphSpacing
 
         switch block {
         case .heading:
-            style.paragraphSpacingBefore = 8
-            style.paragraphSpacing = 4
+            style.paragraphSpacingBefore = typography.headingSpacingBefore
+            style.paragraphSpacing = typography.headingSpacingAfter
         case .quote:
             style.firstLineHeadIndent = 4
             style.headIndent = 20
             style.tailIndent = -8
             style.tabStops = [NSTextTab(textAlignment: .left, location: 16)]
         case .unorderedList(let indent), .orderedList(_, let indent):
-            let base = CGFloat(22 + indent * 18)
-            style.firstLineHeadIndent = CGFloat(indent * 18)
+            let nesting = CGFloat(indent) * typography.listNestingIndent
+            let base = typography.listTextIndent + nesting
+            style.firstLineHeadIndent = nesting
             style.headIndent = base
             style.tabStops = [NSTextTab(textAlignment: .left, location: base)]
-            style.paragraphSpacing = 2
+            style.paragraphSpacing = typography.listItemSpacing
         case .thematicBreak:
             style.alignment = .center
             style.paragraphSpacingBefore = 8

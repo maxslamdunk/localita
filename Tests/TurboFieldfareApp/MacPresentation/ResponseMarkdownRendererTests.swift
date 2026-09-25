@@ -62,6 +62,55 @@ import Testing
             .strikethroughStyle, at: strikeRange.location, effectiveRange: nil) != nil)
     }
 
+    @Test func compactTypographyIsTheOriginalLayout() throws {
+        let text = ResponseMarkdownRenderer().render("Plain prose.").attributedString
+        let font = try #require(text.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+        let style = try #require(
+            text.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle)
+        #expect(font.pointSize == NSFont.systemFontSize)
+        #expect(font.fontDescriptor.symbolicTraits.contains(.monoSpace) == false)
+        #expect(font.fontName == NSFont.systemFont(ofSize: NSFont.systemFontSize).fontName)
+        #expect(style.lineSpacing == 3)
+        #expect(style.paragraphSpacing == 6)
+    }
+
+    @Test func readingTypographySetsSerifSizeSpacingAndBoldMarkers() throws {
+        let renderer = ResponseMarkdownRenderer().setting(.reading(bodySize: 16))
+        let text = renderer.render("Plain prose.\n\n1. first\n2. second").attributedString
+        let string = text.string as NSString
+
+        let body = try #require(text.attribute(.font, at: 0, effectiveRange: nil) as? NSFont)
+        let serif = try #require(NSFont.systemFont(ofSize: 16).fontDescriptor.withDesign(.serif))
+        #expect(body.pointSize == 16)
+        #expect(body.familyName == NSFont(descriptor: serif, size: 16)?.familyName)
+        let style = try #require(
+            text.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle)
+        #expect(style.lineSpacing == 6)
+        #expect(style.paragraphSpacing == 12)
+
+        let marker = string.range(of: "1.")
+        let item = string.range(of: "first")
+        let markerFont = try #require(
+            text.attribute(.font, at: marker.location, effectiveRange: nil) as? NSFont)
+        let itemFont = try #require(
+            text.attribute(.font, at: item.location, effectiveRange: nil) as? NSFont)
+        #expect(markerFont.fontDescriptor.symbolicTraits.contains(.bold))
+        #expect(!itemFont.fontDescriptor.symbolicTraits.contains(.bold))
+        let itemStyle = try #require(
+            text.attribute(.paragraphStyle, at: item.location, effectiveRange: nil)
+                as? NSParagraphStyle)
+        #expect(itemStyle.headIndent == 26)
+    }
+
+    @Test func blankLineBetweenTightBlocksIsCompactOnly() {
+        let source = "#### 1. The Marinade\nIf you have time, place the beef."
+        let compact = ResponseMarkdownRenderer().render(source).attributedString.string
+        let reading = ResponseMarkdownRenderer().setting(.reading(bodySize: 17))
+            .render(source).attributedString.string
+        #expect(compact == "1. The Marinade\n\nIf you have time, place the beef.")
+        #expect(reading == "1. The Marinade\nIf you have time, place the beef.")
+    }
+
     @Test func unfinishedFenceFallsBackToExactRawText() {
         let source = "Before\n\n```python\nprint('unfinished')"
         let result = ResponseMarkdownRenderer().render(source)

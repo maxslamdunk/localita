@@ -77,6 +77,18 @@ extension PlatformFont {
     ///
     /// Falls back to the upright face rather than failing: a missing italic is a
     /// styling loss, and dropping the run would be a content loss.
+    /// The serif design of a system font (New York), keeping its weight.
+    /// Falls back to the font as given, for the same reason as `italicized`.
+    public static func serif(_ font: PlatformFont, size: CGFloat) -> PlatformFont {
+        #if canImport(UIKit)
+        guard let descriptor = font.fontDescriptor.withDesign(.serif) else { return font }
+        return UIFont(descriptor: descriptor, size: size)
+        #else
+        guard let descriptor = font.fontDescriptor.withDesign(.serif) else { return font }
+        return NSFont(descriptor: descriptor, size: size) ?? font
+        #endif
+    }
+
     public static func italicized(_ font: PlatformFont, size: CGFloat) -> PlatformFont {
         #if canImport(UIKit)
         guard let descriptor = font.fontDescriptor.withSymbolicTraits(.traitItalic) else {
