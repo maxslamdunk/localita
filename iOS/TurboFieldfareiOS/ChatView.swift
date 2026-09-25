@@ -2,7 +2,9 @@ import SwiftUI
 import TurboFieldfareAppCore
 import TurboFieldfareAppPresentation
 
-/// The chat screen: status, transcript, composer.
+/// The chat screen: status, transcript, composer, with the chats and settings
+/// in a side panel (`SideDrawer`) that the menu button or a sideways drag
+/// opens.
 ///
 /// Every decision about what the status row may say and which lifecycle action
 /// it may offer comes from `AppPresentationState.resolve`, shared with the Mac.
@@ -15,10 +17,29 @@ struct ChatView: View {
     @State private var blocks = StreamingBlocks()
     @State private var thinkingBlocks = StreamingBlocks(.reasoning)
     @State private var isShowingSettings = false
-    @State private var isShowingHistory = false
+    @State private var isShowingChats = false
     @State private var thermalState = ProcessInfo.processInfo.thermalState
 
     var body: some View {
+        SideDrawer(isOpen: $isShowingChats) {
+            chat
+        } drawer: {
+            HistoryView(model: model,
+                        close: { isShowingChats = false },
+                        // The panel stays open under the sheet, so closing
+                        // Settings goes back to the chats it was opened from.
+                        openSettings: { isShowingSettings = true })
+        }
+        .onReceive(NotificationCenter.default.publisher(
+            for: ProcessInfo.thermalStateDidChangeNotification)) { _ in
+            thermalState = ProcessInfo.processInfo.thermalState
+        }
+        .sheet(isPresented: $isShowingSettings) {
+            SettingsView(model: model)
+        }
+    }
+
+    private var chat: some View {
         VStack(spacing: 0) {
             statusBar
 
@@ -47,16 +68,6 @@ struct ChatView: View {
             ChatComposer(model: model)
         }
         .background(Color(uiColor: .systemBackground))
-        .onReceive(NotificationCenter.default.publisher(
-            for: ProcessInfo.thermalStateDidChangeNotification)) { _ in
-            thermalState = ProcessInfo.processInfo.thermalState
-        }
-        .sheet(isPresented: $isShowingHistory) {
-            HistoryView(model: model)
-        }
-        .sheet(isPresented: $isShowingSettings) {
-            SettingsView(model: model)
-        }
     }
 
     // MARK: - Status
@@ -65,12 +76,12 @@ struct ChatView: View {
         let presentation = model.presentation
         return HStack(spacing: 10) {
             Button {
-                isShowingHistory = true
+                isShowingChats = true
             } label: {
-                Image(systemName: "sidebar.left")
+                MenuGlyph()
             }
             .buttonStyle(.glass)
-            .controlSize(.small)
+            .buttonBorderShape(.circle)
             .accessibilityLabel("Chats")
 
             statusPill(presentation)
@@ -97,15 +108,12 @@ struct ChatView: View {
                     .accessibilityIdentifier(.hudRate)
             }
 
-            // `.install` and `.cancelInstall` are dropped deliberately. There
-            // is no in-app installer on iOS: `perform(.install)` would start a
-            // 14.3 GB download into the app container, and the model is
-            // side-loaded instead — which is what the empty state below says.
-            // Offering it anyway is the failure `AppPresentationState`'s own
-            // comments describe, one step worse: not a control that does
-            // nothing, but one that starts something the port does not support.
-            // The load actions are kept, `.cancelLoad` included, because a load
-            // takes minutes and is worth being able to abandon.
+            // `.install` and `.cancelInstall` are dropped deliberately. The
+            // download screen owns those: it asks about mobile data before it
+            // starts a 14.6 GB download, and a small button here would skip
+            // that question. The load actions are kept, `.cancelLoad`
+            // included, because a load takes minutes and is worth being able
+            // to abandon.
             if let action = presentation.primaryAction,
                action != .install, action != .cancelInstall {
                 Button(actionLabel(action)) { model.perform(action) }
@@ -129,29 +137,6 @@ struct ChatView: View {
             .accessibilityLabel("Reasoning")
             .accessibilityValue(model.enableThinking ? "On" : "Off")
             .accessibilityIdentifier(.composerThinking)
-
-            Button {
-                isShowingSettings = true
-            } label: {
-                Image(systemName: "gearshape")
-            }
-            .buttonStyle(.glass)
-            .controlSize(.small)
-            .accessibilityLabel("Settings")
-
-            if model.canStartNewChat {
-                Button {
-                    model.newChat()
-                    blocks.reset()
-                    thinkingBlocks.reset()
-                } label: {
-                    Image(systemName: "square.and.pencil")
-                }
-                .buttonStyle(.glass)
-                .controlSize(.small)
-                .accessibilityLabel("New chat")
-                .accessibilityIdentifier(.stripNewChat)
-            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -224,5 +209,18 @@ struct ChatView: View {
                     in: .rect(cornerRadius: 12))
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
+    }
+}
+
+/// The menu button's icon: two long lines over a short one, left-aligned.
+private struct MenuGlyph: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Capsule().frame(width: 18, height: 2)
+            Capsule().frame(width: 18, height: 2)
+            Capsule().frame(width: 10, height: 2)
+        }
+        .frame(width: 20, height: 20)
+        .accessibilityHidden(true)
     }
 }

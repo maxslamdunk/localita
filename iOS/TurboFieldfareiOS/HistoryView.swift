@@ -2,20 +2,27 @@ import SwiftUI
 import TurboFieldfareAppCore
 import TurboFieldfareAppPresentation
 
-/// The stored conversations, as a sheet.
+/// The stored conversations, in the side panel.
 ///
 /// The Mac's `ConversationSidebarView` is the behavioural reference, and
 /// everything it decides that is not AppKit is shared rather than restated:
 /// grouping by day, row titles, the line that says why a row cannot continue.
-/// What differs is only the idiom. Here a row is tapped to open, swiped to
-/// delete, and renamed from its context menu or swipe.
+/// What differs is only the idiom. Here a row is tapped to open, and renamed
+/// or deleted from the menu a long press brings up. There is no swipe on a
+/// row, because a sideways swipe closes the panel.
+///
+/// New Chat and Settings sit at the bottom. New Chat is shown only when the
+/// chat on screen has something in it: on an empty chat it would do nothing.
 ///
 /// Opening a row is a disk read. The replay into the KV waits for the next
 /// send, which is where the status row shows its progress, so a long
 /// conversation costs nothing to look at.
 struct HistoryView: View {
     let model: AppModel
-    @Environment(\.dismiss) private var dismiss
+    /// Closes the panel. Called after anything that changes what the chat
+    /// screen shows.
+    let close: () -> Void
+    let openSettings: () -> Void
 
     @State private var search = ""
     @State private var renameTarget: ConversationMeta?
@@ -23,33 +30,16 @@ struct HistoryView: View {
     @State private var deleteTarget: ConversationMeta?
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if visibleSections.isEmpty {
-                    emptyState
-                } else {
-                    list
-                }
-            }
-            .navigationTitle("Chats")
-            .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $search, prompt: "Search Chats")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        model.newChat()
-                        dismiss()
-                    } label: {
-                        Image(systemName: "square.and.pencil")
-                    }
-                    .disabled(!model.canStartNewChat)
-                    .accessibilityLabel("New chat")
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                }
+        VStack(spacing: 0) {
+            searchField
+            if visibleSections.isEmpty {
+                emptyState
+            } else {
+                list
             }
         }
+        .safeAreaInset(edge: .bottom) { bottomBar }
+        .background(Color(uiColor: .systemBackground))
         .alert("Rename Chat", isPresented: isRenaming, presenting: renameTarget) { target in
             TextField("Name", text: $renameText)
                 .accessibilityIdentifier(.historyRenameField)
@@ -77,6 +67,71 @@ struct HistoryView: View {
             Text("\u{201C}\(ConversationRowPresentation.title(target))\u{201D} and "
                  + "everything in it will be deleted. This cannot be undone.")
         }
+    }
+
+    /// New Chat is offered only when it would change something: a chat with
+    /// nothing in it is already a new chat.
+    private var showsNewChat: Bool {
+        model.canStartNewChat && model.hasOutputTranscript
+    }
+
+    private var bottomBar: some View {
+        HStack(spacing: 12) {
+            if showsNewChat {
+                Button {
+                    model.newChat()
+                    close()
+                } label: {
+                    Label("New Chat", systemImage: "square.and.pencil")
+                        .font(.headline)
+                        .padding(.horizontal, 6)
+                }
+                .buttonStyle(.glassProminent)
+                .buttonBorderShape(.capsule)
+                .controlSize(.large)
+                .accessibilityIdentifier(.stripNewChat)
+            }
+            Spacer(minLength: 0)
+            Button(action: openSettings) {
+                Image(systemName: "gearshape")
+                    .font(.title3)
+            }
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
+            .controlSize(.large)
+            .accessibilityLabel("Settings")
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 8)
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField("Search Chats", text: $search)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
+                .accessibilityIdentifier(.historySearch)
+            if !search.isEmpty {
+                Button {
+                    search = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+                .accessibilityIdentifier(.historySearchClear)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(Color(uiColor: .secondarySystemBackground), in: .capsule)
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
     }
 
     private var isRenaming: Binding<Bool> {
@@ -113,6 +168,8 @@ struct HistoryView: View {
                 }
             }
         }
+        .listStyle(.plain)
+        .scrollDismissesKeyboard(.immediately)
     }
 
     /// The same three facts the Mac's sidebar states above its list. A chat
@@ -142,7 +199,7 @@ struct HistoryView: View {
         let canMutate = model.canMutateConversation(id: entry.id)
         return Button {
             model.openConversation(id: entry.id)
-            dismiss()
+            close()
         } label: {
             VStack(alignment: .leading, spacing: 2) {
                 Text(ConversationRowPresentation.title(entry))
@@ -159,21 +216,6 @@ struct HistoryView: View {
         .listRowBackground(model.history.selection == entry.id
                            ? Color.accentColor.opacity(0.15) : nil)
         .accessibilityIdentifier(AccessibilityID.row(entry.id))
-        .swipeActions(edge: .trailing) {
-            Button(role: .destructive) {
-                deleteTarget = entry
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
-            .disabled(!canMutate)
-            Button {
-                renameText = entry.title
-                renameTarget = entry
-            } label: {
-                Label("Rename", systemImage: "pencil")
-            }
-            .disabled(!canMutate)
-        }
         .contextMenu {
             Button {
                 renameText = entry.title
