@@ -19,6 +19,18 @@ struct ChatView: View {
     @State private var isShowingSettings = false
     @State private var isShowingChats = false
     @State private var thermalState = ProcessInfo.processInfo.thermalState
+    /// The status the top bar shows, which trails the model's by up to
+    /// `minimumStatusTime` per status. Nil only before the first one.
+    @State private var shownPresentation: AppPresentationState?
+    @State private var shownAt = ContinuousClock.now
+    /// Statuses the model has moved through that have not been shown yet.
+    @State private var statusQueue: [AppPresentationState] = []
+    @State private var statusPump: Task<Void, Never>?
+
+    /// Every status stays up at least this long. An unload on the phone takes
+    /// a frame or two, and its "Unloading model" flashed too briefly to read.
+    private static let minimumStatusTime: Duration = .milliseconds(300)
+    private static let statusFade: Animation = .easeInOut(duration: 0.1)
 
     var body: some View {
         SideDrawer(isOpen: $isShowingChats) {
@@ -40,28 +52,30 @@ struct ChatView: View {
     }
 
     private var chat: some View {
-        VStack(spacing: 0) {
-            statusBar
-
-            Group {
-                if model.requiresModelInstallation {
-                    ModelDownloadView(model: model, network: network)
-                } else {
-                    ChatTranscriptView(model: model,
-                                       blocks: blocks,
-                                       thinkingBlocks: thinkingBlocks)
-                }
+        Group {
+            if model.requiresModelInstallation {
+                ModelDownloadView(model: model, network: network)
+            } else {
+                ChatTranscriptView(model: model,
+                                   blocks: blocks,
+                                   thinkingBlocks: thinkingBlocks)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // A bar rather than the next row of the stack, so the conversation
-            // scrolls on under the message box and shows through its glass,
-            // and the last line still settles just above it. A bar rather
-            // than a plain inset because only a bar gives the scroll view the
-            // system's edge effect: the text fades out under the box and
-            // toward the bottom of the screen instead of running into it.
-            .safeAreaBar(edge: .bottom, spacing: 0) { bottomControls }
-            .scrollEdgeEffectStyle(.soft, for: .bottom)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Bars rather than rows of a stack, so the conversation scrolls on
+        // under the menu button and the message box, and the first and last
+        // lines still settle clear of them. Bars rather than plain insets
+        // because only a bar gives the scroll view the system's edge effect:
+        // the text fades out under the box instead of being cut off at a
+        // hard edge.
+        .safeAreaBar(edge: .top, spacing: 0) {
+            statusBar.background(alignment: .top) { topFade }
+        }
+        .safeAreaBar(edge: .bottom, spacing: 0) { bottomControls }
+        .scrollEdgeEffectStyle(.soft, for: .bottom)
+        // The system's top edge also blurs the text, and there is no setting
+        // for a fade alone. So it is hidden, and `topFade` fades instead.
+        .scrollEdgeEffectHidden(true, for: .top)
         .background(Color(uiColor: .systemBackground))
     }
 
@@ -84,18 +98,63 @@ struct ChatView: View {
         }
     }
 
+    /// The text scrolling up under the menu button fades toward the
+    /// background, without blur. The fade spans the button's own height: none
+    /// at its bottom edge, rising evenly through the lower half, then easing
+    /// into 90% at its top edge, and a flat 90% from there up behind the
+    /// phone's status bar. It never goes solid, so the text stays readable up
+    /// there, only darker.
+    private var topFade: some View {
+        let background = Color(uiColor: .systemBackground)
+        return VStack(spacing: 0) {
+            // Takes whatever is above the button: the bar's top padding and,
+            // past the safe area, the status bar.
+            background.opacity(0.9)
+            LinearGradient(stops: Self.fadeStops(background),
+                           startPoint: .top, endPoint: .bottom)
+                .frame(height: Self.menuButtonSize)
+        }
+        // The bar's own space under the button, so the fade ends there.
+        .padding(.bottom, Self.statusBarBottomPadding)
+        .ignoresSafeArea(edges: .top)
+        .allowsHitTesting(false)
+    }
+
+    private static let menuButtonSize: CGFloat = 46
+
+    /// Opacity over the height x of the button, 0 at its bottom edge and 1 at
+    /// its top: a straight line up to halfway, then a curve whose slope falls
+    /// to zero at the top, so it meets the flat 90% above without a corner.
+    /// A straight line all the way made that corner show as a jump in the
+    /// text scrolling past it. Traced by stops, since a gradient takes no
+    /// function, and blended smoothly between them.
+    private static func fadeStops(_ color: Color) -> [Gradient.Stop] {
+        (0...16).map { step in
+            let location = CGFloat(step) / 16  // 0 is the top edge
+            let x = 1 - location
+            let u = max(x - 0.5, 0)
+            let opacity = x <= 0.5 ? 1.2 * x : 0.6 + 1.2 * u - 1.2 * u * u
+            return .init(color: color.opacity(opacity), location: location)
+        }
+    }
+    private static let statusBarBottomPadding: CGFloat = 10
+
     // MARK: - Status
 
     private var statusBar: some View {
-        let presentation = model.presentation
+        let presentation = shownPresentation ?? model.presentation
         return HStack(spacing: 10) {
             Button {
                 isShowingChats = true
             } label: {
+                // A fixed size rather than a control size: the system's sizes
+                // step from 44 to 54 pt with nothing in between.
                 MenuGlyph()
+                    .frame(width: Self.menuButtonSize, height: Self.menuButtonSize)
+                    .contentShape(Circle())
             }
-            .buttonStyle(.glass)
-            .buttonBorderShape(.circle)
+            .buttonStyle(.plain)
+            .glassEffect(.regular.interactive(), in: .circle)
             .accessibilityLabel("Chats")
 
             statusPill(presentation)
@@ -127,17 +186,74 @@ struct ChatView: View {
             // starts a 14.6 GB download, and a small button here would skip
             // that question. The load actions are kept, `.cancelLoad`
             // included, because a load takes minutes and is worth being able
-            // to abandon.
-            if let action = presentation.primaryAction,
+            // to abandon. When there is no primary action, a loaded model's
+            // secondary one, Unload, takes the same place, so the one button
+            // reads Load before a load and Unload after it.
+            if let action = presentation.primaryAction ?? presentation.secondaryAction,
                action != .install, action != .cancelInstall {
                 Button(actionLabel(action)) { model.perform(action) }
                     .buttonStyle(.glass)
-                    .controlSize(.small)
+                    .controlSize(.regular)
+                    .contentTransition(.opacity)
+                    .transition(.opacity)
                     .accessibilityIdentifier(.bannerModelAction)
             }
         }
+        .onChange(of: model.presentation, initial: true) { _, new in
+            enqueueStatus(new)
+        }
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.top, 2)
+        .padding(.bottom, Self.statusBarBottomPadding)
+    }
+
+    /// Queues a status so that each one is shown for `minimumStatusTime`.
+    ///
+    /// A status that only moves a counter, "Prefill (3/8)" to "(4/8)", takes
+    /// the place of the one before it rather than waiting its turn, so a fast
+    /// counter cannot build a backlog the bar falls ever further behind.
+    private func enqueueStatus(_ status: AppPresentationState) {
+        guard let shown = shownPresentation else {
+            showStatus(status)
+            return
+        }
+        if let last = statusQueue.last {
+            if Self.sameStatus(last, status) {
+                statusQueue[statusQueue.count - 1] = status
+            } else {
+                statusQueue.append(status)
+            }
+        } else if Self.sameStatus(shown, status) {
+            showStatus(status)
+            return
+        } else {
+            statusQueue.append(status)
+        }
+        guard statusPump == nil else { return }
+        statusPump = Task {
+            while !statusQueue.isEmpty {
+                let remaining = Self.minimumStatusTime - (ContinuousClock.now - shownAt)
+                if remaining > .zero { try? await Task.sleep(for: remaining) }
+                showStatus(statusQueue.removeFirst())
+            }
+            statusPump = nil
+        }
+    }
+
+    private func showStatus(_ status: AppPresentationState) {
+        withAnimation(Self.statusFade) { shownPresentation = status }
+        shownAt = .now
+    }
+
+    /// The same status with a different count: equal up to any "(…)".
+    private static func sameStatus(_ a: AppPresentationState,
+                                   _ b: AppPresentationState) -> Bool {
+        func stem(_ label: String) -> Substring {
+            label.split(separator: "(", maxSplits: 1).first ?? Substring(label)
+        }
+        return a.severity == b.severity
+            && a.primaryAction == b.primaryAction
+            && stem(a.label) == stem(b.label)
     }
 
     /// Read-only status, so it is content and not a control: no glass, no
@@ -154,7 +270,8 @@ struct ChatView: View {
             }
             Text(presentation.label)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
+                .contentTransition(.opacity)
                 .lineLimit(1)
         }
         .accessibilityElement(children: .combine)
@@ -213,9 +330,9 @@ struct ChatView: View {
 /// The menu button's icon: two long lines over a short one, left-aligned.
 private struct MenuGlyph: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Capsule().frame(width: 18, height: 2)
-            Capsule().frame(width: 18, height: 2)
+        VStack(alignment: .leading, spacing: 4.25) {
+            Capsule().frame(width: 19, height: 2)
+            Capsule().frame(width: 19, height: 2)
             Capsule().frame(width: 10, height: 2)
         }
         .frame(width: 20, height: 20)
