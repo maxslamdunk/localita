@@ -1,6 +1,7 @@
 import SwiftUI
 import TurboFieldfareAppCore
 import TurboFieldfareAppPresentation
+import UIKit
 
 /// The conversation, oldest turn first.
 ///
@@ -187,6 +188,12 @@ struct ChatTranscriptView: View {
                                    split: ResponseBlockSplitter.split(response))
             }
 
+            // Once the answer is complete: a half-streamed answer copied now
+            // would be missing its end without saying so.
+            if isTerminal, !response.isEmpty {
+                CopyResponseButton(markdown: response)
+            }
+
             if model.isTranscriptTurnInFlight, response.isEmpty {
                 prefillNotice
             }
@@ -246,5 +253,36 @@ struct ChatTranscriptView: View {
         Rectangle()
             .fill(Color(uiColor: .separator))
             .frame(height: 1)
+    }
+}
+
+/// Copies an answer as the model wrote it: the markdown source, not the
+/// rendered text, so it pastes into anything that reads markdown with its
+/// headings, lists, code fences and LaTeX intact.
+private struct CopyResponseButton: View {
+    let markdown: String
+
+    @State private var copied = false
+
+    var body: some View {
+        Button {
+            UIPasteboard.general.string = markdown
+            copied = true
+            Task {
+                try? await Task.sleep(for: .seconds(1.5))
+                copied = false
+            }
+        } label: {
+            Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(width: 32, height: 32)
+                .contentShape(Rectangle())
+                .contentTransition(.symbolEffect(.replace))
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.success, trigger: copied) { _, new in new }
+        .accessibilityLabel(copied ? "Copied" : "Copy answer")
+        .padding(.leading, -8)
     }
 }
