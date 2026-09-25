@@ -592,6 +592,7 @@ extension AppModel {
                 guard screen.conversationID == id,
                       screen.documentReadID == renderID else { return }
                 recordHistoryDiagnostic("\(error)")
+                releaseKVPlaceholder(renderID: renderID)
                 perform(machine.apply(.documentFailed(
                     id: id, renderID: renderID, .conversationUnreadable("\(error)"))))
                 return
@@ -608,6 +609,7 @@ extension AppModel {
                 id: id, renderID: renderID,
                 document: ConversationDocument.load(opened, directory: directory),
                 state: continuability(of: opened.meta)))
+            releaseKVPlaceholder(renderID: renderID)
             // Opening restores defaults, but a later edit belongs to the user.
             perform(effects.filter { effect in
                 if case .applySampling = effect {
@@ -615,6 +617,14 @@ extension AppModel {
                 }
                 return true
             })
+        }
+    }
+
+    /// The file the placeholder stood in for has landed or failed, so the
+    /// placeholder has nothing left to cover.
+    private func releaseKVPlaceholder(renderID: UUID) {
+        if releasedKVPlaceholder?.renderID == renderID {
+            releasedKVPlaceholder = nil
         }
     }
 

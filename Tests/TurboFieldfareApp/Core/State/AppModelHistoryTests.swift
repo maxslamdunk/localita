@@ -335,6 +335,39 @@ import TurboFieldfare
         #expect(opened.meta.sampling.topK == 17)
     }
 
+    /// A released KV puts the stored copy of the same chat on screen before
+    /// its file has been read. The transcript went empty for that moment: the
+    /// screen blinked and the scroll position went back to the top.
+    @MainActor
+    @Test func releasedKVKeepsTheChatOnScreenUntilItsStoredCopyLands() async throws {
+        let client = FakeInferenceClient(eventDelay: .milliseconds(1))
+        let (model, root) = try await readyModel(client)
+        defer { try? FileManager.default.removeItem(at: root) }
+        model.applyLoadState(model.loadState)
+        for prompt in ["one", "two"] {
+            model.promptText = prompt
+            model.send()
+            try await finish(model)
+        }
+        await model.persistenceTail?.value
+        let id = try #require(model.history.selection)
+        #expect(model.transcriptHistory.map(\.user.text) == ["one"],
+                "the newest pair is drawn live")
+
+        // A load finishing: a new runner and an empty KV. Checked in the same
+        // main-actor stretch, so the file read cannot have landed yet.
+        model.applyLoadState(model.loadState)
+        #expect(model.screen.conversationID == id)
+        #expect(model.screen.document == nil)
+        #expect(model.transcriptHistory.map(\.user.text) == ["one", "two"])
+        #expect(model.hasOutputTranscript)
+
+        try await waitUntil { await model.screen.document != nil }
+        #expect(model.transcriptHistory.map(\.user.text) == ["one", "two"],
+                "the stored copy draws the same chat the placeholder did")
+        #expect(model.releasedKVPlaceholder == nil)
+    }
+
     /// KV release used to reopen the held row, silently replacing the viewed
     /// row and redirecting the next message after unload/load or reload.
     @MainActor

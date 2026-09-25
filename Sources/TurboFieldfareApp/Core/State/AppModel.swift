@@ -196,6 +196,16 @@ public final class AppModel {
     /// The directory the open chat is being written to. Created on the first
     /// send rather than at New Chat, so an empty chat never lands on disk.
     var storedConversationID: UUID?
+    /// What the transcript showed when a released KV sent it back to the
+    /// stored copy of the same chat, keyed by that read's render ID.
+    ///
+    /// The swap puts the row on screen before its file has been read, and
+    /// until then a stored copy has no pairs. For that moment the transcript
+    /// was empty: the screen blinked, and the scroll position, left with no
+    /// content, went back to the top. The chat is the same one either way, so
+    /// its pairs are drawn from here until the file lands.
+    var releasedKVPlaceholder: (renderID: UUID,
+                                pairs: [(user: AppChatTurn, assistant: AppChatTurn)])?
     /// Read from the installed model's manifest, because the app process never
     /// loads the model. Nil until a model is installed.
     var conversationIdentity: ConversationIdentity? {
@@ -657,7 +667,12 @@ public final class AppModel {
         // fields to draw — and the live conversation belongs to another chat.
         switch screen {
         case .reading, .replaying:
-            return screen.document?.pairs ?? []
+            if let document = screen.document { return document.pairs }
+            if let placeholder = releasedKVPlaceholder,
+               placeholder.renderID == screen.documentReadID {
+                return placeholder.pairs
+            }
+            return []
         case .live, .unreadable:
             let pairs = conversation.completedPairs
             let live = conversation.hasTurnInFlight ? pairs
@@ -2285,8 +2300,17 @@ public final class AppModel {
             archiveConversationContext()
             return
         }
+        // Every pair on screen, the one the live fields draw included, taken
+        // before the recovery below empties the live conversation.
+        let onScreen = screen.isShowingStoredCopy
+            ? transcriptHistory
+            : conversation.outOfContextPairs + conversation.completedPairs
         prepareServiceRecoveryForReplay()
         openConversation(id: id)
+        if screen.conversationID == id, screen.document == nil,
+           let renderID = screen.documentReadID {
+            releasedKVPlaceholder = (renderID: renderID, pairs: onScreen)
+        }
     }
 
     /// Opens the conversation on the inference side if it has not been opened
