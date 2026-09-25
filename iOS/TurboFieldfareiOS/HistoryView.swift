@@ -86,7 +86,7 @@ struct HistoryView: View {
                         .font(.headline)
                         .padding(.horizontal, 6)
                 }
-                .buttonStyle(.glassProminent)
+                .buttonStyle(.glass)
                 .buttonBorderShape(.capsule)
                 .controlSize(.large)
                 .accessibilityIdentifier(.stripNewChat)
@@ -214,7 +214,10 @@ struct HistoryView: View {
             .contentShape(Rectangle())
         }
         .listRowBackground(model.history.selection == entry.id
-                           ? Color.accentColor.opacity(0.15) : nil)
+                           ? RoundedRectangle(cornerRadius: 12)
+                               .fill(Color(uiColor: .tertiarySystemFill))
+                               .padding(.horizontal, 8)
+                           : nil)
         .accessibilityIdentifier(AccessibilityID.row(entry.id))
         .contextMenu {
             Button {

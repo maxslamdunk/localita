@@ -43,15 +43,30 @@ struct ChatView: View {
         VStack(spacing: 0) {
             statusBar
 
-            if model.requiresModelInstallation {
-                ModelDownloadView(model: model, network: network)
-            } else {
-                ChatTranscriptView(model: model,
-                                   blocks: blocks,
-                                   thinkingBlocks: thinkingBlocks)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            Group {
+                if model.requiresModelInstallation {
+                    ModelDownloadView(model: model, network: network)
+                } else {
+                    ChatTranscriptView(model: model,
+                                       blocks: blocks,
+                                       thinkingBlocks: thinkingBlocks)
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // A bar rather than the next row of the stack, so the conversation
+            // scrolls on under the message box and shows through its glass,
+            // and the last line still settles just above it. A bar rather
+            // than a plain inset because only a bar gives the scroll view the
+            // system's edge effect: the text fades out under the box and
+            // toward the bottom of the screen instead of running into it.
+            .safeAreaBar(edge: .bottom, spacing: 0) { bottomControls }
+            .scrollEdgeEffectStyle(.soft, for: .bottom)
+        }
+        .background(Color(uiColor: .systemBackground))
+    }
 
+    private var bottomControls: some View {
+        VStack(spacing: 0) {
             if GenericErrorBannerPolicy.shouldShow(error: model.error,
                                                    loadState: model.loadState) {
                 errorBanner
@@ -67,7 +82,6 @@ struct ChatView: View {
             // message waiting for a load.
             ChatComposer(model: model)
         }
-        .background(Color(uiColor: .systemBackground))
     }
 
     // MARK: - Status
@@ -121,22 +135,6 @@ struct ChatView: View {
                     .controlSize(.small)
                     .accessibilityIdentifier(.bannerModelAction)
             }
-
-            // Applies to the next turn, not the one in flight: `makeRequest`
-            // reads the flag at send time. Deliberately left enabled during a
-            // run — it changes the token sequence a turn pins, so taking effect
-            // mid-turn is the behaviour to avoid, not the behaviour to offer.
-            Button {
-                model.enableThinking.toggle()
-            } label: {
-                Image(systemName: "brain")
-                    .foregroundStyle(model.enableThinking ? Color.accentColor : .secondary)
-            }
-            .buttonStyle(.glass)
-            .controlSize(.small)
-            .accessibilityLabel("Reasoning")
-            .accessibilityValue(model.enableThinking ? "On" : "Off")
-            .accessibilityIdentifier(.composerThinking)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
