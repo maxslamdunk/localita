@@ -56,6 +56,17 @@ struct MarkdownText: UIViewRepresentable {
     }
 }
 
+extension ResponseTypography {
+    /// How replies read on the phone: New York at 17 pt, the iPhone's body
+    /// size and the size of the user's own messages, with room between lines,
+    /// paragraphs and list items. Chosen on the device after trying 14 and
+    /// 16. It scales with the text-size setting, read when a renderer is made,
+    /// which is at launch.
+    static var phone: ResponseTypography {
+        .reading(bodySize: UIFontMetrics(forTextStyle: .body).scaledValue(for: 17))
+    }
+}
+
 /// Renders the blocks of a turn that is no longer streaming.
 ///
 /// A frozen turn has no scan lineage to key against — `StreamingBlocks` owns
@@ -68,7 +79,7 @@ struct MarkdownText: UIViewRepresentable {
 final class FrozenRenderCache {
     static let shared = FrozenRenderCache()
 
-    private let renderer = ResponseMarkdownRenderer()
+    private let renderer = ResponseMarkdownRenderer().setting(.phone)
     private var entries: [String: NSAttributedString] = [:]
     /// Insertion order, for the eviction below.
     private var order: [String] = []

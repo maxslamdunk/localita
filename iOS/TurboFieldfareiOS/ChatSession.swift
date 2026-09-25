@@ -97,13 +97,14 @@ final class StreamingBlocks {
     init(_ role: Role = .answer) {
         switch role {
         case .answer:
-            renderer = ResponseMarkdownRenderer()
+            renderer = ResponseMarkdownRenderer().setting(.phone)
         case .reasoning:
             // Grey, and grey the whole way through. The typesetter takes its
             // tint from the run it sits in, so an equation the model writes
             // while reasoning comes out matching the prose around it instead of
             // sitting inside grey text at full contrast.
             renderer = ResponseMarkdownRenderer()
+                .setting(.phone)
                 .drawingBody(in: .transcriptSecondaryLabel)
         }
     }

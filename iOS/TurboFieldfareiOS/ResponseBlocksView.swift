@@ -39,7 +39,9 @@ struct ResponseBlocksView: View {
     var isReasoning = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        // The gap between blocks is the gap between paragraphs, so it matches
+        // the paragraph spacing the reading typography sets inside a block.
+        VStack(alignment: .leading, spacing: ResponseTypography.phone.paragraphSpacing) {
             // Keyed on the block's UTF-8 start offset, which is a stable
             // identity rather than the enumeration index it looks like: the
             // splitter guarantees nothing already in `completed` moves when
@@ -72,6 +74,15 @@ struct ResponseBlocksView: View {
             }
         case .table:
             tableView(block, isOpen: isOpen)
+        case .thematicBreak:
+            // A hairline across the column. The renderer's own form is a run
+            // of box-drawing characters, centred: a fixed-length stub on a
+            // phone-width column.
+            Rectangle()
+                .fill(Color(uiColor: .separator))
+                .frame(height: 1)
+                .padding(.vertical, 6)
+                .accessibilityHidden(true)
         case .paragraph:
             // A table written without outer pipes — `Name | Role | Level` over
             // `--- | --- | ---` — opens as a paragraph and stays one. The
