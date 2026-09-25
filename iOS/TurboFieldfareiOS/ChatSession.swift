@@ -44,6 +44,8 @@ enum ChatSession {
     static let prefillChunkTokens = PrefillRuntimeConfig.maxChunkTokens
 
     static func makeModel() -> AppModel {
+        // Before the model, whose store takes the writer lock.
+        MockChats.applyLaunchArguments(modelDirectory: ModelLocation.directory)
         let model = AppModel(
             // Where `devicectl` pushes the model, and what
             // `AppModelLocation.resolve` falls through to inside a bundle,
