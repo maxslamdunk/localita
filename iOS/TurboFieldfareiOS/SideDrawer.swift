@@ -30,7 +30,8 @@ struct SideDrawer<Main: View, Drawer: View>: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let width = min(geometry.size.width * 0.84, 380)
+            // Leaves about a quarter of the chat screen showing on a phone.
+            let width = min(geometry.size.width * 0.76, 380)
             let offset = dragOffset ?? (isOpen ? width : 0)
             let progress = width > 0 ? offset / width : 0
 
@@ -40,16 +41,24 @@ struct SideDrawer<Main: View, Drawer: View>: View {
                     .frame(maxHeight: .infinity)
                     // A little parallax: the panel travels less than the screen.
                     .offset(x: (offset - width) * 0.25)
+                    // The panel lies under the chat screen, in its shade until
+                    // it is uncovered, and brightens as the screen slides off it.
+                    .overlay {
+                        Color.black
+                            .opacity(0.2 * (1 - progress))
+                            .ignoresSafeArea()
+                            .allowsHitTesting(false)
+                    }
                     .accessibilityHidden(!isOpen)
 
                 main
                     .frame(width: geometry.size.width)
-                    // Always present, and only transparent when shut. Inserted
-                    // and removed with the drag, it faded out on its own track
-                    // while the screen slid back, so the two came apart.
+                    // Catches the tap that closes the panel. Clear, so the chat
+                    // screen keeps its own colours while it is pushed aside.
+                    // Always present rather than inserted with the drag, so it
+                    // cannot come apart from the screen as it slides.
                     .overlay {
-                        Color.black
-                            .opacity(0.08 * progress)
+                        Color.clear
                             .ignoresSafeArea()
                             .contentShape(Rectangle())
                             .allowsHitTesting(offset > 0)
@@ -59,13 +68,16 @@ struct SideDrawer<Main: View, Drawer: View>: View {
                             .accessibilityAddTraits(.isButton)
                             .accessibilityAction { settle(open: false) }
                     }
+                    // Rounded like the display. Shut, the corners sit exactly
+                    // on the display's own, so they only show once it slides.
+                    .mask { screenShape.ignoresSafeArea() }
                     // The shadow belongs to the screen's edge, so it is drawn
                     // by a plain shape behind it. A `.shadow` on the screen
                     // itself shadows every piece of text and every button in it.
                     .background {
-                        Rectangle()
+                        screenShape
                             .fill(Color(uiColor: .systemBackground))
-                            .shadow(color: .black.opacity(0.12 * progress), radius: 16)
+                            .shadow(color: .black.opacity(0.18 * progress), radius: 20)
                             .ignoresSafeArea()
                     }
                     .offset(x: offset)
@@ -109,6 +121,10 @@ struct SideDrawer<Main: View, Drawer: View>: View {
 
     private static var animation: Animation { .snappy(duration: 0.3) }
 
+    private var screenShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: displayCornerRadius, style: .continuous)
+    }
+
     private func settle(open: Bool) {
         withAnimation(Self.animation) {
             isOpen = open
@@ -121,6 +137,18 @@ struct SideDrawer<Main: View, Drawer: View>: View {
                                         to: nil, from: nil, for: nil)
     }
 }
+
+/// The radius of the display's own corners. There is no public API for it,
+/// so it is read from UIKit's private key, and falls back to square corners if
+/// that ever disappears. `ConcentricRectangle`, the public route, drew square
+/// corners here.
+@MainActor
+private let displayCornerRadius: CGFloat = {
+    let screen = UIApplication.shared.connectedScenes
+        .compactMap { ($0 as? UIWindowScene)?.screen }
+        .first
+    return (screen?.value(forKey: "_displayCornerRadius") as? CGFloat) ?? 0
+}()
 
 /// Reports a horizontal pan: the translation while it moves, then the
 /// translation and velocity once it ends. A cancelled pan reports a zero
@@ -211,6 +239,18 @@ private struct HorizontalPan: UIGestureRecognizerRepresentable {
             shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
         ) -> Bool {
             true
+        }
+
+        /// A scroll view waits to scroll until this pan has decided the drag is
+        /// not a sideways one, which it does within its first few points. Both
+        /// ran at once before, so a slightly diagonal drag moved the panel and
+        /// scrolled the chat or the list under it, and the two jiggled.
+        func gestureRecognizer(
+            _ recognizer: UIGestureRecognizer,
+            shouldBeRequiredToFailBy other: UIGestureRecognizer
+        ) -> Bool {
+            recognizer.isEnabled
+                && (other.view as? UIScrollView)?.panGestureRecognizer === other
         }
     }
 }

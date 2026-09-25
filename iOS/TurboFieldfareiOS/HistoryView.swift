@@ -28,17 +28,33 @@ struct HistoryView: View {
     @State private var renameTarget: ConversationMeta?
     @State private var renameText = ""
     @State private var deleteTarget: ConversationMeta?
+    /// Where the list's visible part ends under the two bars, for the blur.
+    @State private var scrollEdges = ScrollEdges()
 
     var body: some View {
-        VStack(spacing: 0) {
-            searchField
+        Group {
             if visibleSections.isEmpty {
                 emptyState
             } else {
                 list
             }
         }
-        .safeAreaInset(edge: .bottom) { bottomBar }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Bars rather than rows around the list, so the chats scroll on
+        // under the glass search field and the buttons to the edges of the
+        // screen. The system's edge effect fades them there, and each row
+        // also blurs by itself (`EdgeBlur`), since the fade alone only shades.
+        .safeAreaBar(edge: .top, spacing: 0) {
+            searchField.onGeometryChange(for: CGFloat.self) {
+                $0.frame(in: .global).maxY
+            } action: { scrollEdges.top = $0 }
+        }
+        .safeAreaBar(edge: .bottom, spacing: 0) {
+            bottomBar.onGeometryChange(for: CGFloat.self) {
+                $0.frame(in: .global).minY
+            } action: { scrollEdges.bottom = $0 }
+        }
+        .scrollEdgeEffectStyle(.soft, for: .all)
         .background(Color(uiColor: .systemBackground))
         .alert("Rename Chat", isPresented: isRenaming, presenting: renameTarget) { target in
             TextField("Name", text: $renameText)
@@ -128,7 +144,7 @@ struct HistoryView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
-        .background(Color(uiColor: .secondarySystemBackground), in: .capsule)
+        .glassEffect(.regular.interactive(), in: .capsule)
         .padding(.horizontal, 16)
         .padding(.top, 8)
         .padding(.bottom, 4)
@@ -156,19 +172,40 @@ struct HistoryView: View {
 
     // MARK: - List
 
+    /// A scroll view rather than a `List`. A list lifts its own cell on a long
+    /// press: first a light cell-shaped platter, then the row stretched onto
+    /// it, and a copy of the row without the selected chat's grey. Here the
+    /// view that lifts is the row as drawn.
+    ///
+    /// The day headers scroll with their rows rather than pinning. A pinned
+    /// header needs a solid background to cover the rows under it, and that
+    /// strip hid the rows before they reached the search field's blur.
     private var list: some View {
-        List {
-            notices
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                notices
+                    .padding(.horizontal, 20)
+                    .modifier(EdgeBlur(edges: scrollEdges))
 
-            ForEach(visibleSections, id: \.group) { section in
-                Section(section.group.rawValue) {
-                    ForEach(section.entries, id: \.id) { entry in
-                        row(entry)
+                ForEach(visibleSections, id: \.group) { section in
+                    Section {
+                        ForEach(section.entries, id: \.id) { entry in
+                            row(entry)
+                                .modifier(EdgeBlur(edges: scrollEdges))
+                        }
+                    } header: {
+                        Text(section.group.rawValue)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 14)
+                            .padding(.bottom, 4)
+                            .modifier(EdgeBlur(edges: scrollEdges))
                     }
                 }
             }
         }
-        .listStyle(.plain)
         .scrollDismissesKeyboard(.immediately)
     }
 
@@ -194,30 +231,36 @@ struct HistoryView: View {
         }
     }
 
+    /// One chat. Every row has the same rounded background, grey for the
+    /// chat on screen, and a long press lifts exactly that shape. A tap
+    /// rather than a button, so no press animation runs under the lift.
     private func row(_ entry: ConversationMeta) -> some View {
         let state = model.continuability(of: entry)
         let canMutate = model.canMutateConversation(id: entry.id)
-        return Button {
+        let shape = RoundedRectangle(cornerRadius: 12)
+        return VStack(alignment: .leading, spacing: 2) {
+            Text(ConversationRowPresentation.title(entry))
+                .lineLimit(1)
+            Text(ConversationRowPresentation.subtitle(entry, state: state))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(model.history.selection == entry.id
+                    ? Color(uiColor: .systemGray6)
+                    : Color(uiColor: .systemBackground),
+                    in: shape)
+        .contentShape(.interaction, shape)
+        .contentShape(.contextMenuPreview, shape)
+        .onTapGesture {
             model.openConversation(id: entry.id)
             close()
-        } label: {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(ConversationRowPresentation.title(entry))
-                    .lineLimit(1)
-                    .foregroundStyle(.primary)
-                Text(ConversationRowPresentation.subtitle(entry, state: state))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
         }
-        .listRowBackground(model.history.selection == entry.id
-                           ? RoundedRectangle(cornerRadius: 12)
-                               .fill(Color(uiColor: .tertiarySystemFill))
-                               .padding(.horizontal, 8)
-                           : nil)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier(AccessibilityID.row(entry.id))
         .contextMenu {
             Button {
@@ -230,10 +273,11 @@ struct HistoryView: View {
             Button(role: .destructive) {
                 deleteTarget = entry
             } label: {
-                Label("Delete\u{2026}", systemImage: "trash")
+                Label("Delete", systemImage: "trash")
             }
             .disabled(!canMutate)
         }
+        .padding(.horizontal, 8)
     }
 
     private var emptyState: some View {
@@ -244,6 +288,38 @@ struct HistoryView: View {
             Text(search.isEmpty
                  ? "Chats are kept here once you send a message."
                  : "No chat title contains \u{201C}\(search)\u{201D}.")
+        }
+    }
+}
+
+/// Where the search field ends above and the buttons begin below, on screen.
+/// Measured from the bars themselves: the scroll view's own insets include
+/// the status bar and home indicator, which put the blur's start in the
+/// wrong place.
+private struct ScrollEdges: Equatable {
+    var top: CGFloat = 0
+    var bottom: CGFloat = .infinity
+}
+
+/// Blurs a piece of the chat list by how far it has gone under either bar:
+/// none at the bar's edge, rising to full over `distance`. Each row blurs as a
+/// whole, so the blur moves with the row as it scrolls.
+private struct EdgeBlur: ViewModifier {
+    let edges: ScrollEdges
+
+    private static let distance: CGFloat = 120
+    private static let radius: CGFloat = 2
+
+    func body(content: Content) -> some View {
+        content.visualEffect { [edges] content, proxy in
+            let frame = proxy.frame(in: .global)
+            // Under the search field, eased in, so the blur begins gently.
+            let top = min(max(edges.top - frame.minY, 0) / Self.distance, 1)
+            // Under the buttons, straight from their top edge. Eased in as
+            // well, it showed only some 40 pt below the New Chat button.
+            let bottom = min(max(frame.maxY - edges.bottom, 0) / Self.distance, 1)
+            let t = max(top * top * (3 - 2 * top), bottom)
+            return content.blur(radius: Self.radius * t)
         }
     }
 }
