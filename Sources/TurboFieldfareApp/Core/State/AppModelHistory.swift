@@ -47,7 +47,8 @@ extension AppModel {
         conversationBindingGeneration &+= 1
 
         let identity: ConversationIdentity?
-        if AppModelInstallationProbe.status(at: modelDirectory) == .complete {
+        if AppModelInstallationProbe.status(
+            at: modelDirectory, descriptor: installDescriptor) == .complete {
             do {
                 identity = try conversationIdentityProvider(modelDirectory)
             } catch {

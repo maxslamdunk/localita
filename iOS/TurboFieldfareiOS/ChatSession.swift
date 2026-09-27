@@ -51,6 +51,10 @@ enum ChatSession {
             // `AppModelLocation.resolve` falls through to inside a bundle,
             // where the package-root probe cannot match.
             modelDirectory: ModelLocation.directory,
+            // The installer is bound to one checkpoint, so it has to be the one
+            // the folder holds, or a finished install reads as a mismatch.
+            installer: RepackModelInstallerClient(descriptor: descriptor(
+                forFolder: ModelLocation.folderName)),
             // The image tower needs Apple8; the A19 is Apple10. The pack itself
             // downloads from Settings, beside the model in the container.
             visionRuntimeSupported: AppModel.currentDeviceSupportsVisionRuntime,
@@ -68,10 +72,80 @@ enum ChatSession {
         // After init, which is when the settings file is applied. The file does
         // not carry the chunk size, and `applyPersistedSettings` rebuilds the
         // options without it, back to the shared 128. It runs again only from
-        // `setModelURL`, the Mac's model picker, which nothing on iOS calls.
+        // `setModelURL`, which the model menu reaches through `selectModel`
+        // below, and that re-pins it.
         model.runtimeOptions.prefillChunkTokens = prefillChunkTokens
         return model
     }
+
+    /// The text model a folder holds. A folder no model is named for is a
+    /// `--model-dir` test copy, which is always the default model.
+    static func descriptor(forFolder name: String) -> AppModelInstallDescriptor {
+        AppModelInstallDescriptor.textModels.first { $0.directoryName == name }
+            ?? .default
+    }
+
+    /// Switches the phone to another text model: its own folder, its own
+    /// install, and the same conversations and settings.
+    ///
+    /// A `--model-dir` launch keeps its folder pinned, since that flag exists
+    /// so a test copy is never mistaken for the real install; the switch still
+    /// happens for this run but is not remembered.
+    static func selectModel(_ descriptor: AppModelInstallDescriptor,
+                            in model: AppModel,
+                            openingConversation conversationID: UUID? = nil) {
+        guard model.canSelectModel, descriptor != model.installDescriptor else { return }
+        let wasLoaded = model.loadState.isReady || model.loadState.isLoading
+        if !ModelLocation.isFolderPinnedByLaunchArgument {
+            ModelLocation.rememberSelectedFolder(descriptor.directoryName)
+        }
+        model.selectModel(descriptor,
+                          at: ModelLocation.directory(named: descriptor.directoryName),
+                          openingConversation: conversationID)
+        // `setModelURL` re-applies the settings file, which does not carry the
+        // chunk size and resets it to the shared 128.
+        model.runtimeOptions.prefillChunkTokens = prefillChunkTokens
+        // Swapping one loaded model for another should leave a loaded model,
+        // not a Load button. `beginLoad` waits for the unload the switch just
+        // started, so the two are never resident together.
+        if wasLoaded, model.canLoadModel {
+            model.loadModel()
+        }
+    }
+
+    /// The installed model a stored chat was recorded with, when that is not
+    /// the one running: tapping the chat switches to it rather than opening
+    /// it read-only.
+    static func modelToSwitch(for entry: ConversationMeta,
+                              in model: AppModel) -> AppModelInstallDescriptor? {
+        guard case .cannotReplay(.differentModel) = model.continuability(of: entry),
+              let recorded = model.textModel(for: entry),
+              recorded != model.installDescriptor,
+              isInstalled(recorded, current: model) else { return nil }
+        return recorded
+    }
+
+    /// Whether a text model is installed on the phone, judged the same way the
+    /// app judges the one it is running.
+    static func isInstalled(_ descriptor: AppModelInstallDescriptor,
+                            current model: AppModel) -> Bool {
+        if descriptor == model.installDescriptor { return model.isModelInstalled }
+        // The probe hashes the manifest, and the chat list asks once per row
+        // on every render, so the answer is kept until the manifest changes.
+        let directory = ModelLocation.directory(named: descriptor.directoryName)
+        let manifest = directory.appendingPathComponent("manifest.json")
+        let stamp = (try? FileManager.default.attributesOfItem(atPath: manifest.path))?[
+            .modificationDate] as? Date
+        if let cached = installedCache[descriptor.key], cached.stamp == stamp {
+            return cached.installed
+        }
+        let installed = stamp != nil && AppModelInstallationProbe.status(
+            at: directory, descriptor: descriptor) == .complete
+        installedCache[descriptor.key] = (stamp, installed)
+        return installed
+    }
+
+    private static var installedCache: [String: (stamp: Date?, installed: Bool)] = [:]
 }
 
 /// Keeps `ResponseBlockSplitter` resumable across streaming ticks.

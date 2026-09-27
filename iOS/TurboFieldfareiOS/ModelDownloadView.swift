@@ -126,6 +126,12 @@ struct ModelDownloadView: View {
                  + "Hugging Face.")
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            if !model.installDescriptor.supportsImages {
+                Text("This model reads text only; it cannot look at images.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
             // A model that is present but unusable says why. The probe's reason
             // is the only account of it, and it was once the difference between
             // an empty screen and a one-line fix.
@@ -266,6 +272,22 @@ struct ModelDownloadView: View {
                 }
                 .buttonStyle(.bordered)
             }
+            // Picking a model that is not on the phone yet lands here, and this
+            // screen replaces the chat, so the way back has to be on it.
+            ForEach(installedAlternatives, id: \.key) { descriptor in
+                Button("Use \(descriptor.displayName) Instead") {
+                    ChatSession.selectModel(descriptor, in: model)
+                }
+                .buttonStyle(.borderless)
+                .disabled(!model.canSelectModel)
+            }
+        }
+    }
+
+    /// The other text models already on the phone.
+    private var installedAlternatives: [AppModelInstallDescriptor] {
+        model.availableModels.filter {
+            $0 != model.installDescriptor && ChatSession.isInstalled($0, current: model)
         }
     }
 

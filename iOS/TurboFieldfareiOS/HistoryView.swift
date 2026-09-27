@@ -231,6 +231,20 @@ struct HistoryView: View {
         }
     }
 
+    /// A chat recorded with another model this app knows names it, instead of
+    /// the generic "a different model".
+    private func subtitle(_ entry: ConversationMeta,
+                          state: ConversationContinuability) -> String {
+        if case .cannotReplay(.differentModel) = state,
+           let recorded = model.textModel(for: entry),
+           recorded != model.installDescriptor {
+            return ChatSession.isInstalled(recorded, current: model)
+                ? recorded.displayName
+                : recorded.displayName + " \u{00B7} not downloaded"
+        }
+        return ConversationRowPresentation.subtitle(entry, state: state)
+    }
+
     /// One chat. Every row has the same rounded background, grey for the
     /// chat on screen, and a long press lifts exactly that shape. A tap
     /// rather than a button, so no press animation runs under the lift.
@@ -241,7 +255,7 @@ struct HistoryView: View {
         return VStack(alignment: .leading, spacing: 2) {
             Text(ConversationRowPresentation.title(entry))
                 .lineLimit(1)
-            Text(ConversationRowPresentation.subtitle(entry, state: state))
+            Text(subtitle(entry, state: state))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -256,7 +270,11 @@ struct HistoryView: View {
         .contentShape(.interaction, shape)
         .contentShape(.contextMenuPreview, shape)
         .onTapGesture {
-            model.openConversation(id: entry.id)
+            if let recorded = ChatSession.modelToSwitch(for: entry, in: model) {
+                ChatSession.selectModel(recorded, in: model, openingConversation: entry.id)
+            } else {
+                model.openConversation(id: entry.id)
+            }
             close()
         }
         .accessibilityElement(children: .combine)

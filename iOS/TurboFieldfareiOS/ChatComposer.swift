@@ -77,14 +77,29 @@ struct ChatComposer: View {
 
     // MARK: - Model and reasoning
 
-    /// The model this chat runs on. There is one today, so the menu lists it
-    /// with a check and nothing else. It is a menu so that a second model has
-    /// somewhere to go.
+    /// The model this chat runs on, and the others it could.
+    ///
+    /// Picking one switches the whole app to it: the loaded model is released
+    /// first, so two are never in memory together. One that is not on the
+    /// phone yet opens its download in place of the chat. Chats recorded with
+    /// the other model stay in the list and open read-only.
     private var modelMenu: some View {
         Menu {
             Section("Model") {
-                Button {} label: {
-                    Label(model.installDescriptor.displayName, systemImage: "checkmark")
+                ForEach(model.availableModels, id: \.key) { descriptor in
+                    Button {
+                        ChatSession.selectModel(descriptor, in: model)
+                    } label: {
+                        if descriptor == model.installDescriptor {
+                            Label(descriptor.displayName, systemImage: "checkmark")
+                        } else {
+                            Text(descriptor.displayName)
+                        }
+                        if let detail = menuDetail(for: descriptor) {
+                            Text(detail)
+                        }
+                    }
+                    .disabled(!model.canSelectModel)
                 }
             }
         } label: {
@@ -108,12 +123,30 @@ struct ChatComposer: View {
         .accessibilityValue(model.installDescriptor.displayName)
     }
 
+    /// The menu's second line: what choosing a model would cost, and what it
+    /// cannot do.
+    private func menuDetail(for descriptor: AppModelInstallDescriptor) -> String? {
+        var parts: [String] = []
+        if !ChatSession.isInstalled(descriptor, current: model) {
+            parts.append("Download " + MetricFormat.storage(descriptor.approximateDownloadBytes))
+        }
+        if !descriptor.supportsImages {
+            parts.append("Text only")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
     /// "Gemma 4 26B-A4B IT 4-bit" is too long for the row. The pill keeps the
     /// part that names the model, and the menu shows it in full.
     private var shortModelName: String {
         let full = model.installDescriptor.displayName
         if let range = full.range(of: " IT") {
             return String(full[..<range.lowerBound])
+        }
+        // "SuperGemma 4 26B Uncensored 4-bit": no " IT", so drop the
+        // quantization instead, which every model here shares.
+        if full.hasSuffix(" 4-bit") {
+            return String(full.dropLast(" 4-bit".count))
         }
         return full
     }

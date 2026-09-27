@@ -1,9 +1,12 @@
 import Foundation
 import TurboFieldfareRepackCore
 
+private let sourceList = SupportedModelSource.all.map(\.key).joined(separator: ", ")
+
 private let usage = """
 Usage:
-  TurboFieldfareRepack --output <model.gturbo> [--overwrite] [--resume]
+  TurboFieldfareRepack --output <model.gturbo> [--source <name>]
+                       [--overwrite] [--resume]
   TurboFieldfareRepack --discard-partial --output <model.gturbo>
   TurboFieldfareRepack --verify-install --input-gturbo <model.gturbo>
   TurboFieldfareRepack --vision-output <model.vision.gturbo>
@@ -20,8 +23,9 @@ Usage:
                        --vision-output <model.vision.gturbo>
   TurboFieldfareRepack --help
 
-The installer streams the supported Gemma 4 checkpoint from Hugging Face and
-repackages it without materializing the source checkpoint on disk. Set HF_TOKEN
+The installer streams a supported Gemma 4 checkpoint from Hugging Face and
+repackages it without materializing the source checkpoint on disk. --source
+picks the checkpoint: \(sourceList). The default is gemma4. Set HF_TOKEN
 only if Hugging Face requests authentication. A cancelled or interrupted
 download can be continued with --resume or removed with --discard-partial.
 
@@ -32,6 +36,7 @@ simply unavailable.
 
 private struct Arguments {
     var output: String?
+    var source: SupportedModel?
     var overwrite = false
     var resume = false
     var discardPartial = false
@@ -78,6 +83,16 @@ private struct Arguments {
                 }
                 parsed.visionOutput = values[index + 1]
                 index += 2
+            case "--source":
+                guard index + 1 < values.count else {
+                    throw ParseError.missingValue(flag)
+                }
+                guard let model = SupportedModelSource.model(key: values[index + 1]) else {
+                    throw ParseError.invalidMode(
+                        "unknown source \(values[index + 1]); expected one of \(sourceList)")
+                }
+                parsed.source = model
+                index += 2
             case "--text-model":
                 guard index + 1 < values.count else {
                     throw ParseError.missingValue(flag)
@@ -110,7 +125,7 @@ private struct Arguments {
                 throw ParseError.missingRequired("--vision-output")
             }
             guard parsed.output == nil, parsed.inputGTurbo == nil,
-                  !parsed.verifyInstall else {
+                  parsed.source == nil, !parsed.verifyInstall else {
                 throw ParseError.invalidMode(
                     "vision install operations do not accept text install arguments")
             }
@@ -147,6 +162,9 @@ private struct Arguments {
         }
         guard parsed.textModel == nil else {
             throw ParseError.invalidMode("--text-model requires --vision-output")
+        }
+        guard parsed.source == nil || (!parsed.discardPartial && !parsed.verifyInstall) else {
+            throw ParseError.invalidMode("--source applies only to a text install")
         }
         guard !(parsed.resume && parsed.discardPartial) else {
             throw ParseError.invalidMode("--resume and --discard-partial are mutually exclusive")
@@ -322,7 +340,8 @@ private func run(_ values: [String]) async -> Int32 {
     }
 
     guard let output = arguments.output else { return 2 }
-    let options = SupportedModelSource.installOptions(
+    let source = arguments.source ?? SupportedModelSource.gemma4
+    let options = source.installOptions(
         outputDirectory: URL(fileURLWithPath: output),
         overwrite: arguments.overwrite,
         token: ProcessInfo.processInfo.environment["HF_TOKEN"],
@@ -331,7 +350,7 @@ private func run(_ values: [String]) async -> Int32 {
         let progress = InstallProgressReporter()
         let result = try await RemoteStreamingRepacker(options: options).run(
             progress: { progress($0) })
-        print("Installed \(SupportedModelSource.displayName)")
+        print("Installed \(source.displayName)")
         print("Source revision: \(result.resolvedCommit)")
         print("Model: \(result.outputDir)")
         return 0

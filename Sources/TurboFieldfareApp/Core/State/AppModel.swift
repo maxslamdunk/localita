@@ -143,7 +143,11 @@ public final class AppModel {
     public private(set) var runIdentity: Int = 0
 
     let client: any AppInferenceClient
-    private let installer: any AppModelInstallerClient
+    /// Replaced, together with the model location, when another text model
+    /// is selected: an installer is bound to the one checkpoint it installs.
+    private var installer: any AppModelInstallerClient
+    private let installerFactory: @Sendable (AppModelInstallDescriptor)
+        -> any AppModelInstallerClient
     private let visionInstaller: any AppVisionPackInstallerClient
     /// The message currently on its way through the send pipeline, from the
     /// click to the commit or the hand-back. `isTurnInFlight` reads it, so a
@@ -236,6 +240,10 @@ public final class AppModel {
     public init(modelDirectory: URL? = nil,
                 client: any AppInferenceClient = RealInferenceClient(),
                 installer: any AppModelInstallerClient = RepackModelInstallerClient(),
+                installerFactory: @escaping @Sendable (AppModelInstallDescriptor)
+                    -> any AppModelInstallerClient = {
+                        RepackModelInstallerClient(descriptor: $0)
+                    },
                 visionInstaller: any AppVisionPackInstallerClient = RepackVisionPackInstallerClient(),
                 memorySampler: AppMemorySampler = AppMemorySampler(),
                 attachmentStore: AppImageAttachmentStore = AppImageAttachmentStore(),
@@ -276,10 +284,12 @@ public final class AppModel {
         self.isInspectorVisible = settings.inspectorVisible
         self.loadModelOnLaunch = settings.loadModelOnLaunch
         self.pendingRestoredConversationID = settings.selectedConversationID
-        self.installationStatus = AppModelInstallationProbe.status(at: directory)
+        self.installationStatus = AppModelInstallationProbe.status(
+            at: directory, descriptor: installer.descriptor)
         self.visionInstallationStatus = AppVisionPackInstallationProbe.status(at: directory)
         self.client = client
         self.installer = installer
+        self.installerFactory = installerFactory
         self.visionInstaller = visionInstaller
         self.memorySampler = memorySampler
         self.attachmentStore = attachmentStore
@@ -360,6 +370,64 @@ public final class AppModel {
 
     public var installDescriptor: AppModelInstallDescriptor { installer.descriptor }
 
+    /// The text models this app can install and switch between.
+    public var availableModels: [AppModelInstallDescriptor] {
+        AppModelInstallDescriptor.textModels
+    }
+
+    /// Whether the model selection can change right now. A switch rebinds the
+    /// whole model, so it waits for a turn in flight and for a companion
+    /// operation that is moving the current model's files.
+    public var canSelectModel: Bool {
+        !isTurnInFlight && !isVisionFilesystemMutationInProgress
+    }
+
+    /// Switches to another text model installed, or to be installed, at
+    /// `directory`.
+    ///
+    /// The rest is `setModelURL`'s rebind: the loaded model is released
+    /// before anything else can load, an install in progress is cancelled
+    /// (its checkpoint stays, so it resumes when that model is chosen again),
+    /// and the conversation list is re-read against the new model's identity.
+    /// The settings file and the conversation store sit beside the model
+    /// folders, so both models share them; a chat recorded with the other
+    /// model stays readable and is marked as not continuable.
+    ///
+    /// `openingConversation` reopens a stored chat once the new model's list
+    /// is read — the way to continue a chat recorded with the other model.
+    /// It rides the launch-restore path: the selection is saved, and the
+    /// rebind reads it back and opens it when its row appears.
+    public func selectModel(_ descriptor: AppModelInstallDescriptor,
+                            at directory: URL,
+                            openingConversation conversationID: UUID? = nil) {
+        guard canSelectModel else { return }
+        let path = directory.standardizedFileURL.path
+        guard descriptor != installer.descriptor || path != modelPathText else { return }
+        installer.cancel()
+        installer = installerFactory(descriptor)
+        if path == modelPathText {
+            // Same folder, different checkpoint: nothing for setModelURL to
+            // do, but the folder's status is now judged against another hash.
+            installGeneration &+= 1
+            installTask?.cancel()
+            installTask = nil
+            installState = .idle
+            recheckModelAtCurrentLocation()
+            return
+        }
+        if let conversationID, settingsPersistenceEnabled {
+            history.selection = conversationID
+            persistSettings()
+        }
+        setModelURL(URL(fileURLWithPath: path, isDirectory: true))
+    }
+
+    /// The text model a stored conversation was recorded with, if it is one
+    /// this app knows.
+    public func textModel(for meta: ConversationMeta) -> AppModelInstallDescriptor? {
+        AppModelInstallDescriptor.textModel(modelID: meta.identity.modelID)
+    }
+
     public var installRequirement: AppModelInstallRequirement? {
         installReadiness.requirement
     }
@@ -408,7 +476,7 @@ public final class AppModel {
     }
 
     public var canInstallVisionPack: Bool {
-        guard isVisionRuntimeSupported else { return false }
+        guard isVisionRuntimeSupported, installDescriptor.supportsImages else { return false }
         // A layout with nowhere to put a companion cannot be repaired by
         // downloading one, so do not offer to.
         guard visionInstallationStatus != .unsupportedLayout else { return false }
@@ -814,7 +882,8 @@ public final class AppModel {
         diagnostics = nil
         error = nil
         phase = .idle
-        installationStatus = AppModelInstallationProbe.status(at: URL(fileURLWithPath: path))
+        installationStatus = AppModelInstallationProbe.status(
+            at: URL(fileURLWithPath: path), descriptor: installer.descriptor)
         visionInstallationStatus = AppVisionPackInstallationProbe.status(
             at: URL(fileURLWithPath: path))
         refreshInstallReadiness()
@@ -984,7 +1053,7 @@ public final class AppModel {
     /// offered an Add-images button with no tower behind it, and the failure
     /// only surfaced when the user pressed Generate.
     public var isImageInputAvailable: Bool {
-        isVisionRuntimeSupported && isVisionPackInstalled
+        isVisionRuntimeSupported && installDescriptor.supportsImages && isVisionPackInstalled
     }
 
     /// Image support is part of this build. Hardware support and companion-pack

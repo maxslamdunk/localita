@@ -10,6 +10,11 @@ public struct AppModelInstallDescriptor: Equatable, Sendable {
     public let installedBytes: UInt64
     public let rangeStagingBytes: UInt64
     public let reserveBytes: UInt64
+    /// Short stable name, and the stem of the installed folder. Only text
+    /// models have one that means anything; the image pack's is unused.
+    public let key: String
+    /// Whether an image companion pack exists for this checkpoint.
+    public let supportsImages: Bool
 
     public init(displayName: String,
                 repoID: String,
@@ -18,7 +23,9 @@ public struct AppModelInstallDescriptor: Equatable, Sendable {
                 approximateDownloadBytes: UInt64,
                 installedBytes: UInt64,
                 rangeStagingBytes: UInt64,
-                reserveBytes: UInt64) {
+                reserveBytes: UInt64,
+                key: String = SupportedModelSource.gemma4.key,
+                supportsImages: Bool = true) {
         self.displayName = displayName
         self.repoID = repoID
         self.revision = revision
@@ -27,21 +34,49 @@ public struct AppModelInstallDescriptor: Equatable, Sendable {
         self.installedBytes = installedBytes
         self.rangeStagingBytes = rangeStagingBytes
         self.reserveBytes = reserveBytes
+        self.key = key
+        self.supportsImages = supportsImages
     }
+
+    init(textModel model: SupportedModel) {
+        self.init(displayName: model.displayName,
+                  repoID: model.repoID,
+                  revision: model.revision,
+                  sourceIndexSHA256: model.sourceIndexSHA256,
+                  approximateDownloadBytes: model.approximateDownloadBytes,
+                  installedBytes: model.installedBytes,
+                  rangeStagingBytes: UInt64(RemoteChunkPolicy.defaultBytes),
+                  reserveBytes: SupportedModelSource.reserveBytes,
+                  key: model.key,
+                  supportsImages: model.hasVisionTower)
+    }
+
+    /// The folder a text model installs into, beside the others.
+    public var directoryName: String { key + ".gturbo" }
 
     public var requiredFreeBytes: UInt64 {
         installedBytes + rangeStagingBytes + reserveBytes
     }
 
     public static let `default` = AppModelInstallDescriptor(
-        displayName: "Gemma 4 26B-A4B IT 4-bit",
-        repoID: "mlx-community/gemma-4-26b-a4b-it-4bit",
-        revision: "0d77464eeb233a2da68ebf9d7dc4edaac7db956d",
-        sourceIndexSHA256: "bf198c9f5ea6462addca1966e5dd669c407537a876e82cf06db9084c5c850b13",
-        approximateDownloadBytes: 14_620_479_420,
-        installedBytes: 14_291_921_884,
-        rangeStagingBytes: UInt64(RemoteChunkPolicy.defaultBytes),
-        reserveBytes: 1_073_741_824)
+        textModel: SupportedModelSource.gemma4)
+
+    public static let supergemma4 = AppModelInstallDescriptor(
+        textModel: SupportedModelSource.supergemma4)
+
+    /// Every text model the app can install, in menu order.
+    public static let textModels: [AppModelInstallDescriptor] =
+        SupportedModelSource.all.map { AppModelInstallDescriptor(textModel: $0) }
+
+    public static func textModel(key: String) -> AppModelInstallDescriptor? {
+        textModels.first { $0.key == key }
+    }
+
+    /// The text model a manifest or a stored conversation names by its
+    /// `modelID`, which the installer sets to the source repository.
+    public static func textModel(modelID: String) -> AppModelInstallDescriptor? {
+        textModels.first { $0.repoID == modelID }
+    }
 
     public static let visionCompanion = AppModelInstallDescriptor(
         displayName: "Gemma 4 Image Support",

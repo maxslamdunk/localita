@@ -15,7 +15,7 @@ import TurboFieldfare
 /// inside a bundle the package-root probe cannot match, so it lands here.
 enum ModelLocation {
     static var directory: URL {
-        root.appendingPathComponent(folderName, isDirectory: true)
+        directory(named: folderName)
     }
 
     /// Where the model folders live. Everything the model owns is under here;
@@ -26,21 +26,52 @@ enum ModelLocation {
             .appendingPathComponent("TurboFieldfare", isDirectory: true)
     }
 
+    /// One model folder beside the others. Every text model installs into its
+    /// own, so they share the conversations and the settings file.
+    static func directory(named name: String) -> URL {
+        root.appendingPathComponent(name, isDirectory: true)
+    }
+
+    /// The folder picked in the chat's model menu, remembered across launches.
+    static let selectedFolderDefaultsKey = "selectedModelFolder"
+
+    /// Whether `--model-dir` pinned the folder, in which case the menu's
+    /// choice is not remembered over it.
+    static var isFolderPinnedByLaunchArgument: Bool {
+        launchArgumentFolderName != nil
+    }
+
+    static func rememberSelectedFolder(_ name: String) {
+        guard isValidFolderName(name) else { return }
+        UserDefaults.standard.set(name, forKey: selectedFolderDefaultsKey)
+    }
+
     /// `--model-dir <name>` points the app at a different folder beside the
     /// usual one. Test-only: it lets the in-app download run for real on a
     /// phone that already holds the side-loaded model, without touching it,
     /// and lets the harness benchmark the downloaded copy. A name with a path
     /// separator is ignored rather than allowed to escape the folder.
-    private static var folderName: String {
+    private static var launchArgumentFolderName: String? {
         let arguments = ProcessInfo.processInfo.arguments
         if let flag = arguments.firstIndex(of: "--model-dir"),
-           arguments.indices.contains(flag + 1) {
-            let name = arguments[flag + 1]
-            if !name.isEmpty, !name.contains("/"), name.hasSuffix(".gturbo") {
-                return name
-            }
+           arguments.indices.contains(flag + 1),
+           isValidFolderName(arguments[flag + 1]) {
+            return arguments[flag + 1]
+        }
+        return nil
+    }
+
+    static var folderName: String {
+        if let pinned = launchArgumentFolderName { return pinned }
+        if let saved = UserDefaults.standard.string(forKey: selectedFolderDefaultsKey),
+           isValidFolderName(saved) {
+            return saved
         }
         return "gemma4.gturbo"
+    }
+
+    private static func isValidFolderName(_ name: String) -> Bool {
+        !name.isEmpty && !name.contains("/") && name.hasSuffix(".gturbo")
     }
 }
 

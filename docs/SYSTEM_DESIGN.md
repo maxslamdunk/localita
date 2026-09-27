@@ -60,6 +60,19 @@ SHA-256 `bf198c9f5ea6462addca1966e5dd669c407537a876e82cf06db9084c5c850b13`.
 The installer does not download a complete Hugging Face snapshot or
 write a complete safetensors shard to disk.
 
+That is the default source. The catalog in
+`Sources/TurboFieldfareRepack/Core/Remote/SupportedModelSource.swift` also pins
+[`Jiunsong/supergemma4-26b-uncensored-mlx-4bit-v2`](https://huggingface.co/Jiunsong/supergemma4-26b-uncensored-mlx-4bit-v2)
+at revision `1ecb7582718b813fc4c7b5c3131b2b7053787f00`, index SHA-256
+`df3133d5e9e400092664cb2197413a32035189ab7c41f4b000f75a284abdc512`. Its 1,339
+text tensors match the default source's in name, dtype, shape, quantization and
+shard, so the same plan and the same runtime apply unchanged; it ships no vision
+tower, so it has no image companion pack. It installs into its own folder,
+`supergemma4.gturbo`, beside `gemma4.gturbo` (`TurboFieldfareRepack --source
+supergemma4`). Adding a source is adding a catalog entry, and an entry is only
+valid for a checkpoint with the same text architecture and MLX layout, because
+the repacker copies quantized bytes unchanged.
+
 Instead, the repacker:
 
 1. reads the source index and tensor metadata;

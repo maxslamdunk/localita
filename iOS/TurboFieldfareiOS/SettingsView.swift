@@ -39,7 +39,10 @@ struct SettingsView: View {
             Form {
                 generationSection
                 memorySection
-                imageSection
+                // A text-only model has no image pack to download.
+                if model.installDescriptor.supportsImages {
+                    imageSection
+                }
                 resetSection
                 modelSection
                 Section {
@@ -391,6 +394,7 @@ struct SettingsView: View {
 
     private var modelSection: some View {
         Section("Model") {
+            LabeledContent("Model", value: model.installDescriptor.displayName)
             LabeledContent("Status", value: model.presentation.label)
             if let bytes = model.currentProcessMemoryBytes {
                 LabeledContent("App memory",
