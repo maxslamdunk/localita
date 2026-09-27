@@ -1,0 +1,39 @@
+### Critical Risks
+
+**1. Data Corruption (Race Conditions)**
+The design lacks synchronization for slot state. Two primary races exist:
+*   **Write-Write Race:** Two misses can select the same "oldest" slot. Since the dictionary is updated before the read completes, the second miss might overwrite the first's buffer or metadata while the first is still reading, leading to interleaved data or corrupted headers.
+*   **Read-Write Race:** A "hit" can return a view of a buffer while an asynchronous read is actively overwriting it. This violates the immutability assumption and leads to the caller seeing partially written data.
+
+**2. Memory Exhaustion**
+The design lacks a hard bound on memory. Because the buffer resizes based on the file header and there is no limit on the number of slots, a single large file or a burst of unique keys can cause an OOM. Furthermore, "hits" on in-flight entries mean the cache size is effectively unbounded if many large reads are queued.
+
+**3. Work Duplication**
+The design does not deduplicate work for the same key. If 100 requests arrive for the same missing key, 100 separate read tasks will be dispatched to the executor, all fighting to write to the same slot.
+
+**4. Metric Inaccuracy**
+Counting "hits" for in-flight or failed entries inflates the hit rate. A "hit" should represent a successful retrieval of valid data.
+
+---
+
+### Proposed Design
+
+**1. Two-Phase Slot Management**
+Introduce a `State` enum for each slot: `Empty`, `Loading`, or `Ready`.
+*   **The Dictionary** maps `Key -> Slot`.
+*   **The Slot** contains a `Mutex` (or atomic state) and the buffer.
+*   **On Miss:** Use a `get_or_insert` atomic operation on the dictionary. If the key is new, pick an `Empty` slot, mark it `Loading`, and insert the key. If the key exists, the caller simply joins the existing `Loading` task.
+
+**2. Synchronization & Safety**
+*   **Task Deduplication:** Use a `Map<Key, Future>` to ensure only one task is dispatched per key.
+*     **Buffer Protection:** A slot is only marked `Ready` after the checksum is verified. A "hit" only occurs if the slot is `Ready`. If a hit occurs on a `Loading` slot, the caller awaits the existing task.
+*   **View Safety:** To prevent the "Read-Write" race, use a **Reference Counting** mechanism or a **Buffer Pool**. When a slot is chosen for replacement, it must first be "evicted" (the old buffer is moved to a temporary pool or the slot is marked `Draining`) so that active readers can finish before the buffer is reused.
+
+**3. Bounded Memory**
+*   Set a `Max_Slot_Size` and a `Max_Total_Memory`.
+*   If a file header exceeds `Max_Slot_Size`, treat it as a "large object" that bypasses the cache or uses a dedicated overflow pool to prevent a single file from wiping the cache.
+
+**4. Corrected Metrics**
+*   **Hit:** Successful lookup of a `Ready` slot.
+*   **Miss:** Key not in dictionary.
+*   **Wait:** Key found in dictionary but state is `Loading`.

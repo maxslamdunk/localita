@@ -65,7 +65,9 @@ public enum SupportedModelSource {
         // reference's coalesced reads pull in. The payload written is
         // identical, 14,251,255,868 B.
         approximateDownloadBytes: 14_200_055_868,
-        installedBytes: 14_291_921_884,
+        // Measured on the 2026-09-27 install; 2,633 B under the reference,
+        // from a longer model ID and a different chat template.
+        installedBytes: 14_291_919_251,
         hasVisionTower: false)
 
     public static let all: [SupportedModel] = [gemma4, supergemma4]
