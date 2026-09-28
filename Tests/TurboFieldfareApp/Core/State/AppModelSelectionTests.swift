@@ -83,6 +83,63 @@ struct AppModelSelectionTests {
         #expect(model.isModelInstalled)
     }
 
+    /// The switch re-reads the settings file, which names the chat that was
+    /// open. Left there, that chat — the other model's — reopened read-only in
+    /// place of a new one, which is what the phone showed on 2026-09-28.
+    @MainActor
+    @Test func plainSwitchForgetsTheChatItWasMadeFrom() throws {
+        let root = try temporaryRoot("forget")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let reference = try makeCompleteModelInstall("ref", in: root)
+        let supergemma = try makeCompleteModelInstall(
+            "super", descriptor: .supergemma4, in: root)
+        try MacAppSettingsFileStore.save(
+            MacAppSettings(selectedConversationID: UUID()),
+            forModelDirectory: reference)
+        let model = AppModel(
+            modelDirectory: reference,
+            client: MockLifecycleInferenceClient(),
+            installer: MockModelInstallerClient(),
+            installerFactory: { MockModelInstallerClient(descriptor: $0) },
+            settingsPersistenceEnabled: true)
+
+        model.selectModel(.supergemma4, at: supergemma)
+
+        #expect(MacAppSettingsFileStore.loadOrCreate(
+            forModelDirectory: supergemma).selectedConversationID == nil)
+    }
+
+    /// Both folders share one store. Opening a second instance on it could
+    /// not take the writer lock while the first was still referenced, and a
+    /// store without the lock silently drops writes: on the phone, every chat
+    /// of the model switched to was lost.
+    @MainActor
+    @Test func switchKeepsTheSharedConversationStore() async throws {
+        let root = try temporaryRoot("store")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let reference = try makeCompleteModelInstall("ref", in: root)
+        let supergemma = try makeCompleteModelInstall(
+            "super", descriptor: .supergemma4, in: root)
+        let model = AppModel(
+            modelDirectory: reference,
+            client: MockLifecycleInferenceClient(),
+            installer: MockModelInstallerClient(),
+            installerFactory: { MockModelInstallerClient(descriptor: $0) },
+            settingsPersistenceEnabled: true)
+        let before = try #require(model.conversationStore)
+        try await waitUntilWritable(before)
+        // Stands in for the in-flight work that kept the old store alive.
+        let held = before
+
+        model.selectModel(.supergemma4, at: supergemma)
+
+        let after = try #require(model.conversationStore)
+        #expect(after === held)
+        try await waitUntilWritable(after)
+        #expect(model.conversationIdentity?.modelID
+            == "test/gemma-4-26b-a4b")
+    }
+
     /// Picking a model that is not on disk yet leads to its download, sized and
     /// checked for that model rather than the one just left.
     @MainActor
@@ -134,6 +191,14 @@ struct AppModelSelectionTests {
             visionRuntimeSupported: true)
 
         #expect(model.canInstallVisionPack)
+    }
+
+    private func waitUntilWritable(_ store: ConversationStore) async throws {
+        for _ in 0..<400 {
+            if await !store.isReadOnly { return }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        Issue.record("the conversation store never took the writer lock")
     }
 
     private func temporaryRoot(_ tag: String) throws -> URL {

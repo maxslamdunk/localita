@@ -415,7 +415,12 @@ public final class AppModel {
             recheckModelAtCurrentLocation()
             return
         }
-        if let conversationID, settingsPersistenceEnabled {
+        // `setModelURL` re-reads the settings file and reopens the chat it
+        // names. Left alone, that is the chat the switch was made from — a
+        // chat of the other model, which reopens read-only. So the saved
+        // selection is replaced first: with the chat asked for, or with none,
+        // which leaves the new model on a new chat.
+        if settingsPersistenceEnabled {
             history.selection = conversationID
             persistSettings()
         }
