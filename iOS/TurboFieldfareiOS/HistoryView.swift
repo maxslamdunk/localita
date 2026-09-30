@@ -23,6 +23,8 @@ struct HistoryView: View {
     /// screen shows.
     let close: () -> Void
     let openSettings: () -> Void
+    /// Where the list is scrolled, for the thumb drawn on the panel's seam.
+    let seamThumb: SeamThumb
 
     @State private var search = ""
     @State private var renameTarget: ConversationMeta?
@@ -207,6 +209,7 @@ struct HistoryView: View {
             }
         }
         .scrollDismissesKeyboard(.immediately)
+        .reportsScroll(to: seamThumb)
     }
 
     /// The same three facts the Mac's sidebar states above its list. A chat

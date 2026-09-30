@@ -18,6 +18,7 @@ struct ChatView: View {
     @State private var thinkingBlocks = StreamingBlocks(.reasoning)
     @State private var isShowingSettings = false
     @State private var isShowingChats = false
+    @State private var seamThumb = SeamThumb()
     @State private var thermalState = ProcessInfo.processInfo.thermalState
     /// The status the top bar shows, which trails the model's by up to
     /// `minimumStatusTime` per status. Nil only before the first one.
@@ -33,14 +34,15 @@ struct ChatView: View {
     private static let statusFade: Animation = .easeInOut(duration: 0.1)
 
     var body: some View {
-        SideDrawer(isOpen: $isShowingChats) {
+        SideDrawer(isOpen: $isShowingChats, seamThumb: seamThumb) {
             chat
         } drawer: {
             HistoryView(model: model,
                         close: { isShowingChats = false },
                         // The panel stays open under the sheet, so closing
                         // Settings goes back to the chats it was opened from.
-                        openSettings: { isShowingSettings = true })
+                        openSettings: { isShowingSettings = true },
+                        seamThumb: seamThumb)
         }
         .onReceive(NotificationCenter.default.publisher(
             for: ProcessInfo.thermalStateDidChangeNotification)) { _ in

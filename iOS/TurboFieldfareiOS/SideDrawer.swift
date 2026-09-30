@@ -21,12 +21,24 @@ import UIKit
 /// animated to its new place on its own, so the two came apart.
 struct SideDrawer<Main: View, Drawer: View>: View {
     @Binding var isOpen: Bool
+    /// The panel's scroll thumb, drawn on the seam. `nil` draws none.
+    var seamThumb: SeamThumb? = nil
     @ViewBuilder var main: Main
     @ViewBuilder var drawer: Drawer
 
     /// How far the main screen is pushed while a finger is down. `nil` when
     /// no drag is in progress, and the position follows `isOpen`.
     @State private var dragOffset: CGFloat?
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// Dark mode's glow across the panel: near `strength` from the seam out to
+    /// about `reach` points, then rolling off over roughly `softness` points
+    /// either side of it, like a sigmoid. It is the screen's shape grown by
+    /// `reach` and blurred, so the blur's S-curve is centred `reach` out
+    /// instead of on the seam, where the screen would hide half of it.
+    private static var glowStrength: Double { 0.5 }
+    private static var glowReach: CGFloat { 3.6 }
+    private static var glowSoftness: CGFloat { 7.2 }
 
     var body: some View {
         GeometryReader { geometry in
@@ -74,11 +86,37 @@ struct SideDrawer<Main: View, Drawer: View>: View {
                     // The shadow belongs to the screen's edge, so it is drawn
                     // by a plain shape behind it. A `.shadow` on the screen
                     // itself shadows every piece of text and every button in it.
+                    // A shadow cannot darken a black panel, so in dark mode it
+                    // is inverted: a glow, as if lit from under the screen.
                     .background {
-                        screenShape
-                            .fill(Color(uiColor: .systemBackground))
-                            .shadow(color: .black.opacity(0.18 * progress), radius: 20)
-                            .ignoresSafeArea()
+                        ZStack {
+                            if colorScheme == .dark {
+                                RoundedRectangle(
+                                    cornerRadius: displayCornerRadius + Self.glowReach,
+                                    style: .continuous)
+                                    .fill(.white.opacity(Self.glowStrength * progress))
+                                    .padding(-Self.glowReach)
+                                    .blur(radius: Self.glowSoftness)
+                            }
+                            screenShape
+                                .fill(Color(uiColor: .systemBackground))
+                                .shadow(color: .black.opacity(
+                                            colorScheme == .dark ? 0 : 0.18 * progress),
+                                        radius: 20)
+                            // Behind the screen, like the glow, so only the
+                            // part past the seam shows.
+                            if let seamThumb {
+                                SeamThumbGlow(
+                                    thumb: seamThumb,
+                                    cornerRadius: displayCornerRadius,
+                                    color: colorScheme == .dark ? .white : .black,
+                                    strength: (colorScheme == .dark ? 1 : 0.35) * progress,
+                                    reach: Self.glowReach,
+                                    softness: Self.glowSoftness)
+                                .zIndex(-1)
+                            }
+                        }
+                        .ignoresSafeArea()
                     }
                     .offset(x: offset)
                     .accessibilityHidden(isOpen)
@@ -103,6 +141,10 @@ struct SideDrawer<Main: View, Drawer: View>: View {
         .onChange(of: isOpen) { _, open in
             if open { dismissKeyboard() }
         }
+        // A crisp click as the screen is let go and heads off on its own, like
+        // a catch engaging. A drag released short of the midpoint changes
+        // nothing and so does not click.
+        .sensoryFeedback(.impact(flexibility: .rigid, intensity: 0.6), trigger: isOpen)
     }
 
     /// `velocity` is nil while the finger is down and set on release.
