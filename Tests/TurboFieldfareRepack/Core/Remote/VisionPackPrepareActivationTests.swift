@@ -137,6 +137,47 @@ struct VisionPackPrepareActivationTests {
         }
     }
 
+    /// iOS moves the app's container on every install, so the receipt's
+    /// recorded path is stale after any reinstall. With the path not binding,
+    /// a moved pack verifies, and a receipt that disagrees on anything else
+    /// still does not.
+    @Test(arguments: ["other-path", "other-manifest"])
+    func movedPackVerifiesWhenThePathIsNotBinding(kind: String) throws {
+        let fixture = try makeFixture()
+        defer { fixture.remove() }
+        let receiptURL = URL(fileURLWithPath: fixture.paths.partialDirectory)
+            .appendingPathComponent(GTurboVisionFormatV1.receiptFile)
+        let original = try GTurboVisionReceiptCodec.decode(
+            Posix.readBoundedData(
+                receiptURL.path,
+                maximumBytes: GTurboVisionFormatV1.metadataMaxBytes))
+        let receipt = GTurboVisionReceiptV1(
+            manifestSha256: kind == "other-manifest"
+                ? String(repeating: "f", count: 64)
+                : original.manifestSha256,
+            companionDirectoryPath: "/var/mobile/Containers/Data/Application/OLD/pack",
+            compatibleTextManifestSha256: original.compatibleTextManifestSha256,
+            sourceRepoID: original.sourceRepoID,
+            sourceRevision: original.sourceRevision,
+            verificationTimestamp: original.verificationTimestamp,
+            toolVersion: original.toolVersion,
+            files: original.files)
+        try GTurboVisionReceiptCodec.encode(receipt).write(to: receiptURL)
+
+        let verify = {
+            try VisionPackVerifier.verify(
+                directory: URL(fileURLWithPath: fixture.paths.partialDirectory),
+                installedDirectory: fixture.output,
+                textModelDirectory: fixture.text,
+                requiringReceiptDirectoryPath: false)
+        }
+        if kind == "other-path" {
+            _ = try verify()
+        } else {
+            #expect(throws: RepackError.self) { _ = try verify() }
+        }
+    }
+
     @Test func changedTextManifestInvalidatesPreparedPack() throws {
         let fixture = try makeFixture()
         defer { fixture.remove() }

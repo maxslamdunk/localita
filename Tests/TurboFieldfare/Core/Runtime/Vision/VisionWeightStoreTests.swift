@@ -64,6 +64,36 @@ import Testing
         }
     }
 
+    /// iOS moves the app's container on every install, so a pack opened there
+    /// is never at the path its receipt recorded. Without the path binding it
+    /// must still open, and must still refuse everything else it checks.
+    @Test func opensAMovedPackWhenThePathIsNotBinding() throws {
+        let moved = try makeFixture(receiptDirectoryPath: "/var/mobile/old-container/pack")
+        defer { try? FileManager.default.removeItem(at: moved.root) }
+        let store = try VisionWeightStore.open(
+            directoryURL: moved.root,
+            compatibleTextSourceSnapshotHash: "text-snapshot",
+            compatibleTextManifestSha256: zeroSHA,
+            requiringReceiptDirectoryPath: false)
+        #expect(store.manifest.modelID == "fixture/model")
+
+        #expect(throws: VisionPackError.self) {
+            try VisionWeightStore.open(
+                directoryURL: moved.root,
+                compatibleTextSourceSnapshotHash: "other",
+                compatibleTextManifestSha256: zeroSHA,
+                requiringReceiptDirectoryPath: false)
+        }
+    }
+
+    @Test func receiptPathBindsOnMacOnly() {
+        #if os(iOS)
+        #expect(!GTurboVisionFormatV1.receiptBindsDirectoryPath)
+        #else
+        #expect(GTurboVisionFormatV1.receiptBindsDirectoryPath)
+        #endif
+    }
+
     private func makeFixture(receiptDirectoryPath: String? = nil)
         throws -> (root: URL, manifest: GTurboVisionManifestV1) {
         let root = FileManager.default.temporaryDirectory

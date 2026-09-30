@@ -15,11 +15,18 @@ public struct VisionPackVerification: Sendable, Equatable {
 }
 
 public enum VisionPackVerifier {
+    /// See `GTurboVisionFormatV1.receiptBindsDirectoryPath`: false on iOS.
+    public static let receiptBindsDirectoryPath = GTurboVisionFormatV1.receiptBindsDirectoryPath
+
+    /// - Parameter requiringReceiptDirectoryPath: defaults to the platform
+    ///   constant, and is exposed so `swift test`, which runs only on macOS,
+    ///   can drive the iOS branch too.
     public static func verify(
         directory: URL,
         installedDirectory: URL? = nil,
         textModelDirectory: URL,
         verifyWeights: Bool = true,
+        requiringReceiptDirectoryPath: Bool = receiptBindsDirectoryPath,
         onHashProgress: ((UInt64, UInt64) throws -> Void)? = nil
     ) throws -> VisionPackVerification {
         let directory = directory.standardizedFileURL
@@ -89,7 +96,7 @@ public enum VisionPackVerifier {
             throw RepackError.configurationInvalid(
                 detail: "vision companion receipt manifest binding mismatch")
         }
-        guard receiptDirectory == expectedDirectory else {
+        guard !requiringReceiptDirectoryPath || receiptDirectory == expectedDirectory else {
             throw RepackError.configurationInvalid(
                 detail: "vision companion receipt directory binding mismatch")
         }

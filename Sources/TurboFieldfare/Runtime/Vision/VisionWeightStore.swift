@@ -57,7 +57,8 @@ final class VisionWeightStore {
     static func open(
         directoryURL: URL,
         compatibleTextSourceSnapshotHash: String,
-        compatibleTextManifestSha256: String
+        compatibleTextManifestSha256: String,
+        requiringReceiptDirectoryPath: Bool = GTurboVisionFormatV1.receiptBindsDirectoryPath
     ) throws -> VisionWeightStore {
         // "Metadata is invalid" for a pack that was never installed sends the
         // reader looking for corruption. Absence is its own answer.
@@ -109,7 +110,7 @@ final class VisionWeightStore {
                 == compatibleTextManifestSha256.lowercased(),
               receipt.sourceRepoID == manifest.modelID,
               receipt.sourceRevision == manifest.sourceRevision,
-              receiptDirectory == openedDirectory else {
+              !requiringReceiptDirectoryPath || receiptDirectory == openedDirectory else {
             throw VisionPackError.invalidReceipt("path or manifest binding mismatch")
         }
         let manifestEntry = receipt.files[GTurboVisionFormatV1.manifestFile]

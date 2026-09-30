@@ -11,6 +11,24 @@ package enum GTurboVisionFormatV1 {
     package static let processorFile = "processor_config.json"
     package static let manifestFile = "manifest.json"
     package static let receiptFile = "verified-install.json"
+    /// Whether the receipt's recorded absolute directory is treated as binding.
+    ///
+    /// False on iOS, for the reason `AppModelInstallationProbe
+    /// .receiptBindsDirectoryPath` gives for the text model: the OS moves an
+    /// app's data container to a fresh UUID path on every install, so a
+    /// recorded path is stale after the next reinstall by construction. Left
+    /// on, every reinstall — a rebuild, the free team's weekly re-sign —
+    /// reported an intact pack as "receipt directory binding mismatch" and
+    /// took image input away (found on the iPhone 17, 2026-09-30). The
+    /// manifest digest, the text-model binding, the source binding and every
+    /// payload entry are still checked on both platforms.
+    package static let receiptBindsDirectoryPath: Bool = {
+        #if os(iOS)
+        return false
+        #else
+        return true
+        #endif
+    }()
     /// Whether an entry is something the OS wrote beside the pack rather than
     /// part of it.
     ///
