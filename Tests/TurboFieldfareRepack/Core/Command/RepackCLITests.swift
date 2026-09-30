@@ -16,6 +16,32 @@ struct RepackCLITests {
         #expect(result.stderr.contains("mutually exclusive"))
     }
 
+    @Test func unknownSourceIsRejectedBeforeNetwork() throws {
+        let output = temporaryOutput("unknown-source")
+        defer { clean(output) }
+        let result = try run(["--output", output, "--source", "not-a-model"])
+
+        #expect(result.status == 2)
+        #expect(result.stderr.contains("unknown source not-a-model"))
+        #expect(result.stderr.contains("supergemma4"))
+    }
+
+    /// Only a text install downloads anything; on verify, discard or a vision
+    /// operation the flag would be a request the mode cannot honour.
+    @Test func sourceIsRejectedOutsideATextInstall() throws {
+        let output = temporaryOutput("source-mode-clash")
+        defer { clean(output) }
+        let vision = output.replacingOccurrences(of: ".gturbo", with: ".vision.gturbo")
+        for arguments in [
+            ["--verify-install", "--input-gturbo", output, "--source", "supergemma4"],
+            ["--discard-partial", "--output", output, "--source", "supergemma4"],
+            ["--vision-output", vision, "--text-model", output, "--source", "supergemma4"],
+        ] {
+            let result = try run(arguments)
+            #expect(result.status == 2, "accepted \(arguments)")
+        }
+    }
+
     @Test func resumeWithoutStateFailsBeforeNetwork() throws {
         let output = temporaryOutput("missing-resume")
         defer { clean(output) }

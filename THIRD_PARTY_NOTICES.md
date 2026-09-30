@@ -21,6 +21,14 @@ quantization of Google's Gemma 4 26B-A4B instruction checkpoint.
 Google publishes Gemma 4 under the
 [Apache License 2.0](https://ai.google.dev/gemma/apache_2).
 
+The installer can also download, on request (`--source supergemma4`, or the
+iPhone app's model menu), the pinned revision
+`1ecb7582718b813fc4c7b5c3131b2b7053787f00` of
+[`Jiunsong/supergemma4-26b-uncensored-mlx-4bit-v2`](https://huggingface.co/Jiunsong/supergemma4-26b-uncensored-mlx-4bit-v2),
+a community modification of the same checkpoint in the same MLX 4-bit format.
+Its repository is tagged `license:gemma` rather than Apache-2.0; check its terms
+before relying on it.
+
 Downloaded weights remain a separate work governed by their source terms. Do
 not redistribute weights as part of TurboFieldfare releases.
 

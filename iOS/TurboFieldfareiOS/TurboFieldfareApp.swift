@@ -26,6 +26,11 @@ struct TurboFieldfareiOSApp: App {
                     HarnessView()
                 } else {
                     ChatView(model: model, network: network)
+                        .task {
+                            if ModelSwitchCheck.isRequested {
+                                await ModelSwitchCheck.run(model)
+                            }
+                        }
                 }
             }
             // A turn, a load or an install is minutes long, and a locked phone

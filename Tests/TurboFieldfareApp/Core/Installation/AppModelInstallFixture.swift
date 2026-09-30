@@ -3,8 +3,10 @@ import Foundation
 import TurboFieldfare
 @testable import TurboFieldfareAppCore
 
-func makeCompleteModelInstall(_ tag: String) throws -> URL {
-    let directory = FileManager.default.temporaryDirectory
+func makeCompleteModelInstall(_ tag: String,
+                              descriptor: AppModelInstallDescriptor = .default,
+                              in parent: URL? = nil) throws -> URL {
+    let directory = (parent ?? FileManager.default.temporaryDirectory)
         .appendingPathComponent("turbofieldfare-complete-\(tag)-\(UUID().uuidString).gturbo")
     let experts = directory.appendingPathComponent("packed_experts", isDirectory: true)
     try FileManager.default.createDirectory(at: experts, withIntermediateDirectories: true)
@@ -27,7 +29,7 @@ func makeCompleteModelInstall(_ tag: String) throws -> URL {
         "versionMinor": 0,
         "flags": ["streamingPresent": true],
         "modelID": "test/gemma-4-26b-a4b",
-        "sourceSnapshotHash": "sha256:" + AppModelInstallDescriptor.default.sourceIndexSHA256,
+        "sourceSnapshotHash": "sha256:" + descriptor.sourceIndexSHA256,
         "quant": [
             "embedding": quantSlot(4),
             "attention": quantSlot(4),

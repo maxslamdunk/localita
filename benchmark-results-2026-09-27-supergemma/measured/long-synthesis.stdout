@@ -1,0 +1,27 @@
+### Technical Assessment: TurboFieldfare
+
+TurboFieldfare is a specialized Swift and Metal-based inference engine designed to run a 26B-parameter MoE (Mixture-of-Experts) model on hardware with limited RAM (e.g., 8 GB Apple Silicon).
+
+**Central Resource Constraint**
+The primary bottleneck is the discrepancy between the model's total size (~14.3 GB) and the available system memory. To enable inference on low-RAM machines, the engine must manage a strict memory budget of approximately 2 GB, which must house the core weights, the KV cache, and the active expert buffers.
+
+**Data Division: Resident vs. Streamed**
+The runtime splits the model into two distinct tiers:
+* **Resident Data:** The 1.35 GB core (shared weights and FP16 KV cache) remains permanently in memory to provide the foundation for every computation.
+* **Streamed Data:** The routed experts are not loaded entirely. Instead, the engine uses the router's output to identify necessary expert IDs, which are then fetched from the SSD via bounded, parallel `pread` calls into Metal-visible buffers.
+
+**Prefill vs. Decode Behavior**
+The execution patterns differ due to how the engine leverages fetched data:
+* **Prefill:** To maximize the utility of a single expert fetch, the engine processes the prompt in chunks of up to 128 tokens. This allows one loaded expert to serve multiple rows simultaneously, amortizing the I/O cost.
+* **Decode:** During single-token generation, the engine must perform the routed layer loop one token at a time. This makes the process more sensitive to the latency of fetching specific experts from storage to satisfy the router.
+
+**Interpreting Benchmarks**
+When reviewing performance metrics, engineers must account for the fact that throughput is not a fixed ceiling. Results are heavily influenced by:
+1. **Prompt/Generation Length:** The ratio of prefill-to-decode work.
+2. **Hardware/Storage Latency:** The speed of the SSD and the specific Apple Silicon chip.
+3. **System State:** The current state of the macOS page cache and available system memory.
+
+**Rules for Evaluating Changes**
+1. **Prioritize I/O Amortization:** Ensure changes to prefill logic do not sacrifice the ability to serve multiple tokens per expert fetch.
+2. **Monitor Memory Bounds:** Verify that all new kernels or loading logic respect the ~2 GB resident budget to prevent swapping.
+3. **Contextualize Throughput:** Always evaluate performance in the context of the specific phase (prefill vs. decode) and hardware being tested.

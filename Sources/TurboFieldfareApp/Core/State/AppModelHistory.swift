@@ -47,7 +47,8 @@ extension AppModel {
         conversationBindingGeneration &+= 1
 
         let identity: ConversationIdentity?
-        if AppModelInstallationProbe.status(at: modelDirectory) == .complete {
+        if AppModelInstallationProbe.status(
+            at: modelDirectory, descriptor: installDescriptor) == .complete {
             do {
                 identity = try conversationIdentityProvider(modelDirectory)
             } catch {
@@ -73,11 +74,26 @@ extension AppModel {
         history.setUnreadableCount(0)
         history.setDiscardedLegacyTrashCount(0)
         history.setReadOnlyStore(false)
+        // Model folders that sit side by side share one store, so switching
+        // between them keeps the store already open. A second instance on the
+        // same root cannot take the writer lock while anything still holds the
+        // first — an in-flight persistence task is enough — and a store without
+        // the lock drops every write. On the phone that lost each chat of the
+        // model switched to (2026-09-28).
+        let rootURL = ConversationStoreLocation.url(forModelDirectory: modelDirectory)
+            .standardizedFileURL
+        let storeProvider: @Sendable (URL) -> ConversationStore
+        if let current = conversationBinding, current.rootURL == rootURL {
+            let store = current.store
+            storeProvider = { _ in store }
+        } else {
+            storeProvider = conversationStoreProvider
+        }
         conversationBinding = ConversationStoreBinding(
             modelDirectory: modelDirectory,
             identity: identity,
             generation: conversationBindingGeneration,
-            storeProvider: conversationStoreProvider)
+            storeProvider: storeProvider)
         activateConversationStore()
     }
 
