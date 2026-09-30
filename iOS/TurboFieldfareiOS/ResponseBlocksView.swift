@@ -95,31 +95,50 @@ struct ResponseBlocksView: View {
             // which is the only proof this is a table has not arrived. Teaching
             // `kind()` to look ahead would also have to reclassify mid-stream,
             // which the splitter has no mechanism for.
-            if let table = pipelessTable(block) {
+            if let table = pipelessTable(block, isOpen: isOpen) {
                 MarkdownTableView(table: table, renderCell: renderedText)
             } else {
-                MarkdownText(attributed: rendered(block, isOpen: isOpen))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                prose(block, isOpen: isOpen)
             }
         default:
-            MarkdownText(attributed: rendered(block, isOpen: isOpen))
+            prose(block, isOpen: isOpen)
+        }
+    }
+
+    /// A block drawn as attributed text, or nothing while all of it is held
+    /// back — an equation alone in its block, still being written. Nothing
+    /// rather than an empty text view, which would still take a paragraph gap.
+    @ViewBuilder
+    private func prose(_ block: ResponseBlockSplitter.Block, isOpen: Bool) -> some View {
+        let text = rendered(block, isOpen: isOpen)
+        if text.length > 0 {
+            MarkdownText(attributed: text)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
+    /// Whether this block is the one still being written, and so is subject
+    /// to `StreamingHoldback`.
+    private func isStreaming(_ isOpen: Bool) -> Bool {
+        isOpen && !isTerminal && blocks != nil
+    }
+
     /// A table, or its source if it turns out not to be one.
     ///
-    /// The fallback is not defensive padding: a block opens as `.table` on its
-    /// first `|`, so a half-arrived table has no delimiter row yet and is not
-    /// parseable until the second line lands. Showing the pipes for that one
-    /// tick is better than showing nothing and then a grid.
+    /// While it streams, only whole rows are shown, so a row never appears as
+    /// a line of empty cells that fill in. A block opens as `.table` on its
+    /// first `|`, so until the delimiter row lands there is no grid to draw;
+    /// that is a line or two held back, not pipes that turn into a grid. Past
+    /// that, a block that still does not parse is not a table, and is shown
+    /// as written.
     @ViewBuilder
     private func tableView(_ block: ResponseBlockSplitter.Block,
                            isOpen: Bool) -> some View {
-        let source = ResponseBlockSplitter.text(block.utf8Range, in: response)
+        let whole = ResponseBlockSplitter.text(block.utf8Range, in: response)
+        let source = isStreaming(isOpen) ? StreamingHoldback.completeLines(whole) : whole
         if let table = MarkdownTable.parse(source) {
             MarkdownTableView(table: table, renderCell: renderedText)
-        } else {
+        } else if !isStreaming(isOpen) || source.utf8.count(where: { $0 == 0x0A }) > 2 {
             MarkdownText(attributed: rendered(block, isOpen: isOpen))
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -130,10 +149,12 @@ struct ResponseBlocksView: View {
     /// The `contains` guard is what keeps this off the hot path: a byte scan
     /// over one block that fails immediately for the ordinary prose every other
     /// paragraph is, before any splitting or allocation happens.
-    private func pipelessTable(_ block: ResponseBlockSplitter.Block) -> MarkdownTable? {
+    private func pipelessTable(_ block: ResponseBlockSplitter.Block,
+                               isOpen: Bool) -> MarkdownTable? {
         let source = ResponseBlockSplitter.text(block.utf8Range, in: response)
         guard source.contains("|") else { return nil }
-        return MarkdownTable.parse(source)
+        return MarkdownTable.parse(
+            isStreaming(isOpen) ? StreamingHoldback.completeLines(source) : source)
     }
 
     private func rendered(_ block: ResponseBlockSplitter.Block,

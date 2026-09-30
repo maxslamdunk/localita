@@ -658,6 +658,107 @@ public enum MathSpanDetector {
         return true
     }
 
+    // MARK: - Streaming hold-back
+
+    /// Where the first equation the model has not finished writing starts, in
+    /// the units `tailProtection` also scans by; nil when every equation in the
+    /// text is complete.
+    ///
+    /// Stricter than `tailProtection` on purpose. That pass keeps a half-written
+    /// equation on screen as source; this one exists so the streaming view can
+    /// leave it off screen until it can be typeset, so anything that could
+    /// still turn into an equation counts: a lone `$` or `\` at the very end,
+    /// whose next character decides, and an inline span that closes at the
+    /// very end, which one more letter would reject (`$x$b` is not math).
+    static func unfinishedMath(_ source: String) -> (units: [Character], start: Int?) {
+        let units = scanUnits(source)
+        var masked = codeMask(units)
+        let escaped = escapeMask(units)
+        var first: Int?
+        func consider(_ index: Int) { first = min(first ?? index, index) }
+        for span in spans(units, masked: masked, escaped: escaped) where !span.isLiteralProtect {
+            if span.mode == .inline, span.source.hasPrefix("$"),
+               span.range.upperBound == units.count {
+                // A digit-led opener reads as currency to `openInlineDollar`
+                // and was never held, so holding it now would take back text
+                // already on screen; only the closer waits. The closer may yet
+                // open a span of its own — `amount=$20&tier=$pro`.
+                consider(isASCIIDigit(units[span.range.lowerBound + 1])
+                    ? span.range.upperBound - 1
+                    : span.range.lowerBound)
+                continue
+            }
+            for index in span.range { masked[index] = true }
+        }
+        if let open = openInlineDollar(units, masked: masked, escaped: escaped) {
+            consider(open)
+        }
+
+        // What is left unmasked and still looks like an opener has no closer
+        // yet. A closer that did arrive over something the detector refused as
+        // math — `\(count\)` in prose — means the pair is finished, just not
+        // an equation, so only a missing closer holds text back.
+        func hasCloser(_ closer: [Character], after start: Int) -> Bool {
+            var index = start
+            while index + closer.count <= units.count {
+                if !masked[index], Array(units[index..<(index + closer.count)]) == closer {
+                    return true
+                }
+                index += 1
+            }
+            return false
+        }
+        var index = 0
+        scan: while index < units.count {
+            guard !masked[index], !escaped[index] else {
+                index += 1
+                continue
+            }
+            switch units[index] {
+            case "$":
+                var run = 0
+                while index + run < units.count, units[index + run] == "$",
+                      !masked[index + run] {
+                    run += 1
+                }
+                if run == 2, !hasCloser(["$", "$"], after: index + 2) {
+                    consider(index)
+                    break scan
+                }
+                if run == 1, index + 1 == units.count {
+                    consider(index)
+                }
+                index += run
+            case "\\":
+                guard index + 1 < units.count else {
+                    consider(index)
+                    break scan
+                }
+                switch units[index + 1] {
+                case "[" where !hasCloser(["\\", "]"], after: index + 2),
+                     "(" where !hasCloser(["\\", ")"], after: index + 2):
+                    consider(index)
+                    break scan
+                case "b" where isLineStart(units, before: index):
+                    // `\begin{…}` with no `\end` yet, or the keyword itself
+                    // still arriving.
+                    let rest = String(units[index...].prefix(7))
+                    let begins = rest == "\\begin{" || "\\begin{".hasPrefix(rest)
+                    if begins, !hasCloser(Array("\\end{"), after: index + 1) {
+                        consider(index)
+                        break scan
+                    }
+                    index += 2
+                default:
+                    index += 2
+                }
+            default:
+                index += 1
+            }
+        }
+        return (units, first)
+    }
+
     // MARK: - Code masking
 
     /// Fenced blocks, indented code, and backtick spans are masked before any

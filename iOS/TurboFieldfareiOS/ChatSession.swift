@@ -261,17 +261,23 @@ final class StreamingBlocks {
     /// The block still arriving, rendered every tick because its bytes change
     /// every tick.
     ///
-    /// Mirrors the Mac's progressive pass exactly. The tail is auto-closed so a
-    /// half-typed marker does not sit on screen as raw source, and math is
-    /// deliberately *not* typeset: a half-written equation cannot parse, and
-    /// attempting it per tick would flicker the span between LaTeX and image on
-    /// every token. Equations appear when the block seals.
+    /// The tail is auto-closed so a half-typed marker does not sit on screen as
+    /// raw source. Unlike the Mac's progressive pass, an equation the model is
+    /// still writing is left off screen rather than shown as LaTeX, which is
+    /// what lets every equation that *is* on screen be typeset: each one
+    /// appears once, already rendered, instead of jumping from source to
+    /// formula when its block seals. Finished equations cost one typeset each,
+    /// since `MathRenderCache` serves every later tick. See `StreamingHoldback`.
     func renderedOpen(
         _ block: ResponseBlockSplitter.Block,
         in source: String
     ) -> NSAttributedString {
-        let text = ResponseBlockSplitter.text(block.utf8Range, in: source)
+        let text = StreamingHoldback.visible(
+            ResponseBlockSplitter.text(block.utf8Range, in: source), kind: block.kind)
+        // Closing an unfinished `$$` is not wanted even though math is typeset:
+        // the hold-back already removed it, except past its limit, where a
+        // closed copy would be re-typeset on every token as it grew.
         let closed = TailAutoClose.close(text, typesetsMath: false)
-        return renderer.render(closed, typesetsMath: false).attributedString
+        return renderer.render(closed, typesetsMath: true).attributedString
     }
 }
