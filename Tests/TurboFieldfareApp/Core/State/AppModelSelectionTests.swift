@@ -18,7 +18,7 @@ struct AppModelSelectionTests {
         #expect(AppModelInstallDescriptor.default.directoryName == "gemma4.gturbo")
         #expect(AppModelInstallDescriptor.supergemma4.directoryName == "supergemma4.gturbo")
         #expect(AppModelInstallDescriptor.default.supportsImages)
-        #expect(!AppModelInstallDescriptor.supergemma4.supportsImages)
+        #expect(AppModelInstallDescriptor.supergemma4.supportsImages)
         #expect(AppModelInstallDescriptor.textModel(
             modelID: "Jiunsong/supergemma4-26b-uncensored-mlx-4bit-v2") == .supergemma4)
         #expect(AppModelInstallDescriptor.textModel(modelID: "someone/else") == nil)
@@ -161,9 +161,10 @@ struct AppModelSelectionTests {
         #expect(model.canInstallModel)
     }
 
-    /// A text-only model has no image pack to offer.
+    /// A model without a vision tower still offers the image pack; it borrows
+    /// the reference model's (`AppVisionPackHostTests`).
     @MainActor
-    @Test func textOnlyModelOffersNoImages() throws {
+    @Test func textOnlyModelOffersImagePack() throws {
         let directory = try makeCompleteModelInstall(
             "no-images", descriptor: .supergemma4)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -175,7 +176,7 @@ struct AppModelSelectionTests {
             visionRuntimeSupported: true)
 
         #expect(model.isModelInstalled)
-        #expect(!model.canInstallVisionPack)
+        #expect(model.canInstallVisionPack)
         #expect(!model.isImageInputAvailable)
     }
 

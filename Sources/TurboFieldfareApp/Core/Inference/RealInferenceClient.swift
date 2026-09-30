@@ -458,7 +458,8 @@ actor RealInferenceSession {
             let loadedVisionRuntimeError: Error?
             do {
                 let runtime = try VisionRuntime.open(
-                    textModelURL: key.directory,
+                    textModelURL: AppVisionPackHost.textModelDirectory(
+                        for: key.directory),
                     context: context)
                 // Keep Ready maps the tower during the load rather than on the
                 // first image, so the wait is where the user asked for it.

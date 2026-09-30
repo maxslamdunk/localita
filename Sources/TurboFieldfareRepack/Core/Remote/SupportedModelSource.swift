@@ -52,7 +52,7 @@ public enum SupportedModelSource {
 
     /// A community edit of the same checkpoint. Its 1,339 text tensors match
     /// the reference in name, dtype, shape and quantization; it ships no
-    /// vision tower, so it is text-only.
+    /// vision tower, so the app gives it the reference's image pack.
     public static let supergemma4 = SupportedModel(
         key: "supergemma4",
         displayName: "SuperGemma 4 26B Uncensored 4-bit",

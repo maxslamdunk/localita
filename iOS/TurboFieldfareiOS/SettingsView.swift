@@ -234,7 +234,8 @@ struct SettingsView: View {
         } header: {
             Text("Image Support")
         } footer: {
-            Text("Lets you attach photos to a message. Keep the app open while "
+            Text("Lets you attach photos to a message. Both models use the same "
+                 + "download. Keep the app open while "
                  + "it downloads; leaving pauses it, and it resumes from where "
                  + "it stopped.")
         }

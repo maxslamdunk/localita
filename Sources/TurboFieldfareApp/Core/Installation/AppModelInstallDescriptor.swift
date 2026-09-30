@@ -48,7 +48,10 @@ public struct AppModelInstallDescriptor: Equatable, Sendable {
                   rangeStagingBytes: UInt64(RemoteChunkPolicy.defaultBytes),
                   reserveBytes: SupportedModelSource.reserveBytes,
                   key: model.key,
-                  supportsImages: model.hasVisionTower)
+                  // Every text model offers images: one without a vision tower
+                  // borrows Gemma 4's pack (`AppVisionPackHost`). Checked on
+                  // the iPhone 17 with SuperGemma 4 on 2026-09-30.
+                  supportsImages: true)
     }
 
     /// The folder a text model installs into, beside the others.

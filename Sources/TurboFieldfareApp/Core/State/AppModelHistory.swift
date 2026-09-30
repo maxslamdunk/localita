@@ -714,7 +714,7 @@ extension AppModel {
                         fileURLWithPath: modelPathText, isDirectory: true)
                     let location: String
                     do {
-                        location = try VisionPackLocation.companionURL(
+                        location = try AppVisionPackHost.companionURL(
                             forTextModel: directory).path
                     } catch {
                         location = "an unresolved companion path (\(error))"

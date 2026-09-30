@@ -18,7 +18,8 @@ public enum AppVisionPackInstallationStatus: Equatable, Sendable {
 
 public enum AppVisionPackInstallationProbe {
     public static func status(at textModelDirectory: URL) -> AppVisionPackInstallationStatus {
-        let textModelDirectory = textModelDirectory.standardizedFileURL
+        let textModelDirectory = AppVisionPackHost.textModelDirectory(
+            for: textModelDirectory)
         let companion: URL
         do {
             companion = try VisionPackLocation.companionURL(forTextModel: textModelDirectory)

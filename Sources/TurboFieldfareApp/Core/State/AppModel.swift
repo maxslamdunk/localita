@@ -1472,7 +1472,7 @@ public final class AppModel {
     }
 
     public var hasPartialVisionPackDownload: Bool {
-        guard let output = try? VisionPackLocation.companionURL(
+        guard let output = try? AppVisionPackHost.companionURL(
             forTextModel: URL(fileURLWithPath: modelPathText, isDirectory: true)),
               let paths = try? RemoteInstallPaths(outputDirectory: output.path) else {
             return false
@@ -1490,7 +1490,7 @@ public final class AppModel {
     }
 
     public var hasVisionPackDirectory: Bool {
-        guard let output = try? VisionPackLocation.companionURL(
+        guard let output = try? AppVisionPackHost.companionURL(
             forTextModel: URL(fileURLWithPath: modelPathText, isDirectory: true)) else {
             return false
         }
@@ -1725,7 +1725,7 @@ public final class AppModel {
         guard !isVisionPackInstalled else { return }
         if visionInstaller.preparedInstallIsValid(
             textModelDirectory: textModelDirectory) {
-            let output = try? VisionPackLocation.companionURL(
+            let output = try? AppVisionPackHost.companionURL(
                 forTextModel: textModelDirectory)
             // A pack that failed to activate must not be re-offered for
             // activation: `preparedInstallIsValid` does not hash the weights,
@@ -1755,7 +1755,7 @@ public final class AppModel {
     private func recordVisionAvailabilityError(at textModelDirectory: URL) {
         let location: String
         do {
-            location = try VisionPackLocation.companionURL(
+            location = try AppVisionPackHost.companionURL(
                 forTextModel: textModelDirectory).path
         } catch {
             location = "an unresolved companion path (\(error))"
@@ -1902,7 +1902,7 @@ public final class AppModel {
             isContention = false
         }
         if phase == .download || isContention, hasSavedDownload,
-           let output = try? VisionPackLocation.companionURL(
+           let output = try? AppVisionPackHost.companionURL(
             forTextModel: textModelDirectory),
            visionInstaller.preparedInstallIsValid(
             textModelDirectory: textModelDirectory) {

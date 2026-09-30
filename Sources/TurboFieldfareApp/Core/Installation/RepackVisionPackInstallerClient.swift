@@ -74,6 +74,7 @@ public final class RepackVisionPackInstallerClient: AppVisionPackInstallerClient
     public func checkInstallRequirement(
         textModelDirectory: URL
     ) throws -> AppModelInstallRequirement {
+        let textModelDirectory = AppVisionPackHost.textModelDirectory(for: textModelDirectory)
         let output = try VisionPackLocation.companionURL(
             forTextModel: textModelDirectory)
         let saved = try RemoteVisionPackInstaller.inspectPersistentInstall(
@@ -104,7 +105,9 @@ public final class RepackVisionPackInstallerClient: AppVisionPackInstallerClient
     public func install(
         textModelDirectory: URL
     ) -> AsyncThrowingStream<AppModelInstallEvent, Error> {
-        AsyncThrowingStream { continuation in
+        // A model without its own vision tower installs into its host's pack.
+        let textModelDirectory = AppVisionPackHost.textModelDirectory(for: textModelDirectory)
+        return AsyncThrowingStream { continuation in
             let id = UUID()
             let task = Task { [runInstall] in
                 do {
@@ -147,10 +150,11 @@ public final class RepackVisionPackInstallerClient: AppVisionPackInstallerClient
     }
 
     public func discardPartialInstall(textModelDirectory: URL) async throws {
-        try await mutate(textModelDirectory, using: runDiscard)
+        try await mutate(AppVisionPackHost.textModelDirectory(for: textModelDirectory), using: runDiscard)
     }
 
     public func preparedInstallIsValid(textModelDirectory: URL) -> Bool {
+        let textModelDirectory = AppVisionPackHost.textModelDirectory(for: textModelDirectory)
         guard let output = try? VisionPackLocation.companionURL(
             forTextModel: textModelDirectory) else { return false }
         return RemoteVisionPackInstaller.preparedInstallIsValid(
@@ -162,7 +166,7 @@ public final class RepackVisionPackInstallerClient: AppVisionPackInstallerClient
         textModelDirectory: URL,
         onVerifyProgress: (@Sendable (Double) -> Void)? = nil
     ) async throws -> URL {
-        let textModelDirectory = textModelDirectory.standardizedFileURL
+        let textModelDirectory = AppVisionPackHost.textModelDirectory(for: textModelDirectory)
         let output = try VisionPackLocation.companionURL(
             forTextModel: textModelDirectory)
         try await runCancellableDetached { [descriptor] in
@@ -184,7 +188,7 @@ public final class RepackVisionPackInstallerClient: AppVisionPackInstallerClient
     }
 
     public func removeInstalled(textModelDirectory: URL) async throws {
-        try await mutate(textModelDirectory, using: runRemove)
+        try await mutate(AppVisionPackHost.textModelDirectory(for: textModelDirectory), using: runRemove)
     }
 
     /// Runs blocking work off the calling task, with cancellation forwarded.
