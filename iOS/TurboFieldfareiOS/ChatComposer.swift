@@ -136,19 +136,11 @@ struct ChatComposer: View {
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
-    /// "Gemma 4 26B-A4B IT 4-bit" is too long for the row. The pill keeps the
-    /// part that names the model, and the menu shows it in full.
+    /// The pill shows the first 10 characters of the name, so it stays the
+    /// same small size whichever model is loaded. The menu shows it in full.
     private var shortModelName: String {
         let full = model.installDescriptor.displayName
-        if let range = full.range(of: " IT") {
-            return String(full[..<range.lowerBound])
-        }
-        // "SuperGemma 4 26B Uncensored 4-bit": no " IT", so drop the
-        // quantization instead, which every model here shares.
-        if full.hasSuffix(" 4-bit") {
-            return String(full.dropLast(" 4-bit".count))
-        }
-        return full
+        return String(full.prefix(10)).trimmingCharacters(in: .whitespaces)
     }
 
     // Applies to the next turn, not the one in flight: `makeRequest` reads the
