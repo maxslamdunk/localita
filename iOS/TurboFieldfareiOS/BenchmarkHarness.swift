@@ -576,6 +576,15 @@ final class Harness: ObservableObject {
             + "tok/s=\(String(format: "%.3f", tokensPerSecond))]")
         emit("expert-io", expertIOFooter(stats))
         emit("phase-time", phaseTimeFooter(stats))
+        // The text itself, beside the log, and its hash in it. Token counts and
+        // byte counters match between two runs whose text differs late, so an
+        // A/B that claims identical output needs the output.
+        let generated = Data(text.utf8)
+        let textDigest = SHA256.hash(data: generated).map { String(format: "%02x", $0) }.joined()
+        if let url = log?.url.deletingPathExtension().appendingPathExtension("txt") {
+            try? generated.write(to: url, options: .atomic)
+        }
+        emit("generated", "sha256=\(textDigest) bytes=\(generated.count)")
         lines.append("--- generated ---")
         lines.append(text)
     }
