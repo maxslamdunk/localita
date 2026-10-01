@@ -1,0 +1,30 @@
+### Risk Assessment
+
+**1. Critical Correctness Risks (Data Corruption & Crashes)**
+*   **Race Condition on Buffer Reuse:** The design allows a "hit" to return a view into a buffer while an asynchronous "miss" is actively overwriting that same buffer. This leads to **use-after-free-style data corruption** where a caller reads partially written or invalid data.
+*   **Unbounded Memory/OOM:** There is no limit on payload size. A malicious or malformed file can trigger a massive buffer resize, leading to Out-of-Memory (OOM) crashes.
+*   **Invalid State on Failure:** Leaving failed reads in the dictionary without a mechanism to clear them or distinguish "loading" from "valid" leads to permanent cache poisoning.
+
+**2. Critical Performance Risks**
+*   **Thundering Herd (Work Duplication):** If multiple requests for the same missing key arrive simultaneously, they will all trigger independent, redundant I/O tasks for the same file.
+*   **False Hits:** Counting in-flight/failed reads as "hits" inflates metrics, masking poor performance and making the hit rate a meaningless metric.
+
+---
+
+### Proposed Safer Design
+
+**1. State Management: The "Promise" Pattern**
+Instead of mapping `Key -> Slot`, map `Key -> Entry`. An `Entry` is a state machine: `Loading(Future)` or `Ready(Buffer)`.
+*   **On Miss:** Use a single atomic `get_or_insert` on the dictionary. If the key is missing, insert a `Loading` state with a `Future`.
+*   s**Deduplication:** If a second request finds a `Loading` state, it simply awaits the existing `Future`. This prevents redundant I/O.
+*   **On Hit:** If the state is `Ready`, return the view. If `Loading`, await the future.
+
+**2. Memory & Buffer Safety**
+*   **Fixed-Size Slots:** Use fixed-size buffers (e.g., 16MB) to prevent OOM. If a file exceeds the size, use a separate "overflow" mechanism or reject it.
+*   **Reference Counting:** Use `Arc<Buffer>` (or equivalent) to ensure a buffer is only returned to the "free pool" when its reference count reaches zero. This prevents the "hit during write" corruption.
+*   **Atomic Replacement:** When a slot is chosen for replacement, it must be "evicted" (removed from the dictionary) *before* the write begins.
+
+**3. Robustness**
+*   **Error Handling:** If a read fails, the `Loading` state must be removed from the dictionary so the next request can retry.
+*   **Validation:** Verify the checksum *before* updating the dictionary state from `Loading` to `Ready`.
+*   **Metrics:** Only increment "Hit" metrics when a `Ready` state is found. Separate "Miss" and "In-flight" metrics.
