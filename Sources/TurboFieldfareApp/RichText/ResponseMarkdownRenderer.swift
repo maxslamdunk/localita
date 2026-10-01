@@ -171,7 +171,7 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
             })
 
             let output = NSMutableAttributedString()
-            let decoration = BlockDecoration()
+            let decoration = BlockDecoration(typography: typography)
             var previousBlock: Block?
             var index = 0
             while index < items.count {
@@ -814,7 +814,7 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
         decoration: BlockDecoration
     ) -> NSParagraphStyle {
         let style = NSMutableParagraphStyle()
-        style.lineSpacing = 3
+        style.lineSpacing = typography.scaled(3)
         style.paragraphSpacing = 0
         style.alignment = cell.alignment
         #if os(macOS)
@@ -849,7 +849,7 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
     /// per tick would draw a new box per line. iOS has no box to join, but the
     /// caller's contract is the same on both.
     public func streamingCodeAttributes() -> [NSAttributedString.Key: Any] {
-        codeAttributes(style: BlockDecoration.codeStyle())
+        codeAttributes(style: BlockDecoration.codeStyle(typography: typography))
     }
 
     private func codeAttributes(style: NSParagraphStyle) -> [NSAttributedString.Key: Any] {
@@ -955,7 +955,7 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
         var size: CGFloat
         var baseWeight: PlatformFont.Weight
         if monospaced {
-            size = typography.bodySize - 0.5
+            size = typography.bodySize - typography.scaled(0.5)
             baseWeight = .regular
         } else if case .heading(let level) = block {
             size = typography.headingSize(level: level)
@@ -992,10 +992,10 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
             style.paragraphSpacingBefore = typography.headingSpacingBefore
             style.paragraphSpacing = typography.headingSpacingAfter
         case .quote:
-            style.firstLineHeadIndent = 4
-            style.headIndent = 20
-            style.tailIndent = -8
-            style.tabStops = [NSTextTab(textAlignment: .left, location: 16)]
+            style.firstLineHeadIndent = typography.scaled(4)
+            style.headIndent = typography.scaled(20)
+            style.tailIndent = typography.scaled(-8)
+            style.tabStops = [NSTextTab(textAlignment: .left, location: typography.scaled(16))]
         case .unorderedList(let indent), .orderedList(_, let indent):
             let nesting = CGFloat(indent) * typography.listNestingIndent
             let base = typography.listTextIndent + nesting
@@ -1005,8 +1005,8 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
             style.paragraphSpacing = typography.listItemSpacing
         case .thematicBreak:
             style.alignment = .center
-            style.paragraphSpacingBefore = 8
-            style.paragraphSpacing = 8
+            style.paragraphSpacingBefore = typography.scaled(8)
+            style.paragraphSpacing = typography.scaled(8)
         // A table cell's style comes from `tableCellStyle`, which owns the
         // text block the cell is drawn in.
         case .paragraph, .code, .tableCell:
@@ -1178,6 +1178,12 @@ extension ResponseMarkdownRenderer {
 /// box and the rules instead.
 @MainActor
 private final class BlockDecoration {
+    private let typography: ResponseTypography
+
+    init(typography: ResponseTypography) {
+        self.typography = typography
+    }
+
     #if os(macOS)
     private var codeCells: [Int: NSTextTableBlock] = [:]
     private var tables: [Int: NSTextTable] = [:]
@@ -1191,12 +1197,12 @@ private final class BlockDecoration {
     #endif
 
     /// The style every line of one fenced block shares.
-    static func codeStyle() -> NSParagraphStyle {
+    static func codeStyle(typography: ResponseTypography) -> NSParagraphStyle {
         let style = NSMutableParagraphStyle()
-        style.lineSpacing = 2
+        style.lineSpacing = typography.scaled(2)
         style.paragraphSpacing = 0
         #if os(macOS)
-        style.textBlocks = [codeCell()]
+        style.textBlocks = [codeCell(typography: typography)]
         #endif
         return style
     }
@@ -1205,7 +1211,7 @@ private final class BlockDecoration {
     /// reused so consecutive lines land in one box rather than one box per line.
     func codeStyle(for identity: Int) -> NSParagraphStyle {
         let style = NSMutableParagraphStyle()
-        style.lineSpacing = 2
+        style.lineSpacing = typography.scaled(2)
         style.paragraphSpacing = 0
         #if os(macOS)
         style.textBlocks = [codeCell(for: identity)]
@@ -1214,7 +1220,7 @@ private final class BlockDecoration {
     }
 
     #if os(macOS)
-    static func codeCell() -> NSTextTableBlock {
+    static func codeCell(typography: ResponseTypography) -> NSTextTableBlock {
         let table = NSTextTable()
         table.numberOfColumns = 1
         table.collapsesBorders = true
@@ -1225,7 +1231,7 @@ private final class BlockDecoration {
             startingColumn: 0,
             columnSpan: 1)
         cell.setContentWidth(100, type: .percentageValueType)
-        cell.setWidth(8, type: .absoluteValueType, for: .padding)
+        cell.setWidth(typography.scaled(8), type: .absoluteValueType, for: .padding)
         cell.setWidth(1, type: .absoluteValueType, for: .border)
         cell.setBorderColor(.separatorColor)
         cell.backgroundColor = .quaternarySystemFill
@@ -1234,7 +1240,7 @@ private final class BlockDecoration {
 
     func codeCell(for identity: Int) -> NSTextTableBlock {
         if let existing = codeCells[identity] { return existing }
-        let cell = Self.codeCell()
+        let cell = Self.codeCell(typography: typography)
         codeCells[identity] = cell
         return cell
     }
@@ -1255,7 +1261,7 @@ private final class BlockDecoration {
             rowSpan: 1,
             startingColumn: column,
             columnSpan: 1)
-        cell.setWidth(6, type: .absoluteValueType, for: .padding)
+        cell.setWidth(typography.scaled(6), type: .absoluteValueType, for: .padding)
         cell.setWidth(1, type: .absoluteValueType, for: .border)
         cell.setBorderColor(.separatorColor)
         if isHeader { cell.backgroundColor = .quaternarySystemFill }

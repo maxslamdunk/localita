@@ -1,4 +1,5 @@
 import SwiftUI
+import TurboFieldfareAppCore
 
 /// Every control the apps expose to an acceptance pass, named once.
 ///
@@ -14,6 +15,23 @@ import SwiftUI
 /// script here. Nothing enforces coverage today — so treat adding a case as a
 /// thing to keep honest by hand, not as something a check will catch.
 public enum AccessibilityID: String, CaseIterable, Sendable {
+    case settingsTextSize = "settings.textSize"
+    case settingsTextSizeStandard = "settings.textSize.standard"
+    case settingsTextSizeLarge = "settings.textSize.large"
+    case settingsTextSizeLarger = "settings.textSize.larger"
+    case settingsTextSizeExtraLarge = "settings.textSize.extraLarge"
+    case settingsTextSizeLargest = "settings.textSize.largest"
+
+    public static func textSizeOption(_ size: AppTextSize) -> AccessibilityID {
+        switch size {
+        case .standard: .settingsTextSizeStandard
+        case .large: .settingsTextSizeLarge
+        case .larger: .settingsTextSizeLarger
+        case .extraLarge: .settingsTextSizeExtraLarge
+        case .largest: .settingsTextSizeLargest
+        }
+    }
+
     case stripSidebar = "strip.sidebar"
     case stripNewChat = "strip.newChat"
     case stripInspector = "strip.inspector"

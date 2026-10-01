@@ -87,14 +87,14 @@ private final class ForegroundAppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct TurboFieldfareMacApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: ForegroundAppDelegate
-    @State private var model: AppModel
+    @StoredState private var model: AppModel
 
     init() {
         let model = AppModel(
             client: DecodeServiceInferenceClient(),
             visionRuntimeSupported: AppModel.currentDeviceSupportsVisionRuntime,
             settingsPersistenceEnabled: true)
-        _model = State(initialValue: model)
+        _model = StoredState(initialValue: model)
         MainActor.assumeIsolated { ForegroundAppDelegate.model = model }
     }
 
@@ -189,6 +189,14 @@ struct TurboFieldfareMacApp: App {
                     .disabled(!model.canRemoveVisionPack)
             }
             CommandMenu("Settings") {
+                Picker("Text Size", selection: textSizeBinding) {
+                    ForEach(AppTextSize.allCases) { size in
+                        Text(size.label).tag(size)
+                            .accessibilityIdentifier(AccessibilityID.textSizeOption(size))
+                    }
+                }
+                .accessibilityIdentifier(.settingsTextSize)
+                Divider()
                 Picker("Send Message With", selection: newlineShortcutBinding) {
                     ForEach(AppNewlineShortcut.sendMessageOptions) { shortcut in
                         Text(shortcut.sendMessageLabel).tag(shortcut)
@@ -221,6 +229,10 @@ struct TurboFieldfareMacApp: App {
         case .unavailable:
             break
         }
+    }
+
+    private var textSizeBinding: Binding<AppTextSize> {
+        Binding(get: { model.textSize }, set: { model.setTextSize($0) })
     }
 
     private var newlineShortcutBinding: Binding<AppNewlineShortcut> {

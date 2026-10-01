@@ -64,7 +64,12 @@ public final class AppModel {
     /// which stored conversations can be continued — and what is on screen has
     /// to be redrawn from the answer that now applies, not the one taken when
     /// the row was clicked.
-    public private(set) var maxContextTokens: Int = AppContextLengthOption.eightK.tokens
+    public private(set) var maxContextTokens: Int = AppContextLengthOption.eightK.tokens {
+        didSet {
+            if maxContextTokens != oldValue { contextClampNotice = nil }
+        }
+    }
+    public private(set) var contextClampNotice: String?
     /// Whether the model reasons before answering, and so whether the grey
     /// reasoning text appears above the answer.
     ///
@@ -85,6 +90,7 @@ public final class AppModel {
     public var topP: Double = 0.95
     public private(set) var newlineShortcut: AppNewlineShortcut = .return
     public private(set) var showPromptExamples: Bool = true
+    public private(set) var textSize: AppTextSize = .standard
     /// Whether the list of chats is showing. Persisted, so the window comes
     /// back the way it was left.
     public private(set) var isSidebarVisible: Bool = true
@@ -188,6 +194,11 @@ public final class AppModel {
     /// Internal rather than private: the history extension releases the staged
     /// copies of a conversation the KV is giving up, and lives in another file.
     let attachmentStore: AppImageAttachmentStore
+    /// What this Mac has, injected so the admission rule is testable without a
+    /// machine of that size. Read once: `physicalMemory` cannot change under a
+    /// running process, and re-reading it per query would make the menu, the
+    /// clamp and the load refusal three separate answers.
+    private let hostMemoryBytes: UInt64
     public let isVisionRuntimeSupported: Bool
     /// The stored conversations and which one is open.
     public let history = ConversationHistoryState()
@@ -219,7 +230,6 @@ public final class AppModel {
     var conversationBindingGeneration: UInt64 = 0
     let conversationIdentityProvider: @Sendable (URL) throws -> ConversationIdentity
     let conversationStoreProvider: @Sendable (URL) -> ConversationStore
-    var pendingRestoredConversationID: UUID?
     var pendingServiceRecoveryConversationID: UUID?
     /// Stored copies of the in-flight turn's images, written while the model is
     /// generating so the wait is not paid twice.
@@ -254,7 +264,8 @@ public final class AppModel {
                 },
                 conversationStoreProvider: @escaping @Sendable (URL) -> ConversationStore = {
                     ConversationStore(rootURL: $0)
-                }) {
+                },
+                hostMemoryBytes: UInt64 = ContextAdmission.hostMemoryBytes) {
         let directory = (modelDirectory ?? AppModelLocation.defaultURL()).standardizedFileURL
         let installETAClock = SuspendingClock()
         let settings = settingsPersistenceEnabled
@@ -272,7 +283,11 @@ public final class AppModel {
             prefillEnabled: settings.prefillEnabled,
             rdadvisePolicy: settings.rdadvisePolicy,
             visionResidencyPolicy: .onDemand)
-        self.maxContextTokens = settings.contextTokens
+        let admitted = Self.admittedContext(settings.contextTokens,
+                                            hostMemoryBytes: hostMemoryBytes,
+                                            expertCacheSlots: settings.expertCacheSlots)
+        self.maxContextTokens = admitted.tokens
+        self.contextClampNotice = admitted.notice
         self.temperature = settings.temperature
         self.topKEnabled = settings.topKEnabled
         self.topK = settings.topK
@@ -280,10 +295,10 @@ public final class AppModel {
         self.topP = settings.topP
         self.newlineShortcut = settings.newlineShortcut
         self.showPromptExamples = settings.showPromptExamples
+        self.textSize = settings.textSize
         self.isSidebarVisible = settings.sidebarVisible
         self.isInspectorVisible = settings.inspectorVisible
         self.loadModelOnLaunch = settings.loadModelOnLaunch
-        self.pendingRestoredConversationID = settings.selectedConversationID
         self.installationStatus = AppModelInstallationProbe.status(
             at: directory, descriptor: installer.descriptor)
         self.visionInstallationStatus = AppVisionPackInstallationProbe.status(at: directory)
@@ -293,6 +308,7 @@ public final class AppModel {
         self.visionInstaller = visionInstaller
         self.memorySampler = memorySampler
         self.attachmentStore = attachmentStore
+        self.hostMemoryBytes = hostMemoryBytes
         self.isVisionRuntimeSupported = visionRuntimeSupported
         self.settingsPersistenceEnabled = settingsPersistenceEnabled
         self.conversationIdentityProvider = conversationIdentityProvider
@@ -328,6 +344,54 @@ public final class AppModel {
         refreshInstallReadiness()
         refreshVisionInstallReadiness()
         activateConversationStore()
+    }
+
+    /// What the Context picker may offer on this Mac.
+    public var contextOptions: [AppContextLengthOption] {
+        AppContextLengthOption.available(on: hostMemoryBytes, expertCacheSlots: runtimeOptions.expertCacheSlots)
+    }
+
+    /// The caption under the Context picker when admission is hiding rows.
+    ///
+    /// Static and free of SwiftUI so the sentence a user reads is covered by a
+    /// test rather than by looking at the window. Nil when every size is
+    /// offered — there is then nothing to explain.
+    public nonisolated static func contextOptionsNote(hostMemoryBytes: UInt64, expertCacheSlots: Int = 16) -> String? {
+        let hidden = AppContextLengthOption.allCases.filter {
+            $0.availability(hostMemoryBytes: hostMemoryBytes, expertCacheSlots: expertCacheSlots) != .available
+        }
+        guard !hidden.isEmpty else { return nil }
+        return hidden
+            .map { $0.needDescription(hostMemoryBytes: hostMemoryBytes, expertCacheSlots: expertCacheSlots) }
+            .joined(separator: " ")
+    }
+
+    public var contextOptionsNote: String? {
+        Self.contextOptionsNote(hostMemoryBytes: hostMemoryBytes, expertCacheSlots: runtimeOptions.expertCacheSlots)
+    }
+
+    /// A stored context this host cannot back, replaced with the largest it
+    /// can plus the sentence that says so.
+    ///
+    /// Not a cosmetic correction: `beginLoad` refuses an unbacked context
+    /// before it allocates, so leaving the stored value in place would open
+    /// the app on a setting whose every load fails.
+    nonisolated static func admittedContext(
+        _ tokens: Int,
+        hostMemoryBytes: UInt64,
+        expertCacheSlots: Int = 16
+    ) -> (tokens: Int, notice: String?) {
+        let config = ArchConfig.gemma4_26B_A4B
+        guard case .needsMemory = ContextAdmission.availability(
+            config: config, maxContext: tokens, hostMemoryBytes: hostMemoryBytes, expertCacheSlots: expertCacheSlots) else {
+            return (tokens, nil)
+        }
+        let fallback = AppContextLengthOption.largestAvailable(on: hostMemoryBytes, expertCacheSlots: expertCacheSlots)
+        let need = ContextAdmission.needDescription(config: config,
+                                                    maxContext: tokens,
+                                                    hostMemoryBytes: hostMemoryBytes, expertCacheSlots: expertCacheSlots)
+        return (fallback.tokens,
+                "\(need) Context is set to \(fallback.shortLabel) instead.")
     }
 
     public var isRunning: Bool { runState == .running }
@@ -930,9 +994,28 @@ public final class AppModel {
         persistSettings()
     }
 
+    public func setTextSize(_ size: AppTextSize) {
+        guard textSize != size else { return }
+        textSize = size
+        persistSettings()
+    }
+
     public func setShowPromptExamples(_ show: Bool) {
         guard showPromptExamples != show else { return }
         showPromptExamples = show
+        persistSettings()
+    }
+
+    public func setExpertCacheSlots(_ slots: Int) {
+        guard runtimeOptions.expertCacheSlots != slots else { return }
+        runtimeOptions.expertCacheSlots = slots
+        let admitted = Self.admittedContext(maxContextTokens,
+                                            hostMemoryBytes: hostMemoryBytes,
+                                            expertCacheSlots: slots)
+        if admitted.tokens != maxContextTokens {
+            setMaxContextTokens(admitted.tokens)
+            contextClampNotice = admitted.notice
+        }
         persistSettings()
     }
 
@@ -1215,7 +1298,14 @@ public final class AppModel {
     }
 
     static func imageCapacityMessage(capacity: Int, context: Int) -> String {
-        "At most \(capacity) image\(capacity == 1 ? "" : "s") fit in the "
+        let plural = capacity == 1 ? "" : "s"
+        // Once about 9,000 tokens are free it is the per-turn cap that binds,
+        // not the context, and telling the reader to raise Context would send
+        // them to a setting that cannot change the answer.
+        guard capacity < VisionImageTokenBudget.maximumAttachmentsPerTurn else {
+            return "At most \(capacity) image\(plural) can be sent in one message."
+        }
+        return "At most \(capacity) image\(plural) fit in the "
             + "\(context / 1_024)K context this session is running with. Raise "
             + "Context in Memory and reload the model to send more."
     }
@@ -1300,6 +1390,20 @@ public final class AppModel {
         }
         let directory = URL(fileURLWithPath: modelPathText)
         let maxContext = maxContextTokens
+        // Refused here, before the load state moves and before anything is
+        // sent to the decode service. A 262,144-token KV is charged in full
+        // the moment a command buffer binds it, so a host that cannot hold it
+        // does not find out part-way through a load: it is killed.
+        if case .needsMemory = ContextAdmission.availability(
+            config: ArchConfig.gemma4_26B_A4B,
+            maxContext: maxContext,
+            hostMemoryBytes: hostMemoryBytes, expertCacheSlots: runtimeOptions.expertCacheSlots) {
+            loadState = .failed(.modelLoadFailed(
+                ContextAdmission.needDescription(config: ArchConfig.gemma4_26B_A4B,
+                                                 maxContext: maxContext,
+                                                 hostMemoryBytes: hostMemoryBytes, expertCacheSlots: runtimeOptions.expertCacheSlots)))
+            return
+        }
         let forceLogitsHead = currentForceLogitsHead
         let runtimeKey = AppLoadedRuntimeKey(modelDirectory: directory,
                                              maxContextTokens: maxContext,
@@ -2072,7 +2176,15 @@ public final class AppModel {
             // `keepReady` written by an older build resurrect ~1 GB of resident
             // tower on a machine with no control that shows or clears it.
             visionResidencyPolicy: .onDemand)
-        maxContextTokens = settings.contextTokens
+        // Clamped for the same reason as `init`: another model directory can
+        // carry a context this Mac cannot back, and adopting it would leave
+        // the app on a setting the loader refuses. Assigned before the notice
+        // because the assignment clears it.
+        let admitted = Self.admittedContext(settings.contextTokens,
+                                            hostMemoryBytes: hostMemoryBytes,
+                                            expertCacheSlots: settings.expertCacheSlots)
+        maxContextTokens = admitted.tokens
+        contextClampNotice = admitted.notice
         temperature = settings.temperature
         topKEnabled = settings.topKEnabled
         topK = settings.topK
@@ -2080,10 +2192,10 @@ public final class AppModel {
         topP = settings.topP
         newlineShortcut = settings.newlineShortcut
         showPromptExamples = settings.showPromptExamples
+        textSize = settings.textSize
         isSidebarVisible = settings.sidebarVisible
         isInspectorVisible = settings.inspectorVisible
         loadModelOnLaunch = settings.loadModelOnLaunch
-        pendingRestoredConversationID = settings.selectedConversationID
     }
 
     func persistSettings() {
@@ -2099,12 +2211,12 @@ public final class AppModel {
             prefillEnabled: runtimeOptions.prefillEnabled,
             newlineShortcut: newlineShortcut,
             showPromptExamples: showPromptExamples,
+            textSize: textSize,
             sidebarVisible: isSidebarVisible,
             inspectorVisible: isInspectorVisible,
             visionResidencyPolicy: runtimeOptions.visionResidencyPolicy,
             rdadvisePolicy: runtimeOptions.rdadvisePolicy,
-            loadModelOnLaunch: loadModelOnLaunch,
-            selectedConversationID: history.selection)
+            loadModelOnLaunch: loadModelOnLaunch)
         let modelDirectory = URL(fileURLWithPath: modelPathText, isDirectory: true)
         do {
             try MacAppSettingsFileStore.save(settings, forModelDirectory: modelDirectory)

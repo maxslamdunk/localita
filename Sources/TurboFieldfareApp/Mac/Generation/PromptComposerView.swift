@@ -8,9 +8,10 @@ import TurboFieldfareAppPresentation
 
 struct PromptComposerView: View {
     @Bindable var model: AppModel
+    var availableHeight: CGFloat = .infinity
     @FocusState private var promptFocused: Bool
-    @State private var showingImagePicker = false
-    @State private var isImageDropTargeted = false
+    @StoredState private var showingImagePicker = false
+    @StoredState private var isImageDropTargeted = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -44,6 +45,7 @@ struct PromptComposerView: View {
     private var editor: some View {
         PromptTextEditor(
             text: $model.promptText,
+            typography: ConversationTypography(model.textSize),
             isFocused: Binding(
                 get: { promptFocused },
                 set: { promptFocused = $0 }),
@@ -74,7 +76,7 @@ struct PromptComposerView: View {
                     // Matches the NSTextView text origin: 5pt line fragment
                     // padding, no vertical inset.
                     Text("Message")
-                        .font(.body)
+                        .font(.system(size: ConversationTypography(model.textSize).bodySize))
                         .foregroundStyle(.tertiary)
                         .padding(.leading, 5)
                         .allowsHitTesting(false)
@@ -90,7 +92,8 @@ struct PromptComposerView: View {
     }
 
     private var editorHeight: CGFloat {
-        model.shouldShowPromptExamples ? 46 : 84
+        ConversationTypography(model.textSize).editorHeight(
+            showsExamples: model.shouldShowPromptExamples, availableHeight: availableHeight)
     }
 
     private var footer: some View {
@@ -239,6 +242,7 @@ struct PromptComposerView: View {
 
 private struct PromptTextEditor: NSViewRepresentable {
     @Binding var text: String
+    let typography: ConversationTypography
     let isFocused: Binding<Bool>
     let newlineShortcut: AppNewlineShortcut
     let canRun: Bool
@@ -259,7 +263,7 @@ private struct PromptTextEditor: NSViewRepresentable {
         let textView = ImageDropTextView()
         textView.delegate = context.coordinator
         textView.string = text
-        textView.font = .systemFont(ofSize: NSFont.systemFontSize)
+        textView.typography = typography
         textView.textColor = .labelColor
         textView.drawsBackground = false
         textView.isRichText = false
@@ -293,6 +297,7 @@ private struct PromptTextEditor: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? ImageDropTextView else { return }
         context.coordinator.parent = self
+        textView.typography = typography
         textView.canAcceptImages = canAcceptImages
         textView.onImagesDropped = onImagesDropped
         textView.onImageDataPasted = onImageDataPasted
@@ -364,7 +369,7 @@ private struct PromptTextEditor: NSViewRepresentable {
     }
 }
 
-private final class ImageDropTextView: NSTextView {
+private final class ImageDropTextView: PromptEditorTextView {
     var canAcceptImages = false
     var onImagesDropped: (([URL]) -> Void)?
     /// Promised files arrive in a directory we made and must not keep.

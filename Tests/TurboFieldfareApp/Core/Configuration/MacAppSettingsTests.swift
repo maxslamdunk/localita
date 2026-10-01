@@ -134,21 +134,19 @@ import TurboFieldfare
         #expect(decoded.version == MacAppSettings.currentVersion)
     }
 
-    @Test func selectedConversationRoundTripsAndIsAdditive() throws {
-        let id = UUID()
-        let initial = MacAppSettings(selectedConversationID: id)
+    @Test(arguments: ["null", "42", "\"invalid\"", "\"00000000-0000-0000-0000-000000000001\""])
+    func obsoleteSelectionIsIgnoredWithoutResettingPreferences(_ selection: String) throws {
+        let initial = MacAppSettings(contextTokens: 4_096, textSize: .largest, sidebarVisible: false)
+        var json = try #require(JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(initial)) as? [String: Any])
+        json["selectedConversationID"] = try JSONSerialization.jsonObject(
+            with: Data(selection.utf8), options: .fragmentsAllowed)
         let decoded = try JSONDecoder().decode(
-            MacAppSettings.self, from: try JSONEncoder().encode(initial))
-        #expect(decoded.selectedConversationID == id)
-
-        let oldJSON = """
-        {"version":2,"contextTokens":8192,"expertCacheSlots":16,
-        "temperature":0.2,"topKEnabled":true,"topK":64,"topPEnabled":true,
-        "topP":0.95,"prefillEnabled":true}
-        """
-        let old = try JSONDecoder().decode(
-            MacAppSettings.self, from: Data(oldJSON.utf8))
-        #expect(old.selectedConversationID == nil)
+            MacAppSettings.self, from: JSONSerialization.data(withJSONObject: json))
+        #expect(decoded == initial)
+        let encoded = try #require(JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(decoded)) as? [String: Any])
+        #expect(encoded["selectedConversationID"] == nil)
     }
 
     @MainActor
@@ -162,24 +160,6 @@ import TurboFieldfare
 
         let saved = MacAppSettingsFileStore.loadOrCreate(forModelDirectory: directory)
         #expect(saved.contextTokens == 4_096)
-    }
-
-    @MainActor
-    @Test func unknownRestoredSelectionIsClearedFromSettings() async throws {
-        let root = try makeTemporaryRoot()
-        defer { try? FileManager.default.removeItem(at: root) }
-        let directory = root.appendingPathComponent("model.gturbo", isDirectory: true)
-        try MacAppSettingsFileStore.save(
-            MacAppSettings(selectedConversationID: UUID()),
-            forModelDirectory: directory)
-
-        let model = AppModel(modelDirectory: directory, settingsPersistenceEnabled: true)
-        try await waitUntil {
-            MacAppSettingsFileStore.loadOrCreate(
-                forModelDirectory: directory).selectedConversationID == nil
-        }
-
-        #expect(model.history.selection == nil)
     }
 
     /// The Inspector's visibility is remembered on the same terms as the
@@ -268,6 +248,86 @@ import TurboFieldfare
         #expect(persisted == settings)
         #expect(AppContextLengthOption.eightK.tokens != 4_096,
                 "if 4K ever becomes the default, this test is asking the wrong question")
+    }
+
+    /// Why version 3 exists at all.
+    ///
+    /// 128K and 256K are new options. An older build's `isValid` checks the
+    /// stored context against the options *it* knows, so it rejects 262,144 —
+    /// and `loadOrCreate` deletes the file on that rejection, taking every
+    /// other setting with it. Stamping the file 3 makes that build take the
+    /// newer-version branch instead, which returns defaults and leaves the file
+    /// alone. The migration is version-only: a v2 file keeps the context its
+    /// owner chose.
+    @Test func versionTwoMigrationKeepsContext() throws {
+        let root = try makeTemporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let model = root.appendingPathComponent("gemma4.gturbo", isDirectory: true)
+        let fileURL = MacAppSettingsFileStore.fileURL(forModelDirectory: model)
+        let stored = MacAppSettings(
+            version: 2,
+            contextTokens: 4_096,
+            expertCacheSlots: 24,
+            temperature: 0.4)
+        try JSONEncoder().encode(stored).write(to: fileURL)
+
+        let settings = MacAppSettingsFileStore.loadOrCreate(forModelDirectory: model)
+        let persisted = try JSONDecoder().decode(
+            MacAppSettings.self, from: Data(contentsOf: fileURL))
+
+        #expect(settings.version == 3)
+        #expect(settings.contextTokens == 4_096,
+                "the version bump rewrote a deliberately chosen context")
+        #expect(settings.expertCacheSlots == 24)
+        #expect(settings.temperature == 0.4)
+        #expect(persisted == settings)
+    }
+
+    /// The hazard version 3 closes, seen from the other side: a file from a
+    /// build newer than this one carries a context this build's `isValid`
+    /// cannot admit. It must survive untouched rather than be deleted.
+    @Test func anewerFileWithAnUnknownContextIsLeftOnDisk() throws {
+        let root = try makeTemporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let model = root.appendingPathComponent("gemma4.gturbo", isDirectory: true)
+        let fileURL = MacAppSettingsFileStore.fileURL(forModelDirectory: model)
+        let future = """
+        {
+          "version": \(MacAppSettings.currentVersion + 1),
+          "contextTokens": 999999,
+          "expertCacheSlots": 16,
+          "temperature": 0.2,
+          "topKEnabled": true,
+          "topK": 64,
+          "topPEnabled": true,
+          "topP": 0.95,
+          "prefillEnabled": true
+        }
+        """
+        try Data(future.utf8).write(to: fileURL)
+
+        let settings = MacAppSettingsFileStore.loadOrCreate(forModelDirectory: model)
+
+        #expect(settings == MacAppSettings(),
+                "an unknown version should be run on defaults, not adopted")
+        #expect(try String(contentsOf: fileURL, encoding: .utf8) == future,
+                "a newer build's settings file was rewritten or deleted")
+    }
+
+    /// The new ceiling round-trips at this version: written, validated, read
+    /// back and still 262,144.
+    @Test func aversionThreeFileKeepsA256KContext() throws {
+        let root = try makeTemporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let model = root.appendingPathComponent("gemma4.gturbo", isDirectory: true)
+        let stored = MacAppSettings(contextTokens: 262_144)
+        #expect(stored.version == 3)
+
+        try MacAppSettingsFileStore.save(stored, forModelDirectory: model)
+        let settings = MacAppSettingsFileStore.loadOrCreate(forModelDirectory: model)
+
+        #expect(settings == stored)
+        #expect(settings.contextTokens == 262_144)
     }
 
     /// A v1 file at any other context is restamped untouched too — the version
@@ -462,11 +522,11 @@ import TurboFieldfare
         let modelDirectory = root.appendingPathComponent("gemma4.gturbo", isDirectory: true)
         let fileURL = MacAppSettingsFileStore.fileURL(forModelDirectory: modelDirectory)
 
-        // A plausible version 3: `topP` became `topProbability`. Everything else
-        // this build knows is still present and still valid.
+        // A plausible next version: `topP` became `topProbability`. Everything
+        // else this build knows is still present and still valid.
         let newer = """
         {
-          "version": 3,
+          "version": \(MacAppSettings.currentVersion + 1),
           "contextTokens": 8192,
           "expertCacheSlots": 16,
           "temperature": 0.2,

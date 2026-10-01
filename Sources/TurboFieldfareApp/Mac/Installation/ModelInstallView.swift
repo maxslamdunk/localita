@@ -5,7 +5,7 @@ import TurboFieldfareAppPresentation
 
 struct ModelInstallView: View {
     let model: AppModel
-    @State private var showingDiscardConfirmation = false
+    @StoredState private var showingDiscardConfirmation = false
 
     var body: some View {
         ScrollView {

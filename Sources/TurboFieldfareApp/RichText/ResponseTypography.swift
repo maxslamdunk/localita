@@ -35,6 +35,10 @@ public struct ResponseTypography: Equatable, Sendable {
     /// already has paragraph spacing, and the empty line on top of it drew
     /// about twice the gap a heading should have.
     public var blankLineBetweenBlocks: Bool
+    /// The factor `scaled(by:)` has applied, for the metrics that have no
+    /// field of their own: quote indents, code and table padding, rule
+    /// spacing. Every field above is already in points at this scale.
+    public private(set) var scale: CGFloat = 1
 
     public init(bodySize: CGFloat,
                 serif: Bool,
@@ -94,9 +98,28 @@ public struct ResponseTypography: Equatable, Sendable {
                            blankLineBetweenBlocks: false)
     }
 
+    /// The same layout with every size and distance multiplied by `factor`.
+    /// The Mac's text-size setting uses it on `compact`.
+    public func scaled(by factor: CGFloat) -> ResponseTypography {
+        var copy = self
+        copy.bodySize *= factor
+        copy.lineSpacing *= factor
+        copy.paragraphSpacing *= factor
+        copy.headingSpacingBefore *= factor
+        copy.headingSpacingAfter *= factor
+        copy.headingSteps = headingSteps?.map { $0 * factor }
+        copy.listTextIndent *= factor
+        copy.listNestingIndent *= factor
+        copy.listItemSpacing *= factor
+        copy.scale *= factor
+        return copy
+    }
+
+    func scaled(_ baseline: CGFloat) -> CGFloat { baseline * scale }
+
     func headingSize(level: Int) -> CGFloat {
         guard let headingSteps else {
-            return max(bodySize + 1, 22 - CGFloat(level - 1) * 2)
+            return max(bodySize + scaled(1), scaled(22 - CGFloat(level - 1) * 2))
         }
         let index = min(max(level - 1, 0), headingSteps.count - 1)
         return bodySize + (headingSteps.isEmpty ? 0 : headingSteps[index])

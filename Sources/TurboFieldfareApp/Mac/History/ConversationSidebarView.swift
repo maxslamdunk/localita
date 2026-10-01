@@ -20,10 +20,10 @@ import TurboFieldfareAppPresentation
 /// refusing to be selected.
 struct ConversationSidebarView: View {
     let model: AppModel
-    @State private var search = ""
-    @State private var renameTarget: ConversationMeta?
-    @State private var renameText = ""
-    @State private var deleteTarget: ConversationMeta?
+    @StoredState private var search = ""
+    @StoredState private var renameTarget: ConversationMeta?
+    @StoredState private var renameText = ""
+    @StoredState private var deleteTarget: ConversationMeta?
 
     var body: some View {
         VStack(spacing: 0) {
