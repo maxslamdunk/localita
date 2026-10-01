@@ -8,6 +8,15 @@ import Synchronization
 /// and decode are separated by differencing two snapshots rather than by
 /// separate counters — see `delta(since:)`.
 public struct ExpertIOStats: Sendable, Equatable {
+    /// Upper bounds of the read-latency buckets, in microseconds. A read lands
+    /// in the first bucket whose bound it is under; one more bucket past the
+    /// last bound catches everything slower. Doubling from 250 µs puts a
+    /// file-cache hit (a few hundred microseconds for 3.36 MB) and a storage
+    /// read (about 2 ms) several buckets apart on both the Mac and the iPhone.
+    public static let readLatencyBucketBoundsMicros: [UInt64] =
+        [250, 500, 1_000, 2_000, 4_000, 8_000, 16_000]
+    public static var readLatencyBucketCount: Int { readLatencyBucketBoundsMicros.count + 1 }
+
     /// Bytes returned by `pread` on the routed-expert path.
     public var bytesRead: UInt64
     /// Expert-sized slot fills issued (one per cache miss serviced).
@@ -16,18 +25,35 @@ public struct ExpertIOStats: Sendable, Equatable {
     public var cacheHits: UInt64
     /// Routed-expert requests that had to be read.
     public var cacheMisses: UInt64
+    /// Sum over completed reads of each one's own duration. Reads run
+    /// concurrently within a layer, so this can exceed the `io` window.
+    public var readLatencyNanos: UInt64
+    /// Completed reads per latency bucket, `readLatencyBucketCount` entries.
+    public var readLatencyBuckets: [UInt64]
 
     public init(bytesRead: UInt64 = 0,
                 reads: UInt64 = 0,
                 cacheHits: UInt64 = 0,
-                cacheMisses: UInt64 = 0) {
+                cacheMisses: UInt64 = 0,
+                readLatencyNanos: UInt64 = 0,
+                readLatencyBuckets: [UInt64]? = nil) {
         self.bytesRead = bytesRead
         self.reads = reads
         self.cacheHits = cacheHits
         self.cacheMisses = cacheMisses
+        self.readLatencyNanos = readLatencyNanos
+        self.readLatencyBuckets = readLatencyBuckets
+            ?? [UInt64](repeating: 0, count: Self.readLatencyBucketCount)
     }
 
     public static let zero = ExpertIOStats()
+
+    /// The bucket a read of `nanos` lands in.
+    public static func readLatencyBucket(forNanos nanos: UInt64) -> Int {
+        let micros = nanos / 1_000
+        return readLatencyBucketBoundsMicros.firstIndex { micros < $0 }
+            ?? readLatencyBucketBoundsMicros.count
+    }
 
     /// Counters accumulated between `earlier` and `self`. Wrapping subtraction
     /// mirrors the wrapping adds on the recording side.
@@ -35,7 +61,10 @@ public struct ExpertIOStats: Sendable, Equatable {
         ExpertIOStats(bytesRead: bytesRead &- earlier.bytesRead,
                       reads: reads &- earlier.reads,
                       cacheHits: cacheHits &- earlier.cacheHits,
-                      cacheMisses: cacheMisses &- earlier.cacheMisses)
+                      cacheMisses: cacheMisses &- earlier.cacheMisses,
+                      readLatencyNanos: readLatencyNanos &- earlier.readLatencyNanos,
+                      readLatencyBuckets: zip(readLatencyBuckets, earlier.readLatencyBuckets)
+                          .map { $0 &- $1 })
     }
 
     /// Routed-expert requests planned against the cache. At steady-state decode
@@ -56,31 +85,52 @@ public struct ExpertIOStats: Sendable, Equatable {
         guard forwards > 0 else { return nil }
         return Double(bytesRead) / 1_048_576.0 / Double(forwards)
     }
+
+    /// Reads that completed and were timed. Equal to `reads` unless a read
+    /// failed partway, which aborts the run.
+    public var timedReads: UInt64 { readLatencyBuckets.reduce(0, &+) }
+
+    /// Mean duration of one read, or `nil` when none completed.
+    public var meanReadLatencyMilliseconds: Double? {
+        guard timedReads > 0 else { return nil }
+        return Double(readLatencyNanos) / 1_000_000.0 / Double(timedReads)
+    }
 }
 
-/// Lock-free cumulative counters for the routed-expert read path.
+/// Cumulative counters for the routed-expert read path.
 ///
 /// One instance is shared by every per-layer streamer a `Model` opens, so a
-/// snapshot covers the whole model rather than one layer. Recording is a
-/// relaxed atomic add on a path whose unit of work is a multi-megabyte `pread`,
-/// so it neither orders nor measurably delays the reads it counts.
+/// snapshot covers the whole model rather than one layer. The byte and request
+/// counts are relaxed atomic adds; the latency histogram takes an uncontended
+/// lock once per read. Both sit on a path whose unit of work is a
+/// multi-megabyte `pread`, so neither orders nor measurably delays the reads
+/// it counts.
 public final class ExpertIOCounters: Sendable {
+    private struct LatencyHistogram {
+        var totalNanos: UInt64 = 0
+        var buckets = [UInt64](repeating: 0, count: ExpertIOStats.readLatencyBucketCount)
+    }
+
     private let bytesRead = Atomic<UInt64>(0)
     private let reads = Atomic<UInt64>(0)
     private let cacheHits = Atomic<UInt64>(0)
     private let cacheMisses = Atomic<UInt64>(0)
+    private let latency = Mutex(LatencyHistogram())
 
     public init() {}
 
-    /// Four independent relaxed loads: a snapshot taken while reads are in
-    /// flight can be skewed by the reads outstanding at that instant. That is
-    /// bounded by the concurrency of one plan (at most `topK` misses) and does
-    /// not accumulate, since every counter is monotonic.
+    /// Independent loads: a snapshot taken while reads are in flight can be
+    /// skewed by the reads outstanding at that instant. That is bounded by the
+    /// concurrency of one plan (at most `topK` misses) and does not accumulate,
+    /// since every counter is monotonic.
     public func snapshot() -> ExpertIOStats {
-        ExpertIOStats(bytesRead: bytesRead.load(ordering: .relaxed),
-                      reads: reads.load(ordering: .relaxed),
-                      cacheHits: cacheHits.load(ordering: .relaxed),
-                      cacheMisses: cacheMisses.load(ordering: .relaxed))
+        let histogram = latency.withLock { $0 }
+        return ExpertIOStats(bytesRead: bytesRead.load(ordering: .relaxed),
+                             reads: reads.load(ordering: .relaxed),
+                             cacheHits: cacheHits.load(ordering: .relaxed),
+                             cacheMisses: cacheMisses.load(ordering: .relaxed),
+                             readLatencyNanos: histogram.totalNanos,
+                             readLatencyBuckets: histogram.buckets)
     }
 
     func recordReadIssued() {
@@ -89,6 +139,16 @@ public final class ExpertIOCounters: Sendable {
 
     func recordBytesRead(_ count: UInt64) {
         bytesRead.wrappingAdd(count, ordering: .relaxed)
+    }
+
+    /// One completed expert read, timed from before its first `pread` to after
+    /// its last.
+    func recordReadLatency(nanos: UInt64) {
+        let bucket = ExpertIOStats.readLatencyBucket(forNanos: nanos)
+        latency.withLock {
+            $0.totalNanos &+= nanos
+            $0.buckets[bucket] &+= 1
+        }
     }
 
     func recordCachePlan(hits: Int, misses: Int) {

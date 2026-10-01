@@ -266,6 +266,8 @@ public func run(args: Args,
             stderr.write(Data(footer.utf8))
             stderr.write(Data(expertIOFooter(stats).utf8))
             stderr.write(Data(phaseTimeFooter(stats).utf8))
+            stderr.write(Data(gpuTimeFooter(stats).utf8))
+            stderr.write(Data(readLatencyFooter(stats).utf8))
         }
         return RunResult(exitCode: 0)
     } catch let error as ArgsError {
@@ -352,6 +354,81 @@ func phaseTimeFooter(_ stats: RawDecodeResult) -> String {
         + " head=\(perForward(phases.headNanos))"
         + " wall=\(wall)"
         + " forwards=\(forwards) | sequential per layer; io hides the shared-expert branch]\n"
+}
+
+/// Fourth stderr footer line: GPU execution per decode forward, read from each
+/// command buffer's own timestamps after it finished.
+///
+/// It answers what `[phase-time …]` cannot. `cb1-wait` is how long the CPU
+/// blocked, and the GPU spends part of that finishing the previous layer's
+/// routed experts, which the runner queues without waiting on. Here each
+/// command buffer is charged separately: `cb1` is attention and the router
+/// alone, and `hit-experts` plus `routed` is the expert work. The parts can
+/// overlap on the GPU, so they are not summed; `busy` is their union, and
+/// `idle` is `wall − busy`, the time per forward the GPU had nothing to run.
+///
+/// Decode only, like `[phase-time …]`.
+func gpuTimeFooter(_ stats: RawDecodeResult) -> String {
+    let forwards = stats.decodeForwards
+    let phases = stats.decodePhaseTimings
+    func perForward(_ nanos: UInt64) -> String {
+        guard let ms = DecodePhaseTimings.millisecondsPerForward(nanos, forwards: forwards) else {
+            return "n/a"
+        }
+        return String(format: "%.2f", ms)
+    }
+    let wallMs = forwards > 0 ? stats.decodeSeconds * 1000 / Double(forwards) : nil
+    let busyMs = DecodePhaseTimings.millisecondsPerForward(phases.gpuBusyNanos, forwards: forwards)
+    let idle = wallMs.flatMap { wall in busyMs.map { String(format: "%.2f", wall - $0) } } ?? "n/a"
+    let wall = wallMs.map { String(format: "%.2f", $0) } ?? "n/a"
+    return "[gpu-time decode ms/fwd embed=\(perForward(phases.gpuEmbedNanos))"
+        + " cb1=\(perForward(phases.gpuCb1Nanos))"
+        + " shared=\(perForward(phases.gpuSharedNanos))"
+        + " hit-experts=\(perForward(phases.gpuHitExpertsNanos))"
+        + " routed=\(perForward(phases.gpuRoutedNanos))"
+        + " head=\(perForward(phases.gpuHeadNanos))"
+        + " busy=\(perForward(phases.gpuBusyNanos))"
+        + " idle=\(idle)"
+        + " wall=\(wall)"
+        + " forwards=\(forwards) | command-buffer timestamps; parts may overlap, busy is their union]\n"
+}
+
+/// Fifth stderr footer line: how long each routed-expert read took, decode and
+/// prefill separately, as the share of reads in each latency bucket.
+///
+/// A read the OS serves from its file cache takes a few hundred microseconds
+/// for an expert; one that goes to storage takes about two milliseconds. So
+/// the low buckets count misses that cost no storage time, which no byte
+/// counter can see. Shares are of reads in the window, and the mean is of one
+/// read's own duration — reads within a layer run concurrently, so it is not
+/// `io` divided by reads.
+func readLatencyFooter(_ stats: RawDecodeResult) -> String {
+    func bound(_ micros: UInt64) -> String {
+        String(format: "%g", Double(micros) / 1000.0)
+    }
+    func describe(_ io: ExpertIOStats) -> String {
+        let bounds = ExpertIOStats.readLatencyBucketBoundsMicros
+        let total = io.timedReads
+        let mean = io.meanReadLatencyMilliseconds.map { String(format: "%.2fms", $0) } ?? "n/a"
+        var parts = ["reads=\(total)", "mean=\(mean)"]
+        for (index, count) in io.readLatencyBuckets.enumerated() {
+            let label: String
+            if index == 0 {
+                label = "<\(bound(bounds[0]))ms"
+            } else if index < bounds.count {
+                label = "\(bound(bounds[index - 1]))-\(bound(bounds[index]))ms"
+            } else {
+                label = ">=\(bound(bounds[bounds.count - 1]))ms"
+            }
+            let share = total > 0
+                ? String(format: "%.1f%%", Double(count) / Double(total) * 100)
+                : "n/a"
+            parts.append("\(label)=\(share)")
+        }
+        return parts.joined(separator: " ")
+    }
+    return "[read-latency decode \(describe(stats.decodeExpertIO))"
+        + " | prefill \(describe(stats.prefillExpertIO))]\n"
 }
 
 /// The order the messages reference their images, so a repeated command plans

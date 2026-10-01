@@ -576,6 +576,8 @@ final class Harness: ObservableObject {
             + "tok/s=\(String(format: "%.3f", tokensPerSecond))]")
         emit("expert-io", expertIOFooter(stats))
         emit("phase-time", phaseTimeFooter(stats))
+        emit("gpu-time", gpuTimeFooter(stats))
+        emit("read-latency", readLatencyFooter(stats))
         lines.append("--- generated ---")
         lines.append(text)
     }

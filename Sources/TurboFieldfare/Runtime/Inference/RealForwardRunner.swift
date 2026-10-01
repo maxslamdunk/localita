@@ -435,6 +435,16 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
     /// for none of the time a forward spends waiting on Metal.
     public private(set) var totalCb1WaitNanos: UInt64 = 0
     public private(set) var totalRoutedDrainNanos: UInt64 = 0
+    /// GPU execution per decode command buffer, from Metal's own timestamps.
+    /// Separate from the waits above because a wait cannot say which queued
+    /// work it covered; see `DecodePhaseTimings.cb1WaitNanos`.
+    public private(set) var totalGpuEmbedNanos: UInt64 = 0
+    public private(set) var totalGpuCb1Nanos: UInt64 = 0
+    public private(set) var totalGpuSharedNanos: UInt64 = 0
+    public private(set) var totalGpuHitExpertsNanos: UInt64 = 0
+    public private(set) var totalGpuRoutedNanos: UInt64 = 0
+    public private(set) var totalGpuHeadNanos: UInt64 = 0
+    public private(set) var totalGpuBusyNanos: UInt64 = 0
 
     /// The decode phase breakdown as one snapshot, for `runRawCompletion` to
     /// difference across the prefill/decode boundary. Head is reported as one
@@ -448,6 +458,13 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
         timings.cb2Nanos = totalCb2Nanos
         timings.routedDrainNanos = totalRoutedDrainNanos
         timings.headNanos = totalHeadNanos &+ totalHeadFusedNanos
+        timings.gpuEmbedNanos = totalGpuEmbedNanos
+        timings.gpuCb1Nanos = totalGpuCb1Nanos
+        timings.gpuSharedNanos = totalGpuSharedNanos
+        timings.gpuHitExpertsNanos = totalGpuHitExpertsNanos
+        timings.gpuRoutedNanos = totalGpuRoutedNanos
+        timings.gpuHeadNanos = totalGpuHeadNanos
+        timings.gpuBusyNanos = totalGpuBusyNanos
         return timings
     }
     public private(set) var lastGreedyToken: UInt32 = 0
@@ -1438,6 +1455,10 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             let encodeAndCommitNanos: UInt64
         }
         var pendingRoutedCommand: PendingRoutedCommand?
+        // Every command buffer this forward commits, read for its GPU
+        // timestamps once the forward has finished with all of them.
+        var gpuWork: [(buffer: MTLCommandBuffer, part: DecodeGPUPart)] = []
+        gpuWork.reserveCapacity(cfg.numLayers * 4 + 2)
 
         func finishPendingRoutedCommand(_ pending: PendingRoutedCommand,
                                         waitIfNeeded: Bool) throws {
@@ -1470,7 +1491,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
         // Embed lookup + sqrt(H) fused.
         let emb = model.embedding
         do {
-            try runSync { cb in
+            let embedCB = try runSync { cb in
                 embedInt4.encode(commandBuffer: cb,
                                  table:  emb.buffer, tableOffset:  Int(emb.offset),
                                  scales: emb.buffer, scalesOffset: Int(emb.scaleOffset),
@@ -1480,6 +1501,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                                  d: D,
                                  outScale: sqrtHidden)
             }
+            gpuWork.append((embedCB, .embed))
         }
 
         for L in 0..<cfg.numLayers {
@@ -1646,6 +1668,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             gPostAttnSetup(cb)
             gRouter(cb)
             cb.commit()
+            gpuWork.append((cb, .cb1))
             let tWait = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
             waitUntilCompleted(cb)
             let waitNanos = clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - tWait
@@ -1771,8 +1794,10 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             gSharedFFN(sharedCB)
             gSharedNorm(sharedCB)
             sharedCB.commit()
+            gpuWork.append((sharedCB, .shared))
             if let cb = phase1HitCB {
                 cb.commit()
+                gpuWork.append((cb, .hitExperts))
             }
             if rdadviseEnabled && rdadvisePolicyMode != .off {
                 let requestedMisses = plannedFetch?.misses.count ?? experts.count
@@ -1862,6 +1887,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                                                    topK: topK)
             gTail(routedCB)
             routedCB.commit()
+            gpuWork.append((routedCB, .routed))
             precondition(pendingRoutedCommand == nil,
                          "routed command-buffer pipeline drained before queuing the next layer")
             pendingRoutedCommand = PendingRoutedCommand(
@@ -1908,26 +1934,61 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             let useFusedHeadForThisToken = useFusedGreedyHead && outputMode == .greedyIfAvailable
             let tHead = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
             if useFusedHeadForThisToken {
-                try runSync(gFusionHead)
+                let headCB = try runSync(gFusionHead)
                 totalHeadFusedNanos &+= clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - tHead
+                gpuWork.append((headCB, .head))
                 lastGreedyToken = greedyTokenBuf.contents().load(as: UInt32.self)
             } else {
-                try runSync { cb in
+                let headCB = try runSync { cb in
                     gFinalNorm(cb)
                     gLmHead(cb)
                 }
                 totalHeadNanos &+= clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - tHead
+                gpuWork.append((headCB, .head))
             }
         }
 
+        recordGPUExecution(gpuWork)
         kv?.advance()
     }
 
-    private func runSync(_ body: (MTLCommandBuffer) -> Void) throws {
+    /// Charges each finished command buffer's GPU execution to its part, and
+    /// their union to `totalGpuBusyNanos`. Runs after the forward has waited
+    /// on its last buffer, and the queue executes in commit order, so every
+    /// earlier buffer is expected to have finished already. The wait below is
+    /// a guard so a buffer is never read before its timestamps are final, not
+    /// a synchronization point the forward relies on.
+    private func recordGPUExecution(_ work: [(buffer: MTLCommandBuffer, part: DecodeGPUPart)]) {
+        var intervals: [(start: Double, end: Double)] = []
+        intervals.reserveCapacity(work.count)
+        for (buffer, part) in work {
+            if buffer.status.rawValue < MTLCommandBufferStatus.completed.rawValue {
+                waitUntilCompleted(buffer)
+            }
+            let start = buffer.gpuStartTime
+            let end = buffer.gpuEndTime
+            guard start > 0, end > start else { continue }
+            let nanos = UInt64((end - start) * 1_000_000_000)
+            switch part {
+            case .embed: totalGpuEmbedNanos &+= nanos
+            case .cb1: totalGpuCb1Nanos &+= nanos
+            case .shared: totalGpuSharedNanos &+= nanos
+            case .hitExperts: totalGpuHitExpertsNanos &+= nanos
+            case .routed: totalGpuRoutedNanos &+= nanos
+            case .head: totalGpuHeadNanos &+= nanos
+            }
+            intervals.append((start, end))
+        }
+        totalGpuBusyNanos &+= DecodePhaseTimings.unionNanoseconds(of: intervals)
+    }
+
+    @discardableResult
+    private func runSync(_ body: (MTLCommandBuffer) -> Void) throws -> MTLCommandBuffer {
         let cb = ctx.queue.makeCommandBuffer()!
         body(cb)
         cb.commit()
         try waitForCompletion(cb)
+        return cb
     }
 
     private nonisolated func waitForCompletion(_ cb: MTLCommandBuffer) throws {
@@ -1939,4 +2000,10 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
         cb.waitUntilCompleted()
     }
 
+}
+
+/// Which part of a decode forward a command buffer carries, for charging its
+/// GPU execution in `DecodePhaseTimings`.
+enum DecodeGPUPart {
+    case embed, cb1, shared, hitExperts, routed, head
 }

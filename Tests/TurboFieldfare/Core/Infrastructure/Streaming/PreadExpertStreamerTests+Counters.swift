@@ -134,4 +134,57 @@ extension PreadExpertStreamerTests {
     #expect(window.megabytesPerForward(2) == Double(Self.expertStride) / 1_048_576.0 / 2)
     #expect(window.megabytesPerForward(0) == nil)
   }
+
+  @Test func everyCompletedReadIsTimedOnce() throws {
+    let url = try Self.writeSyntheticLayer()
+    defer { try? FileManager.default.removeItem(at: url) }
+    let device = try MetalContext().device
+    let counters = ExpertIOCounters()
+    let streamer = try PreadExpertStreamer(
+      layout: Self.makeLayout(path: url.path),
+      device: device,
+      slotCount: 4,
+      counters: counters)
+
+    _ = try streamer.loadExpertsCached(experts: [0, 1])
+    _ = try streamer.loadExpertsCached(experts: [0, 2])
+
+    // The histogram is only worth reading if it covers the same reads the
+    // byte counter does: three misses, three timed reads, no hit timed.
+    let stats = counters.snapshot()
+    #expect(stats.reads == 3)
+    #expect(stats.timedReads == 3)
+    #expect(stats.readLatencyNanos > 0)
+    #expect(stats.meanReadLatencyMilliseconds != nil)
+  }
+
+  @Test func readLatencyLandsInTheBucketItIsUnder() {
+    // Bounds are exclusive upper limits: 250 µs exactly is the second bucket.
+    #expect(ExpertIOStats.readLatencyBucket(forNanos: 0) == 0)
+    #expect(ExpertIOStats.readLatencyBucket(forNanos: 249_999) == 0)
+    #expect(ExpertIOStats.readLatencyBucket(forNanos: 250_000) == 1)
+    #expect(ExpertIOStats.readLatencyBucket(forNanos: 1_999_999) == 3)
+    #expect(ExpertIOStats.readLatencyBucket(forNanos: 2_000_000) == 4)
+    #expect(ExpertIOStats.readLatencyBucket(forNanos: 15_999_999) == 6)
+    #expect(ExpertIOStats.readLatencyBucket(forNanos: 16_000_000) == 7)
+    #expect(ExpertIOStats.readLatencyBucket(forNanos: 10_000_000_000) == 7)
+    #expect(ExpertIOStats.readLatencyBucketCount == 8)
+  }
+
+  @Test func readLatencyWindowExcludesReadsBeforeIt() {
+    let counters = ExpertIOCounters()
+    counters.recordReadLatency(nanos: 300_000)
+    let atWindowStart = counters.snapshot()
+    counters.recordReadLatency(nanos: 2_500_000)
+    counters.recordReadLatency(nanos: 3_500_000)
+
+    // Prefill's fast reads must not leak into decode's histogram, or a
+    // file-cache share would be charged to the wrong phase.
+    let window = counters.snapshot().delta(since: atWindowStart)
+    #expect(window.timedReads == 2)
+    #expect(window.readLatencyBuckets == [0, 0, 0, 0, 2, 0, 0, 0])
+    #expect(window.readLatencyNanos == 6_000_000)
+    #expect(window.meanReadLatencyMilliseconds == 3.0)
+    #expect(ExpertIOStats.zero.meanReadLatencyMilliseconds == nil)
+  }
 }
