@@ -576,6 +576,8 @@ final class Harness: ObservableObject {
             + "tok/s=\(String(format: "%.3f", tokensPerSecond))]")
         emit("expert-io", expertIOFooter(stats))
         emit("phase-time", phaseTimeFooter(stats))
+        emit("gpu-time", gpuTimeFooter(stats))
+        emit("read-latency", readLatencyFooter(stats))
         // The text itself, beside the log, and its hash in it. Token counts and
         // byte counters match between two runs whose text differs late, so an
         // A/B that claims identical output needs the output.

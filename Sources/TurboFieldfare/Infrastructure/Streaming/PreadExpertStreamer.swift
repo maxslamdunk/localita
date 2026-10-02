@@ -425,11 +425,13 @@ public final class PreadExpertStreamer: @unchecked Sendable {
 
     /// The single funnel every routed-expert byte passes through, and therefore
     /// where bytes/token is counted. Bytes are recorded per syscall so a read
-    /// that fails partway still accounts for what it pulled.
+    /// that fails partway still accounts for what it pulled. Latency is
+    /// recorded only for a read that completes, timed across all its syscalls.
     private func readFull(into destination: UnsafeMutableRawPointer,
                           fileOffset: UInt64,
                           count: Int) throws {
         counters.recordReadIssued()
+        let started = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
         var filled = 0
         while filled < count {
             let readCount = pread(
@@ -446,6 +448,7 @@ public final class PreadExpertStreamer: @unchecked Sendable {
             counters.recordBytesRead(UInt64(readCount))
             filled += readCount
         }
+        counters.recordReadLatency(nanos: clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - started)
     }
 
     /// Model-derived CPU-side scratch owned by this streamer: its aligned

@@ -1,8 +1,9 @@
 import Foundation
 import TurboFieldfare
 
-// Copied verbatim from `Sources/TurboFieldfareCLI/Run.swift`. Do not
-// reimplement, reformat, or "improve" these two functions.
+// Copied verbatim from `Sources/TurboFieldfareCLI/Run.swift`, minus the
+// trailing newline the CLI writes to stderr. Do not reimplement, reformat, or
+// "improve" these four functions.
 //
 // They are the reason an on-device number can be compared against a row in
 // `MEASUREMENTS.md` at all. Everything they read is public on the runtime
@@ -60,4 +61,63 @@ func phaseTimeFooter(_ stats: RawDecodeResult) -> String {
         + " head=\(perForward(phases.headNanos))"
         + " wall=\(wall)"
         + " forwards=\(forwards) | sequential per layer; io hides the shared-expert branch]"
+}
+
+/// Fourth footer line: GPU execution per decode forward, from command-buffer
+/// timestamps. `cb1` is attention + router alone; `hit-experts` + `routed` is
+/// the expert work `cb1-wait` absorbs. Parts may overlap; `busy` is their union.
+func gpuTimeFooter(_ stats: RawDecodeResult) -> String {
+    let forwards = stats.decodeForwards
+    let phases = stats.decodePhaseTimings
+    func perForward(_ nanos: UInt64) -> String {
+        guard let ms = DecodePhaseTimings.millisecondsPerForward(nanos, forwards: forwards) else {
+            return "n/a"
+        }
+        return String(format: "%.2f", ms)
+    }
+    let wallMs = forwards > 0 ? stats.decodeSeconds * 1000 / Double(forwards) : nil
+    let busyMs = DecodePhaseTimings.millisecondsPerForward(phases.gpuBusyNanos, forwards: forwards)
+    let idle = wallMs.flatMap { wall in busyMs.map { String(format: "%.2f", wall - $0) } } ?? "n/a"
+    let wall = wallMs.map { String(format: "%.2f", $0) } ?? "n/a"
+    return "[gpu-time decode ms/fwd embed=\(perForward(phases.gpuEmbedNanos))"
+        + " cb1=\(perForward(phases.gpuCb1Nanos))"
+        + " shared=\(perForward(phases.gpuSharedNanos))"
+        + " hit-experts=\(perForward(phases.gpuHitExpertsNanos))"
+        + " routed=\(perForward(phases.gpuRoutedNanos))"
+        + " head=\(perForward(phases.gpuHeadNanos))"
+        + " busy=\(perForward(phases.gpuBusyNanos))"
+        + " idle=\(idle)"
+        + " wall=\(wall)"
+        + " forwards=\(forwards) | command-buffer timestamps; parts may overlap, busy is their union]"
+}
+
+/// Fifth footer line: per-read latency histogram, decode and prefill apart.
+/// The low buckets are misses the OS served from its file cache.
+func readLatencyFooter(_ stats: RawDecodeResult) -> String {
+    func bound(_ micros: UInt64) -> String {
+        String(format: "%g", Double(micros) / 1000.0)
+    }
+    func describe(_ io: ExpertIOStats) -> String {
+        let bounds = ExpertIOStats.readLatencyBucketBoundsMicros
+        let total = io.timedReads
+        let mean = io.meanReadLatencyMilliseconds.map { String(format: "%.2fms", $0) } ?? "n/a"
+        var parts = ["reads=\(total)", "mean=\(mean)"]
+        for (index, count) in io.readLatencyBuckets.enumerated() {
+            let label: String
+            if index == 0 {
+                label = "<\(bound(bounds[0]))ms"
+            } else if index < bounds.count {
+                label = "\(bound(bounds[index - 1]))-\(bound(bounds[index]))ms"
+            } else {
+                label = ">=\(bound(bounds[bounds.count - 1]))ms"
+            }
+            let share = total > 0
+                ? String(format: "%.1f%%", Double(count) / Double(total) * 100)
+                : "n/a"
+            parts.append("\(label)=\(share)")
+        }
+        return parts.joined(separator: " ")
+    }
+    return "[read-latency decode \(describe(stats.decodeExpertIO))"
+        + " | prefill \(describe(stats.prefillExpertIO))]"
 }
