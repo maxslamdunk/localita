@@ -210,6 +210,9 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
     /// allocation per layer. ~168 KB total at 30 layers × 2816 BF16 — bounded
     /// host work done once at init.
     private let effectiveScaleBuffers: [MTLBuffer]
+    /// Research-only decode routing trace; nil unless
+    /// `TURBO_FIELDFARE_ROUTING_TRACE` is set. See `RoutingTraceWriter`.
+    private let routingTrace: RoutingTraceWriter?
     private let sharedExpertProjections: [LayerSharedExpertProjections]
 
     public let maxContext: Int
@@ -376,6 +379,12 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             perLayer.append(buf)
         }
         self.effectiveScaleBuffers = perLayer
+        let trace = try RoutingTraceWriter(config: cfg)
+        if let trace {
+            try Self.exportRouterMatrices(model: model, config: cfg,
+                                          effectiveScales: perLayer, to: trace)
+        }
+        self.routingTrace = trace
     }
 
     public func reset() {
@@ -1701,6 +1710,20 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             var phase1HitSlots: [UInt32] = []
             var phase1MissSlots: [UInt32] = []
 
+            // Research trace: router input and scores are overwritten by the
+            // next layer's cb1, so copy them now; the record is written once
+            // this layer's output exists, below.
+            var traceRouterInput: [UInt8] = []
+            var traceScores: [Float] = []
+            if routingTrace != nil {
+                traceRouterInput = Array(UnsafeRawBufferPointer(
+                    start: routerInput.contents(), count: Int(D) * 2))
+                let scores = moe.lastRouterScores.contents()
+                    .assumingMemoryBound(to: Float.self)
+                traceScores = Array(UnsafeBufferPointer(start: scores,
+                                                        count: cfg.numExperts))
+            }
+
             if let plan = plannedFetch {
                 let missSet = Set(plan.misses)
                 phase1HitSlots = (0..<cfg.topKExperts)
@@ -1895,6 +1918,24 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                 sharedCB: sharedCB,
                 phase1HitCB: phase1HitCB,
                 encodeAndCommitNanos: clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - tCb2Start)
+            if let routingTrace {
+                waitUntilCompleted(routedCB)
+                try checkCommandBufferError(routedCB)
+                try traceScores.withUnsafeBufferPointer { scores in
+                    try traceRouterInput.withUnsafeBytes { input in
+                        try routingTrace.append(
+                            position: position,
+                            layer: L,
+                            experts: experts,
+                            missedExperts: plannedFetch.map { plan in
+                                plan.misses.map { experts[$0] }
+                            },
+                            scores: scores.baseAddress!,
+                            routerInput: input.baseAddress!,
+                            layerOutput: hidden.contents())
+                    }
+                }
+            }
             continue
         }
         if let pending = pendingRoutedCommand {
@@ -1994,6 +2035,42 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
     private nonisolated func waitForCompletion(_ cb: MTLCommandBuffer) throws {
         waitUntilCompleted(cb)
         try checkCommandBufferError(cb)
+    }
+
+    /// Writes each layer's router as a dense Float32 matrix for the research
+    /// trace, dequantized on the CPU the way `router_gemv_gemma4_body` does
+    /// it: 8-bit weights, one BF16 scale and bias per 64-wide group, times the
+    /// BF16 effective scale. One layer is held at a time (1.4 MB).
+    private static func exportRouterMatrices(model: Model,
+                                             config cfg: ArchConfig,
+                                             effectiveScales: [MTLBuffer],
+                                             to trace: RoutingTraceWriter) throws {
+        let D = cfg.hiddenSize
+        let E = cfg.numExperts
+        let groups = D / Quantization.groupSize
+        for L in 0..<cfg.numLayers {
+            let w = try model.router(layer: L)
+            let base = w.buffer.contents()
+            let q = base.advanced(by: Int(w.offset)).assumingMemoryBound(to: UInt8.self)
+            let scales = base.advanced(by: Int(w.scaleOffset))
+                .assumingMemoryBound(to: UInt16.self)
+            let biases = base.advanced(by: Int(w.biasOffset))
+                .assumingMemoryBound(to: UInt16.self)
+            let eff = effectiveScales[L].contents().assumingMemoryBound(to: UInt16.self)
+            var matrix = [Float](repeating: 0, count: E * D)
+            for e in 0..<E {
+                for g in 0..<groups {
+                    let s = Quantization.bf16ToFloat(scales[e * groups + g])
+                    let b = Quantization.bf16ToFloat(biases[e * groups + g])
+                    for j in 0..<Quantization.groupSize {
+                        let i = g * Quantization.groupSize + j
+                        matrix[e * D + i] = (s * Float(q[e * D + i]) + b)
+                            * Quantization.bf16ToFloat(eff[i])
+                    }
+                }
+            }
+            try trace.writeRouterMatrix(layer: L, matrix)
+        }
     }
 
     private nonisolated func waitUntilCompleted(_ cb: MTLCommandBuffer) {

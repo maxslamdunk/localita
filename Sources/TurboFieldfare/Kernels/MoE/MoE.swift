@@ -53,6 +53,10 @@ final class MoE {
     private let routerSelectK8PSO: MTLComputePipelineState
     private let routerSelectK8SpecializedPSO: MTLComputePipelineState
     private let routerLogits: MTLBuffer
+    /// The router's 128 scores from the most recent `encodeRouterGemma4`,
+    /// readable once that command buffer has completed. Read only by the
+    /// research routing trace.
+    var lastRouterScores: MTLBuffer { routerLogits }
     private let phase1U16PSO: MTLComputePipelineState
     private let phase1U16SpecializedPSO: MTLComputePipelineState
     private let phase1SubsetU16PSO: MTLComputePipelineState
