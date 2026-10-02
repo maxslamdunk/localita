@@ -1,4 +1,9 @@
-# Status: paused 2026-10-01 22:50, with 5 of 8 phone runs done
+# Status: complete on the iPhone (2026-10-02); the Mac arm was not run
+
+The phone A/B finished on 2026-10-02. See `results.md`. What follows is the
+pause record from 2026-10-01, kept as it was written.
+
+## Paused 2026-10-01 22:50, with 5 of 8 phone runs done
 
 The iPhone A/B in `predictions.md` was stopped because the phone was needed.
 The short and medium pairs are complete. Only one long run finished.

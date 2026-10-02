@@ -81,3 +81,14 @@ This prediction assumes the effect is under 1.5 ms.
 A single run cannot confirm the low end of the long-case range. On the Mac,
 the same-session `cb1-wait` spread is up to 4.7% (~6 ms on the long case),
 which is why the long case runs as interleaved pairs.
+
+## Outcome (appended 2026-10-02, iPhone only)
+
+All controls held: identical text in every pair, bytes unchanged to the digit,
+peak footprint within 5.2 MB, and 179/179 device kernel tests passing, with
+bitwise identity. The one exception is `io` on the medium pair, which differed
+by 11% under compressor churn. On `cb1-wait`, short held at −0.51 ms. Medium
+and long **missed on the side of a larger gain**: −5.25 against −1 to −3, and
+−11.8 to −19.1 against −4 to −10. The branch that fired is "more than 12% on
+long", so the fit's attribution is wrong. The Mac arm was not run. See
+`results.md`.
