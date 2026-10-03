@@ -1,0 +1,29 @@
+replay at 16 slots vs the live Mac footer of the same traced run (whole run, from token 0)
+trace                     hit rep hit live  used rep used live
+train-bash-backup           66.5%    66.6%     22.92     22.90
+train-code-review           61.3%    61.4%     25.13     25.12
+train-de-letter             71.3%    71.4%     20.89     20.88
+train-email-advice          67.7%    67.8%     23.44     23.44
+train-finance               62.8%    62.9%     24.09     24.09
+train-ja-haiku              80.0%    80.2%     15.78     15.77
+train-json-extract          68.6%    68.8%     20.30     20.23
+train-math-proof            64.3%    64.3%     23.53     23.55
+train-poem                  63.7%    64.0%     24.56     24.58
+train-prob-puzzle           64.7%    64.8%     23.55     23.55
+train-py-lru                66.8%    66.8%     23.46     23.46
+train-ru-history            78.5%    78.6%     17.59     17.58
+train-science               68.6%    68.6%     23.44     23.45
+train-story                 69.2%    69.2%     23.57     23.57
+train-summarize-long        62.1%    62.3%     25.29     25.29
+train-swift-actor           63.4%    63.4%     23.77     23.79
+train-travel-chat           64.8%    64.8%     24.73     24.77
+train-zh-explain            75.5%    75.6%     18.60     18.60
+val-compare-table           63.5%    63.6%     24.02     24.02
+val-dialogue                63.9%    64.0%     24.83     24.84
+val-es-recipe               73.1%    73.2%     20.23     20.19
+val-fr-translate            62.9%    63.0%     23.32     23.34
+val-logic-grid              57.1%    57.2%     24.91     24.91
+val-multi-turn              63.1%    63.1%     24.21     24.22
+val-rust-borrow             64.1%    64.2%     24.05     24.06
+val-sql-debug               62.0%    62.1%     24.36     24.33
+hit-rate difference, replay - live: mean -0.09, range -0.33 to -0.00 points

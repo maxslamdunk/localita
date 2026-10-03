@@ -198,6 +198,34 @@ capacity and memory cost.
 - **Lesson:** A prefetch that raises bytes/token can still win when it is
   confined to measured idle storage time. Measure the idle window first.
 
+<a id="cache-11"></a>
+### CACHE-11: Replacement policies in replay, and stale LFU counts
+
+- **Hypothesis:** A policy fitted to Belady's choices from access history
+  beats LFU, and LFU's never-reset counts go stale over a long app session.
+- **Variants tested:** Offline replay with the early read modelled, at 24
+  slots: LFU, LRU, ARC, decayed LFU, a linear learned ranking (12 history and
+  router-score features), and Belady. Trained on 18 new prompts, tuned on 8,
+  and scored once on the three `real-generation-v1` traces. A session replay
+  ran 11 prompts back to back without a reset.
+- **Evidence:**
+  - The replay matches the live runs within 0.33 hit-rate points on 26 Mac
+    traces, and within 2% of the iPhone.
+  - Test hit rate: LFU 76.2%, learned 77.5%, decayed LFU 76.7%, ARC 73.9%,
+    LRU 73.1%, Belady 84.6%. Foreground reads: LFU 36.2, learned 33.9 per
+    token.
+  - Session: LFU **66.8–67.1%** against 74.7% with counts reset per prompt
+    and 75.2–75.3% decayed. The app keeps one model's counts across all
+    conversations.
+- **What changed the conclusion:** CACHE-02's windowed LFU was judged on fresh
+  single-prompt runs, which cannot show staleness across conversations.
+- **Final disposition:** Runtime candidate, not yet built: reset or decay the
+  counts. That needs a multi-prompt session protocol on the phone. The learned
+  policy (+1.3 points) comes later. See
+  `research-results-2026-10-03-cache-policy/results.md`.
+- **Lesson:** The benchmark starts a fresh process, so state that accumulates
+  over a session is invisible to it. Replay sessions, not only prompts.
+
 [Previous: Decode, MoE, INT4, and router](02-decode-moe-int4-and-router.md) |
 [Experiment inventory](../EXPERIMENT_INVENTORY.md) |
 [Optimization journey](../../OPTIMIZATION_JOURNEY.md) |
