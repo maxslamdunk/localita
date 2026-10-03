@@ -1,0 +1,6 @@
+[
+ {
+  "role": "user",
+  "content": "In Rust, why does pushing to a Vec while holding a reference to one of its elements fail to compile? Show the error, explain it in terms of memory safety, and give three ways to restructure the code."
+ }
+]

@@ -1,0 +1,6 @@
+[
+ {
+  "role": "user",
+  "content": "Compare PostgreSQL, SQLite, MongoDB and Redis in a markdown table across data model, durability, concurrency, typical use, and operational cost. Then recommend one for a small mobile app's local storage and justify it."
+ }
+]
