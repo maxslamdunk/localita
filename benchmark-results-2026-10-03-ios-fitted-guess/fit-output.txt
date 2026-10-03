@@ -1,0 +1,7 @@
+quantization: worst |error| / max |weight| over layers 0.0048
+held-out precision@1 at 16 slots: naive 0.705, fitted float 0.848, fitted 8-bit 0.848
+held-out precision@1 at 24 slots: naive 0.588, fitted float 0.726, fitted 8-bit 0.726
+  test-long-synthesis at 24 slots: naive 0.621, fitted 8-bit 0.770
+  test-medium-review at 24 slots: naive 0.593, fitted 8-bit 0.723
+  test-short-explanation at 24 slots: naive 0.545, fitted 8-bit 0.680
+wrote scratch/next-layer-guess.bin: 11106368 bytes, sha256 b18242445534d452b7efb9c7d1c358884ef56637ad6003c187e5bced50dc3dcd

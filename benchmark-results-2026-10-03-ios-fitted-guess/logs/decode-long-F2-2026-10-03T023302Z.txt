@@ -1,0 +1,28 @@
+### Technical Assessment: TurboFieldfare
+
+**Overview**
+TurboFieldfare is a specialized Swift/Metal runtime designed to run a 26B-parameter Mixture-of-Experts (MoE) model on hardware with limited RAM (e.g., 8 GB Apple Silicon). It achieves this by treating the SSD as an extension of the model weights, utilizing a custom partitioned storage layout.
+
+**Central Resource Constraint**
+The primary bottleneck is **available system RAM**. The model's total weight footprint (~14.3 GB) exceeds the capacity of target machines. To prevent OOM (Out-of-Memory) errors, the runtime must operate within a strict ~2 GB memory budget while managing the massive disparity between SSD latency and GPU compute speed.
+
+**Data Partitioning: Resident vs. Streamed**
+The runtime divides the model into two distinct categories:
+* **Resident Data:** The 1.35 GB core (shared weights and FP16 KV cache) remains permanently in memory to ensure stable base performance and routing capability.
+* **Streamed Data:** The routed experts are stored on the SSD. The runtime only loads the specific experts required for a given token calculation into a 16-slot LFU (Least Frequently Used) cache, fetching misses via parallel `pread` calls.
+
+**Prefill vs. Decode Behavior**
+The performance profiles of these two phases differ due to how they utilize the fetched data:
+* **Prefill (Prompt Processing):** Uses "chunked prefill" (up to 128 tokens at a time). This allows a single fetched expert to be reused across multiple tokens in a single batch, maximizing the computational value of every I/O operation.
+* **Decode (Token Generation):** Operates one token at a time. This is more I/O-intensive relative to compute, as the router must identify new experts for every single token, making the system more sensitive to disk latency and cache hit rates.
+
+**Interpreting Benchmarks**
+When reviewing performance numbers, note that they are not theoretical ceilings. Throughput is highly sensitive to:
+1. **Prompt/Generation Length:** Affects KV cache pressure and compute-to-I/O ratios.
+2. **Hardware/Storage State:** Disk throughput and page-cache hits significantly impact "streaming" speeds.
+3. **System Load:** Background memory pressure can throttle available bandwidth.
+
+**Rules for Evaluating Changes**
+1. **Prioritize I/O-Compute Overlap:** Ensure that backgrounded `pread` calls for expert misses do not stall the Metal kernels processing resident weights.
+2. **Protect the Memory Budget:** Any change increasing the resident footprint must be weighed against the risk of triggering system-level memory pressure.
+3. **Validate Scaling Ratios:** Evaluate how changes affect the "cost per token" in both chunked prefill and single-token decode phases.

@@ -17,7 +17,7 @@ capacity and memory cost.
 | 24/32 slots | Conditional +memory experiments |
 | Predictor, Markov, read sorting, and single-trace layout | Rejected |
 | Fresh preallocated expert artifact | Unexecuted hypothesis |
-| Next-layer early read from the hidden state | Experimental switch; +12–15% tok/s on iPhone at +18–26% bytes/token |
+| Next-layer early read from the hidden state | Experimental switch; with the fitted guess about +17–20% tok/s on iPhone at +11–18% bytes/token |
 
 ## Cache policy and capacity
 
@@ -165,7 +165,9 @@ capacity and memory cost.
   one of L+1's misses often enough that reading it while storage is idle saves
   more time than the wasted reads cost.
 - **Variants tested:** Offline scoring of naive and ridge-fitted guesses on
-  Mac routing traces, then the unfitted guess at k = 1 on the iPhone. It reads
+  Mac routing traces, then the unfitted guess at k = 1 on the iPhone, then the
+  fitted guess, stored in the router's own 8-bit format so the same kernel
+  runs it, from a file named by `TURBO_FIELDFARE_EARLY_EXPERT_GUESS`. It reads
   into a staging buffer outside the slot pool, issued after layer L's own reads
   finish, and is swapped into the slot the plan assigns. Behind
   `TURBO_FIELDFARE_EARLY_EXPERT_READ`, off by default.
@@ -177,11 +179,22 @@ capacity and memory cost.
   - Output was byte-identical in all 12 runs, with live precision 0.55 /
     0.59 / 0.61.
   - bytes/token rose **+26 / +20 / +18%**: about 12 wasted reads per token.
+  - Fitted guess against the unfitted one, N F F N per case: precision
+    **0.684 / 0.728 / 0.752** (predicted 0.685 / 0.717 / 0.755), about 4 fewer
+    wasted reads per token, bytes/token −6%, `io` −8.6 / −14.9 / −6.8 ms,
+    tok/s **+5.2 / +4.2 / +13.4%** with long inflated by GPU speed. Output was
+    identical. Across sessions, against the early read off: about +17–20%
+    tok/s at +11–18% bytes/token.
+  - Whole-run GPU speed varied by up to ~40% between consecutive runs at the
+    same thermal state; the output head's GPU time is the control.
 - **What changed the conclusion:** Unlike CACHE-05, the guess reads the hidden
   state, not expert IDs. Unlike CACHE-06, the read waits for the layer's own
   reads and never touches a slot until the plan has assigned it.
-- **Final disposition:** Kept as an experimental switch; the fitted guess is
-  next. See `benchmark-results-2026-10-02-ios-next-layer-prefetch/results.md`.
+- **Final disposition:** Kept as an experimental switch, off by default, with
+  the fitted guess used when its file is given. Turning it on by default is a
+  bytes-for-speed trade that also means shipping a per-model guess file. See
+  `benchmark-results-2026-10-02-ios-next-layer-prefetch/results.md` and
+  `benchmark-results-2026-10-03-ios-fitted-guess/results.md`.
 - **Lesson:** A prefetch that raises bytes/token can still win when it is
   confined to measured idle storage time. Measure the idle window first.
 

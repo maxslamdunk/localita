@@ -1,0 +1,37 @@
+03:19:17 cooldown 60s
+03:20:17 launch short-N1 (short-explanation)
+03:22:05 done short-N1: [stop=endOfTurn prefill=61tok new=507tok decode=79.22s tok/s=6.400]
+03:22:05 cooldown 300s
+03:27:05 launch short-F1 (short-explanation)
+03:28:31 done short-F1: [stop=endOfTurn prefill=61tok new=507tok decode=73.99s tok/s=6.852]
+03:28:31 cooldown 300s
+03:33:31 launch short-F2 (short-explanation)
+03:35:20 done short-F2: [stop=endOfTurn prefill=61tok new=507tok decode=79.23s tok/s=6.399]
+03:35:20 cooldown 300s
+03:40:20 launch short-N2 (short-explanation)
+03:42:07 done short-N2: [stop=endOfTurn prefill=61tok new=507tok decode=81.80s tok/s=6.198]
+03:42:07 cooldown 300s
+03:47:08 launch medium-N1 (medium-review)
+03:49:18 done medium-N1: [stop=endOfTurn prefill=430tok new=632tok decode=113.50s tok/s=5.568]
+03:49:18 cooldown 300s
+03:54:18 launch medium-F1 (medium-review)
+03:56:28 done medium-F1: [stop=endOfTurn prefill=430tok new=632tok decode=115.29s tok/s=5.482]
+03:56:28 cooldown 300s
+04:01:28 launch medium-F2 (medium-review)
+04:03:38 done medium-F2: [stop=endOfTurn prefill=430tok new=632tok decode=105.24s tok/s=6.006]
+04:03:38 cooldown 300s
+04:08:38 launch medium-N2 (medium-review)
+04:11:09 done medium-N2: [stop=endOfTurn prefill=430tok new=632tok decode=115.92s tok/s=5.452]
+04:11:09 cooldown 300s
+04:16:09 launch long-N1 (long-synthesis)
+04:19:45 done long-N1: [stop=endOfTurn prefill=3015tok new=602tok decode=131.07s tok/s=4.593]
+04:19:45 cooldown 300s
+04:24:45 launch long-F1 (long-synthesis)
+04:28:01 done long-F1: [stop=endOfTurn prefill=3015tok new=602tok decode=123.48s tok/s=4.875]
+04:28:01 cooldown 300s
+04:33:01 launch long-F2 (long-synthesis)
+04:36:14 done long-F2: [stop=endOfTurn prefill=3015tok new=602tok decode=112.11s tok/s=5.370]
+04:36:14 cooldown 300s
+04:41:14 launch long-N2 (long-synthesis)
+04:44:51 done long-N2: [stop=endOfTurn prefill=3015tok new=602tok decode=135.58s tok/s=4.440]
+04:44:51 ALL DONE

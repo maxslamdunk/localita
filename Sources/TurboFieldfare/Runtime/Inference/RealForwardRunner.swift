@@ -390,7 +390,8 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                                           effectiveScales: perLayer, to: trace)
         }
         self.routingTrace = trace
-        self.earlyExpertReads = try NextLayerExpertPrefetcher(model: model)
+        self.earlyExpertReads = try NextLayerExpertPrefetcher(model: model, config: cfg,
+                                                              device: ctx.device)
     }
 
     public func reset() {
@@ -1689,7 +1690,17 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             gOProj(cb)
             gPostAttnSetup(cb)
             gRouter(cb)
-            if let earlyLayer, let earlyRouterW {
+            if let earlyLayer, let guess = earlyExpertReads?.guessWeights {
+                let m = guess.matrix(targetLayer: earlyLayer)
+                moe.encodeRouterLogitsGemma4(commandBuffer: cb,
+                    weights: guess.buffer, weightsOffset: m.weightsOffset,
+                    scales:  guess.buffer, scalesOffset:  m.scalesOffset,
+                    biases:  guess.buffer, biasesOffset:  m.biasesOffset,
+                    hidden: routerInput,
+                    effectiveScale: guess.unitScale,
+                    outLogits: nextLayerScores,
+                    numExperts: UInt32(cfg.numExperts), d: D)
+            } else if let earlyLayer, let earlyRouterW {
                 moe.encodeRouterLogitsGemma4(commandBuffer: cb,
                     weights: earlyRouterW.buffer, weightsOffset: Int(earlyRouterW.offset),
                     scales:  earlyRouterW.buffer, scalesOffset:  Int(earlyRouterW.scaleOffset),
