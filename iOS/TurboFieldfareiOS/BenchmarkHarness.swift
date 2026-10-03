@@ -263,6 +263,11 @@ struct HarnessSettings {
     /// `--prefill-chunk-tokens 128` must pin 128 rather than silently becoming
     /// `auto`.
     var prefillChunkExplicit = false
+    /// `--early-expert-read`: the experimental next-layer early read, which
+    /// the runtime reads from this environment variable when the runner is
+    /// built. See `NextLayerExpertPrefetcher`.
+    var earlyExpertRead = false
+    static let earlyExpertReadEnvironmentKey = "TURBO_FIELDFARE_EARLY_EXPERT_READ"
 
     static func fromLaunchArguments() -> HarnessSettings {
         var settings = HarnessSettings()
@@ -280,6 +285,10 @@ struct HarnessSettings {
         if let v = value("--prefill-chunk-tokens").flatMap(Int.init) {
             settings.prefillChunkTokens = v
             settings.prefillChunkExplicit = true
+        }
+        if args.contains("--early-expert-read") {
+            settings.earlyExpertRead = true
+            setenv(earlyExpertReadEnvironmentKey, "next-layer", 1)
         }
         return settings
     }
@@ -530,7 +539,8 @@ final class Harness: ObservableObject {
         emit("runner-ready", "slots=\(runtime.expertCacheSlots) "
             + "prefillChunk=\(runtime.prefillChunkTokens) "
             + "prefillChunkSource=\(settings.prefillChunkExplicit ? "explicit" : "auto") "
-            + "prefill=\(runtime.prefillPolicy.rawValue)")
+            + "prefill=\(runtime.prefillPolicy.rawValue) "
+            + "earlyExpertRead=\(settings.earlyExpertRead ? "next-layer" : "off")")
 
         var text = ""
         let stats = try await runRawCompletion(

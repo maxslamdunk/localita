@@ -30,13 +30,22 @@ public struct ExpertIOStats: Sendable, Equatable {
     public var readLatencyNanos: UInt64
     /// Completed reads per latency bucket, `readLatencyBucketCount` entries.
     public var readLatencyBuckets: [UInt64]
+    /// Early reads: a next-layer expert read before its layer was planned.
+    /// Each is also one of `reads`, and its bytes are in `bytesRead`.
+    public var earlyReads: UInt64
+    /// Early reads whose expert the layer then missed, so the read replaced
+    /// one the layer would have waited for. `earlyReads - earlyReadsUsed`
+    /// were wasted.
+    public var earlyReadsUsed: UInt64
 
     public init(bytesRead: UInt64 = 0,
                 reads: UInt64 = 0,
                 cacheHits: UInt64 = 0,
                 cacheMisses: UInt64 = 0,
                 readLatencyNanos: UInt64 = 0,
-                readLatencyBuckets: [UInt64]? = nil) {
+                readLatencyBuckets: [UInt64]? = nil,
+                earlyReads: UInt64 = 0,
+                earlyReadsUsed: UInt64 = 0) {
         self.bytesRead = bytesRead
         self.reads = reads
         self.cacheHits = cacheHits
@@ -44,6 +53,8 @@ public struct ExpertIOStats: Sendable, Equatable {
         self.readLatencyNanos = readLatencyNanos
         self.readLatencyBuckets = readLatencyBuckets
             ?? [UInt64](repeating: 0, count: Self.readLatencyBucketCount)
+        self.earlyReads = earlyReads
+        self.earlyReadsUsed = earlyReadsUsed
     }
 
     public static let zero = ExpertIOStats()
@@ -64,7 +75,9 @@ public struct ExpertIOStats: Sendable, Equatable {
                       cacheMisses: cacheMisses &- earlier.cacheMisses,
                       readLatencyNanos: readLatencyNanos &- earlier.readLatencyNanos,
                       readLatencyBuckets: zip(readLatencyBuckets, earlier.readLatencyBuckets)
-                          .map { $0 &- $1 })
+                          .map { $0 &- $1 },
+                      earlyReads: earlyReads &- earlier.earlyReads,
+                      earlyReadsUsed: earlyReadsUsed &- earlier.earlyReadsUsed)
     }
 
     /// Routed-expert requests planned against the cache. At steady-state decode
@@ -116,6 +129,8 @@ public final class ExpertIOCounters: Sendable {
     private let cacheHits = Atomic<UInt64>(0)
     private let cacheMisses = Atomic<UInt64>(0)
     private let latency = Mutex(LatencyHistogram())
+    private let earlyReads = Atomic<UInt64>(0)
+    private let earlyReadsUsed = Atomic<UInt64>(0)
 
     public init() {}
 
@@ -130,7 +145,9 @@ public final class ExpertIOCounters: Sendable {
                              cacheHits: cacheHits.load(ordering: .relaxed),
                              cacheMisses: cacheMisses.load(ordering: .relaxed),
                              readLatencyNanos: histogram.totalNanos,
-                             readLatencyBuckets: histogram.buckets)
+                             readLatencyBuckets: histogram.buckets,
+                             earlyReads: earlyReads.load(ordering: .relaxed),
+                             earlyReadsUsed: earlyReadsUsed.load(ordering: .relaxed))
     }
 
     func recordReadIssued() {
@@ -149,6 +166,14 @@ public final class ExpertIOCounters: Sendable {
             $0.totalNanos &+= nanos
             $0.buckets[bucket] &+= 1
         }
+    }
+
+    func recordEarlyRead() {
+        earlyReads.wrappingAdd(1, ordering: .relaxed)
+    }
+
+    func recordEarlyReadUsed() {
+        earlyReadsUsed.wrappingAdd(1, ordering: .relaxed)
     }
 
     func recordCachePlan(hits: Int, misses: Int) {

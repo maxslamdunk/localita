@@ -1,0 +1,48 @@
+1. wrong-token control (24 slots, held out)
+   naive-early, this token's state:     0.588
+   naive-early, previous token's state: 0.081
+   naive-early, state 8 tokens back:    0.065
+
+2. per held-out prompt, precision@1 (naive-early / fitted-early)
+   test-long-synthesis      0.621 / 0.770
+   test-medium-review       0.593 / 0.723
+   test-short-explanation   0.545 / 0.680
+
+3. per transition L->L+1, precision@1 (naive-early / fitted-early)
+    0-> 1  0.382 / 0.752
+    1-> 2  0.443 / 0.628
+    2-> 3  0.281 / 0.613
+    3-> 4  0.469 / 0.643
+    4-> 5  0.593 / 0.734
+    5-> 6  0.712 / 0.758
+    6-> 7  0.807 / 0.855
+    7-> 8  0.720 / 0.772
+    8-> 9  0.605 / 0.762
+    9->10  0.446 / 0.495
+   10->11  0.499 / 0.604
+   11->12  0.401 / 0.666
+   12->13  0.641 / 0.749
+   13->14  0.605 / 0.676
+   14->15  0.669 / 0.820
+   15->16  0.528 / 0.726
+   16->17  0.752 / 0.819
+   17->18  0.700 / 0.811
+   18->19  0.643 / 0.785
+   19->20  0.665 / 0.742
+   20->21  0.685 / 0.746
+   21->22  0.554 / 0.603
+   22->23  0.478 / 0.634
+   23->24  0.645 / 0.701
+   24->25  0.614 / 0.704
+   25->26  0.694 / 0.790
+   26->27  0.583 / 0.821
+   27->28  0.717 / 0.879
+   28->29  0.526 / 0.773
+
+4. ridge strength, chosen on training prompts only (secondary)
+   lambda=1 validation 0.730
+   lambda=3 validation 0.726
+   lambda=10 validation 0.716
+   lambda=30 validation 0.702
+   lambda=100 validation 0.685
+   chose lambda=1: held-out fitted-early precision@1 0.726

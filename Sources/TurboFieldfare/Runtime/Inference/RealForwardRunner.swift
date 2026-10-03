@@ -188,6 +188,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
     private let denseScratchUp: MTLBuffer   // [F=2112] FP16
     private let denseScratchAct: MTLBuffer  // [F=2112] FP16
     private let routerInput: MTLBuffer   // [D] FP16 (rmsnorm_no_scale(h))
+    private let nextLayerScores: MTLBuffer // [numExperts] FP32, early-read guess
     private let zeroResidual: MTLBuffer  // [D] FP16 zeros — for routed branch base
     private let outIndices: MTLBuffer    // [topK] UInt32
     private let outWeights: MTLBuffer    // [topK] FP16
@@ -210,6 +211,12 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
     /// allocation per layer. ~168 KB total at 30 layers × 2816 BF16 — bounded
     /// host work done once at init.
     private let effectiveScaleBuffers: [MTLBuffer]
+    /// Research-only decode routing trace; nil unless
+    /// `TURBO_FIELDFARE_ROUTING_TRACE` is set. See `RoutingTraceWriter`.
+    private let routingTrace: RoutingTraceWriter?
+    /// Experimental next-layer early read; nil unless
+    /// `TURBO_FIELDFARE_EARLY_EXPERT_READ` is set. See `NextLayerExpertPrefetcher`.
+    private let earlyExpertReads: NextLayerExpertPrefetcher?
     private let sharedExpertProjections: [LayerSharedExpertProjections]
 
     public let maxContext: Int
@@ -311,6 +318,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
         self.denseScratchUp   = try buf(F)
         self.denseScratchAct  = try buf(F)
         self.routerInput   = try buf(D)
+        self.nextLayerScores = try buf(cfg.numExperts, MemoryLayout<Float>.size)
         self.zeroResidual  = try buf(D)
         // The routed MoE kernel seeds y[d] = residual[d]; pinning this buffer
         // to zero once at init makes the routed branch's residual contribution
@@ -376,6 +384,13 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             perLayer.append(buf)
         }
         self.effectiveScaleBuffers = perLayer
+        let trace = try RoutingTraceWriter(config: cfg)
+        if let trace {
+            try Self.exportRouterMatrices(model: model, config: cfg,
+                                          effectiveScales: perLayer, to: trace)
+        }
+        self.routingTrace = trace
+        self.earlyExpertReads = try NextLayerExpertPrefetcher(model: model)
     }
 
     public func reset() {
@@ -1488,6 +1503,8 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             for i in 0..<slots.count { ptr[i] = slots[i] }
         }
 
+        try earlyExpertReads?.beginForward()
+
         // Embed lookup + sqrt(H) fused.
         let emb = model.embedding
         do {
@@ -1659,6 +1676,11 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                     numExperts: UInt32(cfg.numExperts), d: D, topK: UInt32(cfg.topKExperts))
             }
 
+            // Early read: score layer L+1's experts with its own router over
+            // this layer's router input, in the same command buffer.
+            let earlyLayer = earlyExpertReads != nil && L + 1 < cfg.numLayers ? L + 1 : nil
+            let earlyRouterW = try earlyLayer.map { try model.router(layer: $0) }
+
             let cb = ctx.queue.makeCommandBuffer()!
             gInputNorm(cb)
             gQKV(cb)
@@ -1667,6 +1689,16 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             gOProj(cb)
             gPostAttnSetup(cb)
             gRouter(cb)
+            if let earlyLayer, let earlyRouterW {
+                moe.encodeRouterLogitsGemma4(commandBuffer: cb,
+                    weights: earlyRouterW.buffer, weightsOffset: Int(earlyRouterW.offset),
+                    scales:  earlyRouterW.buffer, scalesOffset:  Int(earlyRouterW.scaleOffset),
+                    biases:  earlyRouterW.buffer, biasesOffset:  Int(earlyRouterW.biasOffset),
+                    hidden: routerInput,
+                    effectiveScale: effectiveScaleBuffers[earlyLayer],
+                    outLogits: nextLayerScores,
+                    numExperts: UInt32(cfg.numExperts), d: D)
+            }
             cb.commit()
             gpuWork.append((cb, .cb1))
             let tWait = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
@@ -1688,6 +1720,18 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                 experts[i] = min(Int(idxPtr[i]), cfg.numExperts - 1)
             }
 
+            var earlyGuess: (streamer: PreadExpertStreamer, expert: Int)?
+            if let earlyLayer {
+                let streamer = try model.routedExpertStreamer(layer: earlyLayer)
+                let scores = nextLayerScores.contents().bindMemory(to: Float.self,
+                                                                   capacity: cfg.numExperts)
+                if let expert = NextLayerExpertPrefetcher.choose(
+                    scores: scores, count: cfg.numExperts,
+                    resident: streamer.residentExperts()) {
+                    earlyGuess = (streamer, expert)
+                }
+            }
+
             let routedOffsets = model.routedExpertOffsets(layer: L)
             let topK = UInt32(cfg.topKExperts)
             let canPlanPhase1HitSplit =
@@ -1695,11 +1739,31 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             let plannedFetch = canPlanPhase1HitSplit
                 ? try model.planRoutedExperts(layer: L, experts: experts)
                 : nil
+            // Before any of the plan's buffers are bound: adopting swaps one.
+            var adoptedEarlyMiss: Int?
+            if let early = earlyExpertReads, let plannedFetch {
+                adoptedEarlyMiss = early.adopt(into: plannedFetch,
+                                               streamer: try model.routedExpertStreamer(layer: L))
+            }
             var phase1HitCB: MTLCommandBuffer?
             var phase1HitSplitArgBuf: MTLBuffer?
             var phase1HitSplitRoutedBufs: [MTLBuffer] = []
             var phase1HitSlots: [UInt32] = []
             var phase1MissSlots: [UInt32] = []
+
+            // Research trace: router input and scores are overwritten by the
+            // next layer's cb1, so copy them now; the record is written once
+            // this layer's output exists, below.
+            var traceRouterInput: [UInt8] = []
+            var traceScores: [Float] = []
+            if routingTrace != nil {
+                traceRouterInput = Array(UnsafeRawBufferPointer(
+                    start: routerInput.contents(), count: Int(D) * 2))
+                let scores = moe.lastRouterScores.contents()
+                    .assumingMemoryBound(to: Float.self)
+                traceScores = Array(UnsafeBufferPointer(start: scores,
+                                                        count: cfg.numExperts))
+            }
 
             if let plan = plannedFetch {
                 let missSet = Set(plan.misses)
@@ -1826,10 +1890,21 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             // Routed-expert pread — overlaps the shared MLP GPU work above.
             let tIoStart = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
             let blobs: [TensorView]
-            if let plannedFetch {
+            if let plannedFetch, let early = earlyExpertReads, let adoptedEarlyMiss {
+                blobs = try await model.fetchRoutedExperts(
+                    plan: plannedFetch,
+                    skippingMisses: [adoptedEarlyMiss],
+                    beforeAdmitting: { try early.waitForPending() })
+            } else if let plannedFetch {
                 blobs = try await model.fetchRoutedExperts(plan: plannedFetch)
             } else {
                 blobs = try await model.fetchRoutedExperts(layer: L, experts: experts)
+            }
+            // This layer's reads are done, so storage is idle until the next
+            // layer's: start the next layer's early read now.
+            if let early = earlyExpertReads, let layer = earlyLayer, let earlyGuess {
+                try early.issue(layer: layer, expert: earlyGuess.expert,
+                                streamer: earlyGuess.streamer)
             }
             let layerIo = clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - tIoStart
             totalIoNanos &+= layerIo
@@ -1895,6 +1970,24 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                 sharedCB: sharedCB,
                 phase1HitCB: phase1HitCB,
                 encodeAndCommitNanos: clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - tCb2Start)
+            if let routingTrace {
+                waitUntilCompleted(routedCB)
+                try checkCommandBufferError(routedCB)
+                try traceScores.withUnsafeBufferPointer { scores in
+                    try traceRouterInput.withUnsafeBytes { input in
+                        try routingTrace.append(
+                            position: position,
+                            layer: L,
+                            experts: experts,
+                            missedExperts: plannedFetch.map { plan in
+                                plan.misses.map { experts[$0] }
+                            },
+                            scores: scores.baseAddress!,
+                            routerInput: input.baseAddress!,
+                            layerOutput: hidden.contents())
+                    }
+                }
+            }
             continue
         }
         if let pending = pendingRoutedCommand {
@@ -1994,6 +2087,42 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
     private nonisolated func waitForCompletion(_ cb: MTLCommandBuffer) throws {
         waitUntilCompleted(cb)
         try checkCommandBufferError(cb)
+    }
+
+    /// Writes each layer's router as a dense Float32 matrix for the research
+    /// trace, dequantized on the CPU the way `router_gemv_gemma4_body` does
+    /// it: 8-bit weights, one BF16 scale and bias per 64-wide group, times the
+    /// BF16 effective scale. One layer is held at a time (1.4 MB).
+    private static func exportRouterMatrices(model: Model,
+                                             config cfg: ArchConfig,
+                                             effectiveScales: [MTLBuffer],
+                                             to trace: RoutingTraceWriter) throws {
+        let D = cfg.hiddenSize
+        let E = cfg.numExperts
+        let groups = D / Quantization.groupSize
+        for L in 0..<cfg.numLayers {
+            let w = try model.router(layer: L)
+            let base = w.buffer.contents()
+            let q = base.advanced(by: Int(w.offset)).assumingMemoryBound(to: UInt8.self)
+            let scales = base.advanced(by: Int(w.scaleOffset))
+                .assumingMemoryBound(to: UInt16.self)
+            let biases = base.advanced(by: Int(w.biasOffset))
+                .assumingMemoryBound(to: UInt16.self)
+            let eff = effectiveScales[L].contents().assumingMemoryBound(to: UInt16.self)
+            var matrix = [Float](repeating: 0, count: E * D)
+            for e in 0..<E {
+                for g in 0..<groups {
+                    let s = Quantization.bf16ToFloat(scales[e * groups + g])
+                    let b = Quantization.bf16ToFloat(biases[e * groups + g])
+                    for j in 0..<Quantization.groupSize {
+                        let i = g * Quantization.groupSize + j
+                        matrix[e * D + i] = (s * Float(q[e * D + i]) + b)
+                            * Quantization.bf16ToFloat(eff[i])
+                    }
+                }
+            }
+            try trace.writeRouterMatrix(layer: L, matrix)
+        }
     }
 
     private nonisolated func waitUntilCompleted(_ cb: MTLCommandBuffer) {

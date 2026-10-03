@@ -1,0 +1,11 @@
+22:57:10 install
+22:57:17 cooldown 60s
+22:58:17 launch short-1 (short-explanation)
+23:00:06 done short-1: [stop=endOfTurn prefill=61tok new=507tok decode=93.15s tok/s=5.443]
+23:00:06 cooldown 300s
+23:05:06 launch medium-1 (medium-review)
+23:07:37 done medium-1: [stop=endOfTurn prefill=430tok new=632tok decode=135.44s tok/s=4.666]
+23:07:37 cooldown 300s
+23:12:37 launch long-1 (long-synthesis)
+23:16:13 done long-1: [stop=endOfTurn prefill=3015tok new=602tok decode=136.43s tok/s=4.412]
+23:16:13 ALL DONE

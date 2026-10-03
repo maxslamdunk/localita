@@ -35,7 +35,14 @@ func expertIOFooter(_ stats: RawDecodeResult) -> String {
         + " forwards=\(stats.decodeForwards)"
         + " | prefill bytes=\(megabytes(prefill.bytesRead))MB"
         + " hit-rate=\(percent(prefill.cacheHitRate))"
-        + " reads=\(prefill.reads)]"
+        + " reads=\(prefill.reads)"
+        // Only when the experimental early read ran, so parsers of the
+        // line without it are unaffected.
+        + (decode.earlyReads > 0
+            ? " | early decode reads/tok=\(perForward(decode.earlyReads))"
+                + " used/tok=\(perForward(decode.earlyReadsUsed))"
+            : "")
+        + "]"
 }
 
 /// Third footer line: where a decode forward's time goes, in milliseconds per
