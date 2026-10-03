@@ -33,7 +33,10 @@ differ.
 
 ## Where the time goes on the phone
 
-Defaults: 24 slots, grouped full attention, early read off. Per decode forward,
+Measured with 24 slots, grouped full attention and the early read off. **The
+early read has been on by default since 2026-10-03**, with the fitted guess for
+gemma4: about +17–20% tok/s for +11–18% bytes/token against this table
+(`benchmark-results-2026-10-03-ios-fitted-guess/`). Per decode forward,
 iPhone 17, 2026-10-01/02, short / medium / long:
 
 | | short | medium | long |
