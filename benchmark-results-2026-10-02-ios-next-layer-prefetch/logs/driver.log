@@ -1,0 +1,38 @@
+00:44:35 install
+00:44:41 cooldown 60s
+00:45:41 launch short-A1 (short-explanation)
+00:47:29 done short-A1: [stop=endOfTurn prefill=61tok new=507tok decode=89.66s tok/s=5.655]
+00:47:29 cooldown 300s
+00:52:29 launch short-B1 (short-explanation)
+00:54:18 done short-B1: [stop=endOfTurn prefill=61tok new=507tok decode=78.30s tok/s=6.475]
+00:54:18 cooldown 300s
+00:59:18 launch short-B2 (short-explanation)
+01:01:06 done short-B2: [stop=endOfTurn prefill=61tok new=507tok decode=77.81s tok/s=6.516]
+01:01:06 cooldown 300s
+01:06:06 launch short-A2 (short-explanation)
+01:07:54 done short-A2: [stop=endOfTurn prefill=61tok new=507tok decode=90.01s tok/s=5.633]
+01:07:54 cooldown 300s
+01:12:54 launch medium-A1 (medium-review)
+01:15:28 done medium-A1: [stop=endOfTurn prefill=430tok new=632tok decode=131.45s tok/s=4.808]
+01:15:28 cooldown 300s
+01:20:28 launch medium-B1 (medium-review)
+01:23:00 done medium-B1: [stop=endOfTurn prefill=430tok new=632tok decode=122.37s tok/s=5.165]
+01:23:00 cooldown 300s
+01:28:00 launch medium-B2 (medium-review)
+01:30:10 done medium-B2: [stop=endOfTurn prefill=430tok new=632tok decode=113.99s tok/s=5.544]
+01:30:10 cooldown 300s
+01:35:10 launch medium-A2 (medium-review)
+01:37:40 done medium-A2: [stop=endOfTurn prefill=430tok new=632tok decode=133.37s tok/s=4.739]
+01:37:40 cooldown 300s
+01:42:40 launch long-A1 (long-synthesis)
+01:46:15 done long-A1: [stop=endOfTurn prefill=3015tok new=602tok decode=138.36s tok/s=4.351]
+01:46:15 cooldown 300s
+01:51:15 launch long-B1 (long-synthesis)
+01:54:52 done long-B1: [stop=endOfTurn prefill=3015tok new=602tok decode=128.55s tok/s=4.683]
+01:54:52 cooldown 300s
+01:59:52 launch long-B2 (long-synthesis)
+02:03:06 done long-B2: [stop=endOfTurn prefill=3015tok new=602tok decode=116.78s tok/s=5.155]
+02:03:06 cooldown 300s
+02:08:06 launch long-A2 (long-synthesis)
+02:11:41 done long-A2: [stop=endOfTurn prefill=3015tok new=602tok decode=136.84s tok/s=4.399]
+02:11:41 ALL DONE

@@ -113,6 +113,7 @@ resident set size; and **NLL** is negative log-likelihood. See
 | [CACHE-07](summaries/03-expert-cache-prediction-and-layout.md#cache-07) — Offset read order | First win failed to repeat. | Rejected. |
 | [CACHE-08](summaries/03-expert-cache-prediction-and-layout.md#cache-08) — Packed layout | Natural text +3.61%; near-4K decode -16.1% and prefill worse. | Rejected. |
 | [CACHE-09](summaries/03-expert-cache-prediction-and-layout.md#cache-09) — APFS preallocation | Fragmentation observed; candidate not built. | Unexecuted hypothesis. |
+| [CACHE-10](summaries/03-expert-cache-prediction-and-layout.md#cache-10) — next-layer early read | iPhone +15.1 / +12.2 / +12.4% tok/s, identical output, +18–26% bytes/token. | Experimental switch; fitted guess next. |
 
 ### RDADVISE
 

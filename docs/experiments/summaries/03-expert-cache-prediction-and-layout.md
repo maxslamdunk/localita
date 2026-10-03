@@ -17,6 +17,7 @@ capacity and memory cost.
 | 24/32 slots | Conditional +memory experiments |
 | Predictor, Markov, read sorting, and single-trace layout | Rejected |
 | Fresh preallocated expert artifact | Unexecuted hypothesis |
+| Next-layer early read from the hidden state | Experimental switch; +12–15% tok/s on iPhone at +18–26% bytes/token |
 
 ## Cache policy and capacity
 
@@ -156,6 +157,33 @@ capacity and memory cost.
 - **Lesson:**
   A plausible filesystem mechanism is neither a win nor a rejection until the
   artifact is built and measured.
+
+<a id="cache-10"></a>
+### CACHE-10: Next-layer early read from the hidden state (iPhone)
+
+- **Hypothesis:** Layer L+1's router applied to layer L's router input names
+  one of L+1's misses often enough that reading it while storage is idle saves
+  more time than the wasted reads cost.
+- **Variants tested:** Offline scoring of naive and ridge-fitted guesses on
+  Mac routing traces, then the unfitted guess at k = 1 on the iPhone. It reads
+  into a staging buffer outside the slot pool, issued after layer L's own reads
+  finish, and is swapped into the slot the plan assigns. Behind
+  `TURBO_FIELDFARE_EARLY_EXPERT_READ`, off by default.
+- **Evidence:**
+  - Offline, precision@1 at 24 slots was 0.588 naive and 0.726 fitted; the
+    wrong-token control was 0.08.
+  - On the phone, A B B A per case: **+15.1 / +12.2 / +12.4% tok/s** and
+    `io` −22 / −34 / −26 ms per forward.
+  - Output was byte-identical in all 12 runs, with live precision 0.55 /
+    0.59 / 0.61.
+  - bytes/token rose **+26 / +20 / +18%**: about 12 wasted reads per token.
+- **What changed the conclusion:** Unlike CACHE-05, the guess reads the hidden
+  state, not expert IDs. Unlike CACHE-06, the read waits for the layer's own
+  reads and never touches a slot until the plan has assigned it.
+- **Final disposition:** Kept as an experimental switch; the fitted guess is
+  next. See `benchmark-results-2026-10-02-ios-next-layer-prefetch/results.md`.
+- **Lesson:** A prefetch that raises bytes/token can still win when it is
+  confined to measured idle storage time. Measure the idle window first.
 
 [Previous: Decode, MoE, INT4, and router](02-decode-moe-int4-and-router.md) |
 [Experiment inventory](../EXPERIMENT_INVENTORY.md) |
