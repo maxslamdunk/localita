@@ -1,4 +1,5 @@
 import Foundation
+import Metal
 
 /// Experimental decode control: read one of the next layer's routed experts
 /// while storage would otherwise sit idle. On only when the environment
@@ -13,6 +14,10 @@ import Foundation
 /// this, so hit rate and generated text are unchanged; only where one miss's
 /// bytes come from differs. See
 /// `benchmark-results-2026-10-02-ios-next-layer-prefetch/predictions.md`.
+///
+/// When `TURBO_FIELDFARE_EARLY_EXPERT_GUESS` also names a guess file, layer
+/// L+1's experts are scored with its fitted matrix instead of L+1's router
+/// (`NextLayerGuessWeights`).
 final class NextLayerExpertPrefetcher: @unchecked Sendable {
     static let environmentKey = "TURBO_FIELDFARE_EARLY_EXPERT_READ"
 
@@ -30,14 +35,23 @@ final class NextLayerExpertPrefetcher: @unchecked Sendable {
     }
 
     private let staging: ExpertStagingBuffer
+    /// The fitted guess, or nil to score with the next layer's own router.
+    let guessWeights: NextLayerGuessWeights?
     private let queue = DispatchQueue(label: "turbo-fieldfare.early-expert-read",
                                       qos: .userInitiated)
     private var pending: Pending?
 
     init?(environment: [String: String] = ProcessInfo.processInfo.environment,
-          model: Model) throws {
+          model: Model, config: ArchConfig, device: MTLDevice) throws {
         guard environment[Self.environmentKey] == "next-layer" else { return nil }
         staging = try model.routedExpertStreamer(layer: 0).makeStagingBuffer()
+        if let path = environment[NextLayerGuessWeights.environmentKey], !path.isEmpty {
+            guessWeights = try NextLayerGuessWeights(
+                fileURL: URL(fileURLWithPath: path), numLayers: config.numLayers,
+                numExperts: config.numExperts, hiddenSize: config.hiddenSize, device: device)
+        } else {
+            guessWeights = nil
+        }
     }
 
     /// The highest-scoring expert not in `resident`; ties go to the lower ID.

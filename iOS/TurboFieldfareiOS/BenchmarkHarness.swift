@@ -268,6 +268,11 @@ struct HarnessSettings {
     /// built. See `NextLayerExpertPrefetcher`.
     var earlyExpertRead = false
     static let earlyExpertReadEnvironmentKey = "TURBO_FIELDFARE_EARLY_EXPERT_READ"
+    /// `--early-expert-guess <file>`: a fitted guess file in `Documents`,
+    /// used in place of the next layer's router when the early read is on.
+    /// See `NextLayerGuessWeights`. Its SHA-256 goes in the log.
+    var earlyExpertGuess: URL?
+    static let earlyExpertGuessEnvironmentKey = "TURBO_FIELDFARE_EARLY_EXPERT_GUESS"
 
     static func fromLaunchArguments() -> HarnessSettings {
         var settings = HarnessSettings()
@@ -289,6 +294,12 @@ struct HarnessSettings {
         if args.contains("--early-expert-read") {
             settings.earlyExpertRead = true
             setenv(earlyExpertReadEnvironmentKey, "next-layer", 1)
+        }
+        if let v = value("--early-expert-guess") {
+            let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent(v)
+            settings.earlyExpertGuess = url
+            setenv(earlyExpertGuessEnvironmentKey, url.path, 1)
         }
         return settings
     }
@@ -384,6 +395,17 @@ final class Harness: ObservableObject {
             // for error types that do supply a useful string.
             emit("failed", "\(String(describing: error)) | \(error.localizedDescription)")
         }
+    }
+
+    /// `router` when the early read scores with the next layer's router, or
+    /// the guess file's name and SHA-256, so the log proves which guess ran.
+    private static func earlyGuessDescription(_ settings: HarnessSettings) throws -> String {
+        guard settings.earlyExpertRead, let url = settings.earlyExpertGuess else {
+            return settings.earlyExpertRead ? "router" : "off"
+        }
+        let digest = SHA256.hash(data: try Data(contentsOf: url, options: .mappedIfSafe))
+            .map { String(format: "%02x", $0) }.joined()
+        return "\(url.lastPathComponent)@\(digest)"
     }
 
     private func generate(settings: HarnessSettings) async throws {
@@ -540,7 +562,8 @@ final class Harness: ObservableObject {
             + "prefillChunk=\(runtime.prefillChunkTokens) "
             + "prefillChunkSource=\(settings.prefillChunkExplicit ? "explicit" : "auto") "
             + "prefill=\(runtime.prefillPolicy.rawValue) "
-            + "earlyExpertRead=\(settings.earlyExpertRead ? "next-layer" : "off")")
+            + "earlyExpertRead=\(settings.earlyExpertRead ? "next-layer" : "off") "
+            + "earlyExpertGuess=\(try Self.earlyGuessDescription(settings))")
 
         var text = ""
         let stats = try await runRawCompletion(
