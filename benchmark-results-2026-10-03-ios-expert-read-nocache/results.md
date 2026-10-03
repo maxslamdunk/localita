@@ -85,9 +85,10 @@ spare.
 
 ## Decision
 
-Kept as an opt-in switch for now: `TURBO_FIELDFARE_EXPERT_READ_NOCACHE=1`,
-harness `--expert-read-nocache`. Making it the iOS default is the user's call.
-The case for it: identical output, zero byte change, faster reads in every
-run, and +4 to +8% tok/s where GPU speed was matched. The open question is how
-much of the long case's gain is real; a long-case repeat with matched GPU
-speed would settle it.
+**On by default on iOS since 2026-10-03, by the user's decision.** Off on
+macOS, where it measured neutral (IO-03). Override with
+`TURBO_FIELDFARE_EXPERT_READ_NOCACHE=1|0`, or in the harness with
+`--expert-read-nocache` / `--expert-read-cached`. The reasons: identical
+output, zero byte change, faster reads in every run, and +6 to +8% tok/s where
+GPU speed was matched. Still open: how much of the long case's gain is real.
+A long-case repeat with matched GPU speed would settle it.

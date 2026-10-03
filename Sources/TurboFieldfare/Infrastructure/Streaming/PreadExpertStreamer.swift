@@ -143,9 +143,8 @@ public final class PreadExpertStreamer: @unchecked Sendable {
             throw StreamerError.openFailed(path: layout.path, errno: errno)
         }
         self.fd = openedFD
-        // Experimental: `TURBO_FIELDFARE_EXPERT_READ_NOCACHE=1` reads experts
-        // past the OS file cache. Neutral on the Mac (IO-03); being retried on
-        // the iPhone, where the cache serves under 1% of misses anyway.
+        // Expert reads skip the OS file cache on iOS by default; see
+        // `readsBypassFileCache(environment:)`.
         if Self.readsBypassFileCache(environment: ProcessInfo.processInfo.environment) {
             _ = fcntl(openedFD, F_NOCACHE, 1)
         }
@@ -456,11 +455,29 @@ public final class PreadExpertStreamer: @unchecked Sendable {
         return adviseRanges(expertAdviceRanges(experts: misses), requested: misses.count)
     }
 
-    static let readNoCacheEnvironmentKey = "TURBO_FIELDFARE_EXPERT_READ_NOCACHE"
+    public static let readNoCacheEnvironmentKey = "TURBO_FIELDFARE_EXPERT_READ_NOCACHE"
 
-    static func readsBypassFileCache(environment: [String: String]) -> Bool {
-        environment[readNoCacheEnvironmentKey] == "1"
+    /// Whether expert reads set `F_NOCACHE`. On by default on iOS, where the
+    /// file cache serves under 1% of misses and skipping it made every read
+    /// 0.50–0.67 ms faster (`benchmark-results-2026-10-03-ios-expert-read-nocache/`).
+    /// Off by default on macOS, where it measured neutral (IO-03).
+    /// `TURBO_FIELDFARE_EXPERT_READ_NOCACHE=1` or `=0` overrides either default.
+    public static func readsBypassFileCache(
+        environment: [String: String],
+        enabledByDefault: Bool = readsBypassFileCacheByDefault
+    ) -> Bool {
+        switch environment[readNoCacheEnvironmentKey] {
+        case "1": true
+        case "0": false
+        default: enabledByDefault
+        }
     }
+
+    #if os(iOS)
+    public static let readsBypassFileCacheByDefault = true
+    #else
+    public static let readsBypassFileCacheByDefault = false
+    #endif
 
     static func coalescedAdjacentAdviceRanges(_ ranges: [(offset: UInt64, count: UInt64)])
         -> [(offset: UInt64, count: UInt64)] {

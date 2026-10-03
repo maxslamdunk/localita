@@ -297,9 +297,13 @@ struct HarnessSettings {
         if args.contains("--no-early-expert-read") {
             setenv(earlyExpertReadEnvironmentKey, "off", 1)
         }
-        // Experimental: read experts past the OS file cache (`F_NOCACHE`).
+        // Expert reads skip the OS file cache (`F_NOCACHE`) by default on
+        // iOS; these force it either way. See `PreadExpertStreamer`.
         if args.contains("--expert-read-nocache") {
-            setenv("TURBO_FIELDFARE_EXPERT_READ_NOCACHE", "1", 1)
+            setenv(PreadExpertStreamer.readNoCacheEnvironmentKey, "1", 1)
+        }
+        if args.contains("--expert-read-cached") {
+            setenv(PreadExpertStreamer.readNoCacheEnvironmentKey, "0", 1)
         }
         if let v = value("--early-expert-guess") {
             let guess = v == "router" ? v
@@ -560,7 +564,7 @@ final class Harness: ObservableObject {
             + "earlyExpertRead=\(runner.earlyExpertReadDescription == "off" ? "off" : "next-layer") "
             + "earlyExpertGuess=\(runner.earlyExpertReadDescription) "
             + "expertReadNoCache="
-            + "\(ProcessInfo.processInfo.environment["TURBO_FIELDFARE_EXPERT_READ_NOCACHE"] == "1")")
+            + "\(PreadExpertStreamer.readsBypassFileCache(environment: ProcessInfo.processInfo.environment))")
 
         var text = ""
         let stats = try await runRawCompletion(
