@@ -1,23 +1,27 @@
 import Foundation
 import Metal
 
-/// Experimental decode control: read one of the next layer's routed experts
-/// while storage would otherwise sit idle. On only when the environment
-/// variable `TURBO_FIELDFARE_EARLY_EXPERT_READ` is `next-layer`.
+/// Decode control: read one of the next layer's routed experts while storage
+/// would otherwise sit idle. On by default (`RuntimeConfiguration.earlyExpertRead`,
+/// since 2026-10-03); the environment variable
+/// `TURBO_FIELDFARE_EARLY_EXPERT_READ` overrides it with `next-layer` or `off`.
 ///
-/// Per layer L < last: cb1(L) also scores layer L+1's experts with L+1's router
-/// over L's router input. After L's own reads finish, the best-scoring expert
-/// that L+1's cache does not hold is read into a staging buffer outside every
-/// slot. If L+1's plan then misses that expert, the staging buffer is swapped
-/// into the slot the plan assigned to it and its read is skipped; otherwise
-/// the read is simply wasted. The cache plans exactly as it would without
-/// this, so hit rate and generated text are unchanged; only where one miss's
-/// bytes come from differs. See
+/// Per layer L < last: cb1(L) also scores layer L+1's experts over L's router
+/// input. After L's own reads finish, the best-scoring expert that L+1's cache
+/// does not hold is read into a staging buffer outside every slot. If L+1's
+/// plan then misses that expert, the staging buffer is swapped into the slot
+/// the plan assigned to it and its read is skipped; otherwise the read is
+/// simply wasted. The cache plans exactly as it would without this, so hit rate
+/// and generated text are unchanged; only where one miss's bytes come from
+/// differs. See
 /// `benchmark-results-2026-10-02-ios-next-layer-prefetch/predictions.md`.
 ///
-/// When `TURBO_FIELDFARE_EARLY_EXPERT_GUESS` also names a guess file, layer
-/// L+1's experts are scored with its fitted matrix instead of L+1's router
-/// (`NextLayerGuessWeights`).
+/// The scores come from the fitted guess the runtime ships for this model
+/// (`NextLayerGuessWeights`) when there is one, and otherwise from layer L+1's
+/// own router. `TURBO_FIELDFARE_EARLY_EXPERT_GUESS` overrides that with a file
+/// path, or with `router` to force the router. Measured on the iPhone 17: the
+/// fitted guess is used 0.68–0.75 of the time against the router's 0.55–0.61
+/// (`benchmark-results-2026-10-03-ios-fitted-guess/results.md`).
 final class NextLayerExpertPrefetcher: @unchecked Sendable {
     static let environmentKey = "TURBO_FIELDFARE_EARLY_EXPERT_READ"
 
@@ -42,16 +46,39 @@ final class NextLayerExpertPrefetcher: @unchecked Sendable {
     private var pending: Pending?
 
     init?(environment: [String: String] = ProcessInfo.processInfo.environment,
+          enabledByDefault: Bool,
           model: Model, config: ArchConfig, device: MTLDevice) throws {
-        guard environment[Self.environmentKey] == "next-layer" else { return nil }
+        guard Self.isEnabled(environment: environment, enabledByDefault: enabledByDefault)
+        else { return nil }
         staging = try model.routedExpertStreamer(layer: 0).makeStagingBuffer()
-        if let path = environment[NextLayerGuessWeights.environmentKey], !path.isEmpty {
+        switch environment[NextLayerGuessWeights.environmentKey] {
+        case "router":
+            guessWeights = nil
+        case let path? where !path.isEmpty:
             guessWeights = try NextLayerGuessWeights(
                 fileURL: URL(fileURLWithPath: path), numLayers: config.numLayers,
                 numExperts: config.numExperts, hiddenSize: config.hiddenSize, device: device)
-        } else {
-            guessWeights = nil
+        default:
+            guessWeights = try NextLayerGuessWeights.bundled(
+                sourceSnapshotHash: model.sourceSnapshotHash, numLayers: config.numLayers,
+                numExperts: config.numExperts, hiddenSize: config.hiddenSize, device: device)
         }
+    }
+
+    /// `TURBO_FIELDFARE_EARLY_EXPERT_READ=next-layer` or `off` wins; anything
+    /// else, including unset, leaves the configuration's default.
+    static func isEnabled(environment: [String: String], enabledByDefault: Bool) -> Bool {
+        switch environment[environmentKey] {
+        case "next-layer": return true
+        case "off": return false
+        default: return enabledByDefault
+        }
+    }
+
+    /// Which guess scores the next layer, for logs: `router`, or the fitted
+    /// file's name and SHA-256.
+    var guessDescription: String {
+        guessWeights.map { "\($0.name)@\($0.sha256)" } ?? "router"
     }
 
     /// The highest-scoring expert not in `resident`; ties go to the lower ID.

@@ -89,6 +89,17 @@ public struct RuntimeConfiguration: Sendable, Equatable {
     public let prefillChunkTokens: Int
     public let prefillAttentionPath: RuntimePrefillAttentionPath
     public let headPath: RuntimeHeadPath
+    /// Read one of the next layer's experts while storage is idle
+    /// (`NextLayerExpertPrefetcher`). **On by default on both platforms since
+    /// 2026-10-03.** Output is byte-identical either way; the trade is
+    /// bytes/token for time. On the iPhone 17 at 24 slots, with the fitted
+    /// guess, about **+17–20% tok/s for +11–18% bytes/token**, because the
+    /// extra reads use storage time that was idle. On the Mac at 16 slots the
+    /// short case gained +16.5% with the unfitted guess and a further +5.4%
+    /// with the fitted one. Costs one 3.36 MB staging buffer plus the mapped
+    /// 11.1 MB guess file. See
+    /// `benchmark-results-2026-10-03-ios-fitted-guess/results.md`.
+    public let earlyExpertRead: Bool
 
     public init(expertCacheSlots: Int = RuntimeConfiguration.productionExpertCacheSlots,
                 expertCachePolicy: RuntimeExpertCachePolicy = .lfu,
@@ -96,7 +107,8 @@ public struct RuntimeConfiguration: Sendable, Equatable {
                 prefillEnabled: Bool = true,
                 prefillChunkTokens: Int = 128,
                 prefillAttentionPath: RuntimePrefillAttentionPath = .fullTensorOps2DPreferred,
-                forceLogitsHead: Bool = false) {
+                forceLogitsHead: Bool = false,
+                earlyExpertRead: Bool = true) {
         precondition(Self.allowedExpertCacheSlots.contains(expertCacheSlots),
                      "unsupported expert-cache slot count")
         precondition(Self.allowedPrefillChunkTokens.contains(prefillChunkTokens),
@@ -108,6 +120,7 @@ public struct RuntimeConfiguration: Sendable, Equatable {
         self.prefillChunkTokens = prefillChunkTokens
         self.prefillAttentionPath = prefillAttentionPath
         self.headPath = forceLogitsHead ? .logits : .fusedRows
+        self.earlyExpertRead = earlyExpertRead
     }
 
     public static var production: RuntimeConfiguration {

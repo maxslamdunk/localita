@@ -64,3 +64,5 @@ Scripts/probes/*
 !iOS/TurboFieldfareiOS.xcodeproj/project.pbxproj
 !iOS/TurboFieldfareiOS.xcodeproj/xcshareddata/
 !iOS/TurboFieldfareiOS.xcodeproj/xcshareddata/**/*.xcscheme
+# The fitted next-layer guess ships with the runtime (NextLayerGuessWeights).
+!Sources/TurboFieldfare/NextLayerGuess/*.bin
