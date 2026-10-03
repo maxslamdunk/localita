@@ -143,6 +143,12 @@ public final class PreadExpertStreamer: @unchecked Sendable {
             throw StreamerError.openFailed(path: layout.path, errno: errno)
         }
         self.fd = openedFD
+        // Experimental: `TURBO_FIELDFARE_EXPERT_READ_NOCACHE=1` reads experts
+        // past the OS file cache. Neutral on the Mac (IO-03); being retried on
+        // the iPhone, where the cache serves under 1% of misses anyway.
+        if Self.readsBypassFileCache(environment: ProcessInfo.processInfo.environment) {
+            _ = fcntl(openedFD, F_NOCACHE, 1)
+        }
         var closeFDOnFailure = true
         defer { if closeFDOnFailure { close(openedFD) } }
 
@@ -448,6 +454,12 @@ public final class PreadExpertStreamer: @unchecked Sendable {
         let misses = experts.filter { !slotExpert.contains($0) }
         cacheLock.unlock()
         return adviseRanges(expertAdviceRanges(experts: misses), requested: misses.count)
+    }
+
+    static let readNoCacheEnvironmentKey = "TURBO_FIELDFARE_EXPERT_READ_NOCACHE"
+
+    static func readsBypassFileCache(environment: [String: String]) -> Bool {
+        environment[readNoCacheEnvironmentKey] == "1"
     }
 
     static func coalescedAdjacentAdviceRanges(_ ranges: [(offset: UInt64, count: UInt64)])

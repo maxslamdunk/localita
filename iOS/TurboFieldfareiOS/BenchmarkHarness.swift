@@ -297,6 +297,10 @@ struct HarnessSettings {
         if args.contains("--no-early-expert-read") {
             setenv(earlyExpertReadEnvironmentKey, "off", 1)
         }
+        // Experimental: read experts past the OS file cache (`F_NOCACHE`).
+        if args.contains("--expert-read-nocache") {
+            setenv("TURBO_FIELDFARE_EXPERT_READ_NOCACHE", "1", 1)
+        }
         if let v = value("--early-expert-guess") {
             let guess = v == "router" ? v
                 : FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -554,7 +558,9 @@ final class Harness: ObservableObject {
             + "prefillChunkSource=\(settings.prefillChunkExplicit ? "explicit" : "auto") "
             + "prefill=\(runtime.prefillPolicy.rawValue) "
             + "earlyExpertRead=\(runner.earlyExpertReadDescription == "off" ? "off" : "next-layer") "
-            + "earlyExpertGuess=\(runner.earlyExpertReadDescription)")
+            + "earlyExpertGuess=\(runner.earlyExpertReadDescription) "
+            + "expertReadNoCache="
+            + "\(ProcessInfo.processInfo.environment["TURBO_FIELDFARE_EXPERT_READ_NOCACHE"] == "1")")
 
         var text = ""
         let stats = try await runRawCompletion(
