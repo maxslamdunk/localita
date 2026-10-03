@@ -214,9 +214,15 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
     /// Research-only decode routing trace; nil unless
     /// `TURBO_FIELDFARE_ROUTING_TRACE` is set. See `RoutingTraceWriter`.
     private let routingTrace: RoutingTraceWriter?
-    /// Experimental next-layer early read; nil unless
-    /// `TURBO_FIELDFARE_EARLY_EXPERT_READ` is set. See `NextLayerExpertPrefetcher`.
+    /// Next-layer early read; nil when `RuntimeConfiguration.earlyExpertRead`
+    /// is off or `TURBO_FIELDFARE_EARLY_EXPERT_READ=off`. See
+    /// `NextLayerExpertPrefetcher`.
     private let earlyExpertReads: NextLayerExpertPrefetcher?
+    /// `off`, `router`, or the fitted guess file's name and SHA-256, so a log
+    /// can state which early read ran.
+    public var earlyExpertReadDescription: String {
+        earlyExpertReads?.guessDescription ?? "off"
+    }
     private let sharedExpertProjections: [LayerSharedExpertProjections]
 
     public let maxContext: Int
@@ -390,8 +396,9 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                                           effectiveScales: perLayer, to: trace)
         }
         self.routingTrace = trace
-        self.earlyExpertReads = try NextLayerExpertPrefetcher(model: model, config: cfg,
-                                                              device: ctx.device)
+        self.earlyExpertReads = try NextLayerExpertPrefetcher(
+            enabledByDefault: runtimeConfiguration.earlyExpertRead,
+            model: model, config: cfg, device: ctx.device)
     }
 
     public func reset() {
