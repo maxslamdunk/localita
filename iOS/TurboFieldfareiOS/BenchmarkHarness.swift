@@ -242,6 +242,13 @@ struct HarnessSettings {
     /// `prompt` is ignored, which is the only way to produce a row that can sit
     /// beside a Mac row.
     var caseID: String?
+    /// `--session a,b,c`: these cases in order on one loaded model, each from
+    /// an empty KV, as the app runs one chat after another. Only a session
+    /// shows state that outlives a chat, such as the expert cache's LFU
+    /// counts; every single-case run starts a fresh process. Each case logs
+    /// its own `done`, footers and `generated` lines, tagged `case=`, and the
+    /// run ends with `session-done`.
+    var sessionCases: [String]?
     var prompt = "Explain what a mixture-of-experts language model is, and why "
         + "streaming experts from storage changes the engineering problem."
     /// Prompt tokens per chunked-prefill step; allowed values are 32, 64, 128,
@@ -283,6 +290,9 @@ struct HarnessSettings {
         }
         if let v = value("--label") { settings.label = v }
         if let v = value("--case") { settings.caseID = v }
+        if let v = value("--session") {
+            settings.sessionCases = v.split(separator: ",").map(String.init)
+        }
         if let v = value("--prompt") { settings.prompt = v }
         if let v = value("--max-new").flatMap(Int.init) { settings.maxNewTokens = v }
         if let v = value("--max-context").flatMap(Int.init) { settings.maxContext = v }
@@ -304,6 +314,14 @@ struct HarnessSettings {
         }
         if args.contains("--expert-read-cached") {
             setenv(PreadExpertStreamer.readNoCacheEnvironmentKey, "0", 1)
+        }
+        // LFU count aging in the expert cache; see
+        // `PreadExpertStreamer.usesCountAging(environment:)`.
+        if args.contains("--expert-cache-aging") {
+            setenv(PreadExpertStreamer.countAgingEnvironmentKey, "1", 1)
+        }
+        if args.contains("--no-expert-cache-aging") {
+            setenv(PreadExpertStreamer.countAgingEnvironmentKey, "0", 1)
         }
         if let v = value("--early-expert-guess") {
             let guess = v == "router" ? v
@@ -450,28 +468,52 @@ final class Harness: ObservableObject {
         // A `real-generation-v1` case when one is named, so the row can sit
         // beside a Mac row; the ad-hoc prompt otherwise, which cannot. The
         // SHA-256 goes in the log so the run proves which frozen bytes it used.
-        let promptIds: [Int32]
-        if let caseID = settings.caseID {
-            let loaded = try PromptCase.load(caseID)
-            promptIds = tokenizer.encode(
-                try tokenizer.applyChatTemplate(loaded.messages), addBOS: false)
-            emit("prompt-encoded", "case=\(caseID) sha256=\(loaded.sha256) "
-                + "messages=\(loaded.messages.count) tokens=\(promptIds.count)")
-        } else {
-            promptIds = tokenizer.encode(
-                try tokenizer.applyChatTemplate([.init(role: .user, content: settings.prompt)]),
-                addBOS: false)
-            emit("prompt-encoded", "case=ad-hoc-NOT-COMPARABLE tokens=\(promptIds.count)")
+        //
+        // A session encodes all its cases up front, so a missing prompt file
+        // fails the run before the model loads rather than halfway through.
+        let session = settings.sessionCases
+        // Session lines name their case; single-case lines stay as they were.
+        func tag(_ caseID: String?) -> String {
+            session == nil ? "" : " case=\(caseID ?? "ad-hoc")"
         }
+        var cases: [(caseID: String?, promptIds: [Int32], chunkTokens: Int)] = []
+        let caseIDs: [String?] = session?.map { $0 } ?? [settings.caseID]
+        for caseID in caseIDs {
+            let promptIds: [Int32]
+            if let caseID {
+                let loaded = try PromptCase.load(caseID)
+                promptIds = tokenizer.encode(
+                    try tokenizer.applyChatTemplate(loaded.messages), addBOS: false)
+                emit("prompt-encoded", "case=\(caseID) sha256=\(loaded.sha256) "
+                    + "messages=\(loaded.messages.count) tokens=\(promptIds.count)")
+            } else {
+                promptIds = tokenizer.encode(
+                    try tokenizer.applyChatTemplate([.init(role: .user, content: settings.prompt)]),
+                    addBOS: false)
+                emit("prompt-encoded", "case=ad-hoc-NOT-COMPARABLE tokens=\(promptIds.count)")
+            }
 
-        // `settings` is a `let` parameter, so the resolved size is a local
-        // rather than a mutation.
-        let resolvedChunkTokens = settings.prefillChunkExplicit
-            ? settings.prefillChunkTokens
-            : PrefillRuntimeConfig.autoChunkTokens(promptTokens: promptIds.count)
-        if !settings.prefillChunkExplicit {
-            emit("prefill-chunk-auto",
-                 "resolved=\(resolvedChunkTokens) for \(promptIds.count) prompt tokens")
+            // `settings` is a `let` parameter, so the resolved size is a local
+            // rather than a mutation.
+            let resolvedChunkTokens = settings.prefillChunkExplicit
+                ? settings.prefillChunkTokens
+                : PrefillRuntimeConfig.autoChunkTokens(promptTokens: promptIds.count)
+            if !settings.prefillChunkExplicit {
+                emit("prefill-chunk-auto",
+                     "resolved=\(resolvedChunkTokens) for \(promptIds.count) prompt tokens"
+                        + tag(caseID))
+            }
+            // `RuntimeConfiguration.init` enforces this with a `precondition`,
+            // which **traps** rather than throwing — and a trap writes no log
+            // line at all, so the run would simply vanish with no evidence of
+            // why. Refuse an unsupported value here instead, where the failure
+            // can be logged.
+            guard RuntimeConfiguration.allowedPrefillChunkTokens
+                .contains(resolvedChunkTokens) else {
+                throw HarnessError.badSetting("prefill chunk \(resolvedChunkTokens) "
+                    + "not in \(RuntimeConfiguration.allowedPrefillChunkTokens)")
+            }
+            cases.append((caseID, promptIds, resolvedChunkTokens))
         }
 
         let config = GenerationConfig(
@@ -480,26 +522,22 @@ final class Harness: ObservableObject {
             topK: settings.topK,
             topP: settings.topP,
             seed: settings.seed)
-        // `RuntimeConfiguration.init` enforces both of these with a
-        // `precondition`, which **traps** rather than throwing — and a trap
-        // writes no log line at all, so the run would simply vanish with no
-        // evidence of why. Refuse an unsupported value here instead, where the
-        // failure can be logged.
+        // The same trap as the chunk size above.
         guard RuntimeConfiguration.allowedExpertCacheSlots
             .contains(settings.expertCacheSlots) else {
             throw HarnessError.badSetting("slots \(settings.expertCacheSlots) not in "
                 + "\(RuntimeConfiguration.allowedExpertCacheSlots)")
         }
-        guard RuntimeConfiguration.allowedPrefillChunkTokens
-            .contains(resolvedChunkTokens) else {
-            throw HarnessError.badSetting("prefill chunk \(resolvedChunkTokens) "
-                + "not in \(RuntimeConfiguration.allowedPrefillChunkTokens)")
+        // One per case: only the prefill config differs, and the runner
+        // sizes nothing from the chunk (the KV ring follows the static cap).
+        func runtimeConfiguration(chunkTokens: Int) -> RuntimeConfiguration {
+            RuntimeConfiguration(
+                expertCacheSlots: settings.expertCacheSlots,
+                prefillChunkTokens: chunkTokens,
+                // A sampling config cannot use the fused head's GPU argmax.
+                forceLogitsHead: !config.isPureGreedy)
         }
-        let runtime = RuntimeConfiguration(
-            expertCacheSlots: settings.expertCacheSlots,
-            prefillChunkTokens: resolvedChunkTokens,
-            // A sampling config cannot use the fused head's GPU argmax.
-            forceLogitsHead: !config.isPureGreedy)
+        let runtime = runtimeConfiguration(chunkTokens: cases[0].chunkTokens)
 
         // `.fullSha256` verifies each 410 MiB layer file on its first routed
         // touch, landing that cost inside the `io` phase it is meant to
@@ -564,8 +602,41 @@ final class Harness: ObservableObject {
             + "earlyExpertRead=\(runner.earlyExpertReadDescription == "off" ? "off" : "next-layer") "
             + "earlyExpertGuess=\(runner.earlyExpertReadDescription) "
             + "expertReadNoCache="
-            + "\(PreadExpertStreamer.readsBypassFileCache(environment: ProcessInfo.processInfo.environment))")
+            + "\(PreadExpertStreamer.readsBypassFileCache(environment: ProcessInfo.processInfo.environment)) "
+            + "expertCacheAging="
+            + "\(PreadExpertStreamer.usesCountAging(environment: ProcessInfo.processInfo.environment))"
+            + (session.map { " session=\($0.joined(separator: ","))" } ?? ""))
 
+        for (index, encoded) in cases.enumerated() {
+            if session != nil {
+                emit("case-start", "case=\(encoded.caseID ?? "ad-hoc") index=\(index) "
+                    + "thermal=\(DeviceState.thermal())")
+            }
+            try await generate(
+                promptIds: encoded.promptIds,
+                caseTag: tag(encoded.caseID),
+                textSuffix: session == nil ? nil : encoded.caseID ?? "ad-hoc",
+                runner: runner, tokenizer: tokenizer, config: config,
+                context: context, scratch: scratch,
+                prefillConfig: runtimeConfiguration(chunkTokens: encoded.chunkTokens)
+                    .prefillConfig)
+        }
+        if let session {
+            emit("session-done", "cases=\(session.count)")
+        }
+    }
+
+    /// One prompt from an empty KV: `runRawCompletion` resets the runner
+    /// first, which is also when the expert cache hears a new context began.
+    private func generate(promptIds: [Int32],
+                          caseTag: String,
+                          textSuffix: String?,
+                          runner: RealForwardRunner,
+                          tokenizer: GFTokenizer,
+                          config: GenerationConfig,
+                          context: MetalContext,
+                          scratch: RawCompletionScratch,
+                          prefillConfig: PrefillRuntimeConfig) async throws {
         var text = ""
         let stats = try await runRawCompletion(
             producer: runner,
@@ -574,7 +645,7 @@ final class Harness: ObservableObject {
             config: config,
             context: context,
             scratch: scratch,
-            prefillConfig: runtime.prefillConfig) { progress in
+            prefillConfig: prefillConfig) { progress in
                 switch progress {
                 case .prefill(let done, let total):
                     // One line per chunk. A 14K-token prefill runs for many
@@ -607,20 +678,25 @@ final class Harness: ObservableObject {
         emit("done", "[stop=\(String(describing: stats.reason)) "
             + "prefill=\(stats.prefillTokens)tok new=\(stats.newTokens)tok "
             + "decode=\(String(format: "%.2f", stats.decodeSeconds))s "
-            + "tok/s=\(String(format: "%.3f", tokensPerSecond))]")
-        emit("expert-io", expertIOFooter(stats))
-        emit("phase-time", phaseTimeFooter(stats))
-        emit("gpu-time", gpuTimeFooter(stats))
-        emit("read-latency", readLatencyFooter(stats))
+            + "tok/s=\(String(format: "%.3f", tokensPerSecond))]" + caseTag)
+        emit("expert-io", expertIOFooter(stats) + caseTag)
+        emit("phase-time", phaseTimeFooter(stats) + caseTag)
+        emit("gpu-time", gpuTimeFooter(stats) + caseTag)
+        emit("read-latency", readLatencyFooter(stats) + caseTag)
         // The text itself, beside the log, and its hash in it. Token counts and
         // byte counters match between two runs whose text differs late, so an
-        // A/B that claims identical output needs the output.
+        // A/B that claims identical output needs the output. A session writes
+        // one file per case, `<log>-<case>.txt`.
         let generated = Data(text.utf8)
         let textDigest = SHA256.hash(data: generated).map { String(format: "%02x", $0) }.joined()
-        if let url = log?.url.deletingPathExtension().appendingPathExtension("txt") {
-            try? generated.write(to: url, options: .atomic)
+        if let base = log?.url.deletingPathExtension() {
+            let url = textSuffix.map {
+                base.deletingLastPathComponent()
+                    .appendingPathComponent("\(base.lastPathComponent)-\($0)")
+            } ?? base
+            try? generated.write(to: url.appendingPathExtension("txt"), options: .atomic)
         }
-        emit("generated", "sha256=\(textDigest) bytes=\(generated.count)")
+        emit("generated", "sha256=\(textDigest) bytes=\(generated.count)" + caseTag)
         lines.append("--- generated ---")
         lines.append(text)
     }

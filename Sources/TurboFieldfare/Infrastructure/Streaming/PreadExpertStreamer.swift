@@ -89,9 +89,14 @@ public final class PreadExpertStreamer: @unchecked Sendable {
     private var nextSlot = 0
     private let cursorLock = NSLock()
 
+    /// Whether LFU use counts age: see `usesCountAging(environment:)`.
+    public let agesUseCounts: Bool
+
     private var slotExpert: [Int]
     private var slotLastUse: [Int]
-    private var expertUseCount: [Int]
+    /// LFU use counts. Whole numbers while counts do not age; with aging, a
+    /// sum of `useCountDecay` powers.
+    private var expertUseCount: [Double]
     private var useClock = 0
     private let cacheLock = NSLock()
 
@@ -129,12 +134,15 @@ public final class PreadExpertStreamer: @unchecked Sendable {
                  slotCount: Int,
                  cachePolicy: ExpertCachePolicy = .lfu,
                  counters: ExpertIOCounters = ExpertIOCounters(),
-                 fileDescriptor: Int32?) throws {
+                 fileDescriptor: Int32?,
+                 agesUseCounts: Bool? = nil) throws {
         precondition(slotCount > 0, "slotCount must be positive")
         self.layout = layout
         self.slotCount = slotCount
         self.cachePolicy = cachePolicy
         self.counters = counters
+        self.agesUseCounts = agesUseCounts
+            ?? Self.usesCountAging(environment: ProcessInfo.processInfo.environment)
         let pageSize = Int(getpagesize())
 
         let openedFD = fileDescriptor.map { fcntl($0, F_DUPFD_CLOEXEC, 0) }
@@ -203,7 +211,7 @@ public final class PreadExpertStreamer: @unchecked Sendable {
         self.slotBuffers = buffers
         self.slotExpert = [Int](repeating: -1, count: slotCount)
         self.slotLastUse = [Int](repeating: 0, count: slotCount)
-        self.expertUseCount = [Int](repeating: 0, count: max(1, layout.expertsPerLayer))
+        self.expertUseCount = [Double](repeating: 0, count: max(1, layout.expertsPerLayer))
         closeFDOnFailure = false
     }
 
@@ -236,6 +244,20 @@ public final class PreadExpertStreamer: @unchecked Sendable {
             throw StreamerError.bufferWrapFailed
         }
         return ExpertStagingBuffer(pointer: pointer, buffer: buffer)
+    }
+
+    /// Called when the KV starts over: a new conversation, a restored one, or a
+    /// one-shot prompt. With aging on, the LFU use counts are forgotten, since
+    /// the next context's routing owes little to the last one's. The resident
+    /// experts stay, and are evicted least recently used first until counts
+    /// build up again. With aging off it does nothing.
+    public func contextDidReset() {
+        guard agesUseCounts else { return }
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        for expert in expertUseCount.indices {
+            expertUseCount[expert] = 0
+        }
     }
 
     /// Experts currently held in a slot.
@@ -354,8 +376,13 @@ public final class PreadExpertStreamer: @unchecked Sendable {
         guard misses.count <= evictable.count else { return nil }
 
         useClock = clock
+        if agesUseCounts {
+            for expert in expertUseCount.indices {
+                expertUseCount[expert] *= Self.useCountDecay
+            }
+        }
         for expert in experts where expert >= 0 && expert < expertUseCount.count {
-            expertUseCount[expert] &+= 1
+            expertUseCount[expert] += 1
         }
         for slot in assignedSlots where slot >= 0 {
             slotLastUse[slot] = clock
@@ -478,6 +505,32 @@ public final class PreadExpertStreamer: @unchecked Sendable {
     #else
     public static let readsBypassFileCacheByDefault = false
     #endif
+
+    public static let countAgingEnvironmentKey = "TURBO_FIELDFARE_EXPERT_CACHE_AGING"
+
+    /// Per cache plan (one per token per layer in decode), every expert's LFU
+    /// count is multiplied by this before the plan's experts add 1. Best of
+    /// 0.9–0.999 in replay (`research-results-2026-10-03-cache-policy/`).
+    public static let useCountDecay = 0.97
+
+    /// Whether LFU counts age: decay by `useCountDecay` per plan, and reset by
+    /// `contextDidReset()`. Without aging they only grow for as long as the
+    /// model stays loaded, so an app session of several conversations keeps
+    /// evicting by the first ones' routing. In replay that cost 8 hit-rate
+    /// points over 11 conversations back to back (CACHE-11).
+    /// `TURBO_FIELDFARE_EXPERT_CACHE_AGING=1` or `=0` overrides the default.
+    public static func usesCountAging(
+        environment: [String: String],
+        enabledByDefault: Bool = countAgingByDefault
+    ) -> Bool {
+        switch environment[countAgingEnvironmentKey] {
+        case "1": true
+        case "0": false
+        default: enabledByDefault
+        }
+    }
+
+    public static let countAgingByDefault = false
 
     static func coalescedAdjacentAdviceRanges(_ ranges: [(offset: UInt64, count: UInt64)])
         -> [(offset: UInt64, count: UInt64)] {
