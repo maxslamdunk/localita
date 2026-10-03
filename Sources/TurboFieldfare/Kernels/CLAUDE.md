@@ -14,9 +14,9 @@ Swift-side dispatch wrappers for the shaders in `../Metal/`. This directory owns
 
 A queued GPU consumer owns its expert slot and scratch bank until completion. A wrapper must never bind a buffer the CPU may recycle before the encoding command buffer finishes. If a change makes a wrapper's lifetime assumptions less obvious, write the assumption down at the call site.
 
-## Bytes/token
+## Stating the effect
 
-Wrapper changes usually have zero bytes/token delta — say so explicitly rather than leaving it unstated. The exceptions that do move the number, and that need a prediction before implementation: anything altering how many expert slots a dispatch needs live at once, anything changing prefill tile width (two tiles must fit the 16-slot cache), and anything changing which weights must be resident.
+Wrapper changes usually have zero bytes/token delta. Say so, and name the phase you expect to move instead (`cb1-wait`, `head`, a `[gpu-time …]` buffer). Changes that do move bytes: anything altering how many expert slots a dispatch needs live at once, prefill tile width (two tiles must fit the expert cache, which is why chunked prefill needs at least 16 slots), and which weights must be resident.
 
 ## Tests
 

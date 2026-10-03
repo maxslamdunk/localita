@@ -5,8 +5,8 @@ is the **iOS port**, derived from [`drumih/turbo-fieldfare`](https://github.com/
 (Apache-2.0).
 
 **[`CLAUDE.md`](CLAUDE.md) is the contract — read it first.** It holds the
-binding constraint (bytes read per token), the measured facts, the model-run
-safety invariants, the architecture, and the working agreements.
+goal (fast Gemma 4 on the iPhone 17), the measured facts, the safety
+invariants, the architecture, and the working agreements.
 [`docs/IOS_PORT.md`](docs/IOS_PORT.md) is the active plan.
 
 This file exists for agent tools that look for `AGENTS.md` rather than
@@ -20,3 +20,5 @@ Two things that hold regardless of what you were asked to do:
   validation host, not a convention.
 - **If a preflight check fails, stop and tell the user.** Never terminate a
   running process, and never delete or reinstall the model.
+- **Never delete the iOS app from the phone.** The model lives in its data
+  container; install new builds over it.

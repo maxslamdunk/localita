@@ -13,7 +13,7 @@ Append-only run log for TurboFieldfare. Every real-model run gets one row.
 - Runs that failed, regressed, or disproved a prediction get rows too. A log that only contains wins is not a measurement record.
 - Fill every column. Use `?` for genuinely unknown, never a guess or a carried-over value from an earlier row.
 
-Accepted current values live in the Measured facts table in `CLAUDE.md`; when a row here supersedes one, update that table in the same change. What has been tried and why it was kept or abandoned goes in `docs/PRIOR_ART.md`.
+Accepted current values live in the Measured facts table in `CLAUDE.md`; when a row here supersedes one, update that table in the same change. What has been tried and why it was kept or abandoned goes in `docs/experiments/summaries/`.
 
 ## Column definitions
 

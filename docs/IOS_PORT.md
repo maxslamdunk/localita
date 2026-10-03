@@ -12,6 +12,13 @@ derived from it.
 
 ## The constraint the port inherits
 
+> **Superseded as guidance on 2026-10-03.** The project goal is now end-to-end
+> decode and prefill time on the iPhone, with bytes/token as one lever among
+> several (see "The goal" and "Where the time goes on the phone" in `CLAUDE.md`).
+> On the phone, `io` is ~60% of a decode forward and GPU work plus handoff ~30%,
+> and the best result so far, the early expert read, raises bytes/token. The text
+> below is the 2026-08/09 framing from the Mac, kept as the plan's history.
+
 Decode demand is **measured** as of 2026-08-10: **261.9–305.6 MB/token**, rising
 with prompt length, at a 16-slot LFU hit rate of 62–68%. The zero-hit ceiling is
 806.1 MB/token (`numLayers 30 × topKExperts 8 × expertStride 3358720`); measured
@@ -72,7 +79,7 @@ the port controls. Two things change:
 Chosen 2026-09-15: **iPhone 17** (model A3258). Everything below is from spec
 sheets or from reading this repo's code, not from measurement. Sources are in
 [`IMPLEMENTATION_REFERENCES.md`](IMPLEMENTATION_REFERENCES.md#ios-target-platform).
-Nothing in `CLAUDE.md`'s measured-facts table has been measured on this device.
+(Written before any device measurement; measured values are now in `CLAUDE.md`'s iPhone table.)
 
 | | iPhone 17 | Mac validation host |
 | --- | --- | --- |
@@ -724,10 +731,11 @@ down that you paid for it.
 
 - ~~**Target device.**~~ **Decided 2026-09-15: iPhone 17.** See
   [Target device](#target-device).
-- **Target tok/s.** Deliberately absent. tok/s is an output of bytes/token ÷
-  bandwidth, not a decision variable; a target chosen before the device I/O
-  probe would be picked from nothing. The 0.5 tok/s floor is a feasibility
-  threshold, not a goal.
+- **Target tok/s.** Deliberately absent: faster is better, and each change is
+  judged on its measured gain. (The reason once given here, that tok/s is just
+  bytes/token ÷ bandwidth, was wrong: GPU work and the CPU/GPU handoff are ~30%
+  of a forward on the phone.) The 0.5 tok/s floor was a feasibility threshold,
+  long since passed.
 - **Quality budget.** Not needed until Track B step 3. Steps 0–2 cost no
   accuracy.
 
@@ -776,8 +784,8 @@ two options at no cost.
 
 The quality-spending levers — expert quantization in particular — change
 `TurboFieldfareFormat`, which the installer, verifier, and runtime all validate
-against. That is a `.gturbo` v2 contract, not a local edit. Worth raising with
-upstream before diverging.
+against. That is a `.gturbo` v2 contract, not a local edit, and it makes later
+upstream merges harder. Weigh that cost; it is not by itself a reason not to do it.
 
 ### Probes are not in this repo
 
@@ -789,7 +797,7 @@ memory invariant.
 
 ## Related
 
-- `CLAUDE.md` — measured facts, the binding constraint, working agreements.
+- `CLAUDE.md` — the goal, measured facts, working agreements.
 - `MEASUREMENTS.md` — append-only run log. iOS rows go here, kept separate from
   Mac rows; they are not comparable.
 - `docs/EXTERNAL_PRIOR_ART.md` — currently a stub. Nothing on iOS recorded yet.

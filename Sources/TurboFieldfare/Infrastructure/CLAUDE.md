@@ -8,9 +8,9 @@ Metal context ownership, model I/O and layout readers, and the expert streaming 
 - `ModelIO/` mirrors the `.gturbo` v1 contract defined in `TurboFieldfareFormat`. The format module is the authority: readers here validate against it rather than reimplementing layout rules, so the installer, the verifier, and the runtime all reject the same files.
 - `Streaming/` — `ExpertStreamer` is the protocol, `PreadExpertStreamer` the production implementation, `RDAdvice` the opt-in advisory path (off by default). Keep alternative streamers behind the protocol; do not branch on implementation type at call sites.
 
-## Every read is the budget
+## Every read is accounted for
 
-This directory is where bytes/token becomes a real syscall. A change here needs its predicted delta stated in bytes per token, with the mechanism named: fewer reads, larger coalesced reads, or reads avoided by a cache hit.
+This directory is where bytes/token becomes a real syscall. A performance change here states its predicted bytes/token delta and its predicted `io` delta, with the mechanism named: fewer reads, larger coalesced reads, reads avoided by a cache hit, or reads moved into time when storage would otherwise sit idle. On the iPhone, storage serves one read at a time (~2.2 ms per 3,358,720 B read), so concurrent reads stretch each other rather than adding throughput.
 
 - Reads go through `pread` into pre-allocated 2 MiB-aligned slot buffers wrapped with `makeBuffer(bytesNoCopy:)`. No intermediate `Data`, no `read` into heap, no copy on the way to the GPU.
 - Slot alignment is load-bearing for the no-copy path — changing alignment or slot sizing is a bytes/token *and* a correctness change.
