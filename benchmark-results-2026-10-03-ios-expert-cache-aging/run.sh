@@ -4,7 +4,9 @@
 # Same binary; A = --no-expert-cache-aging (LFU counts kept for the model's
 # lifetime, today), B = --expert-cache-aging. A B B A, 300 s cooldowns.
 # Defaults otherwise (early read with the fitted guess, F_NOCACHE), 24 slots,
-# --max-new 512 per prompt, --max-context 4096, chunk auto.
+# --max-new 512 per prompt, --max-context 4096, chunk auto. --model-dir pins
+# gemma4: the app's remembered model was supergemma4 on the day, and a pinned
+# folder is not remembered over it.
 # Adapted from benchmark-results-2026-10-03-ios-expert-read-nocache/run.sh.
 set -u
 D=42F93595-A5B1-5E99-94A2-DF741A8D78F0
@@ -38,7 +40,8 @@ run() {  # label [extra launch args]
     case " ${SKIP:-} " in *" $label "*) say "skip $label"; return 0;; esac
     say "launch $label"
     xcrun devicectl device process launch --device $D --terminate-existing $BID \
-        --autorun --session $SESSION --label $label --slots 24 --max-new 512 --max-context 4096 "$@" \
+        --autorun --model-dir gemma4.gturbo --session $SESSION --label $label \
+        --slots 24 --max-new 512 --max-context 4096 "$@" \
         >/dev/null 2>"$S/launch.err" || { say "FAIL launch $label: $(tail -2 $S/launch.err)"; exit 1; }
     local t0=$(date +%s) file="" misses=0 listing
     while true; do

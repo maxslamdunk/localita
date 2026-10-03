@@ -29,6 +29,8 @@ another.
   `val-logic-grid, val-rust-borrow, val-sql-debug, val-es-recipe,
   val-compare-table, val-fr-translate, val-multi-turn, short-explanation,
   medium-review, long-synthesis, val-dialogue`.
+- gemma4, pinned with `--model-dir gemma4.gturbo`. A smoke session showed the
+  app's remembered model was supergemma4.
 - `--slots 24 --max-new 512 --max-context 4096`, chunk `auto`, Release, other
   defaults (early read with the fitted guess, `F_NOCACHE`). 512 rather than
   1024 new tokens per prompt keeps a session near 25 minutes.
