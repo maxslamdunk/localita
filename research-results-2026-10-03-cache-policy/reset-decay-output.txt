@@ -1,0 +1,38 @@
+== 16 slots
+single prompts, test pooled:
+  LFU                    hit  65.1%  miss  83.8  fg  59.4  reads  88.4  ( 283.1 MiB)  prec 0.842
+  decay 0.97             hit  65.8%  miss  82.1  fg  57.9  reads  86.9  ( 278.4 MiB)  prec 0.833
+session, 11 chats, full length:
+  LFU, never reset       hit  57.9%  fg  75.7  reads 104.7 (335.4 MiB)  prec 0.873
+  LFU, reset per chat    hit  64.0%  fg  62.3  reads  91.3 (292.6 MiB)  prec 0.827
+  decay 0.97             hit  64.6%  fg  61.3  reads  90.3 (289.3 MiB)  prec 0.820
+  decay 0.97 + reset     hit  64.9%  fg  60.5  reads  89.5 (286.5 MiB)  prec 0.816
+phone protocol: same order, each chat cut at 512 tokens (5567 tokens):
+  order: val-logic-grid, val-rust-borrow, val-sql-debug, val-es-recipe, val-compare-table, val-fr-translate, val-multi-turn, test-short-explanation, test-medium-review, test-long-synthesis, val-dialogue
+  LFU, never reset       hit  57.6%  fg  76.3  reads 105.3 (337.4 MiB)  prec 0.873  | per chat hit: 57.1 59.0 58.6 60.5 55.5 54.0 59.7 55.7 61.7 59.2 53.3
+                                                 per chat fg:  77.9 73.0 74.2 71.0 81.3 85.3 71.8 79.9 66.7 72.3 85.8
+  LFU, reset per chat    hit  64.0%  fg  62.5  reads  91.5 (293.0 MiB)  prec 0.825  | per chat hit: 57.1 64.2 62.1 73.2 63.4 63.0 63.2 67.4 64.7 62.2 63.4
+                                                 per chat fg:  77.9 61.9 66.5 44.2 63.9 65.5 64.2 54.1 60.5 65.9 62.8
+  decay 0.97             hit  64.5%  fg  61.5  reads  90.5 (289.7 MiB)  prec 0.818  | per chat hit: 57.9 65.2 63.0 73.1 63.4 64.3 63.2 67.5 65.6 62.4 63.8
+                                                 per chat fg:  76.2 59.8 64.8 44.4 64.0 62.6 64.1 54.0 58.6 65.7 62.0
+  decay 0.97 + reset     hit  65.0%  fg  60.5  reads  89.5 (286.6 MiB)  prec 0.814  | per chat hit: 57.9 65.6 62.9 73.7 64.7 65.0 63.6 68.1 65.9 62.7 64.3
+                                                 per chat fg:  76.2 58.9 64.9 43.2 61.1 61.2 63.4 52.7 57.9 64.9 61.1
+== 24 slots
+single prompts, test pooled:
+  LFU                    hit  76.2%  miss  57.0  fg  36.2  reads  65.2  ( 208.8 MiB)  prec 0.719
+  decay 0.97             hit  76.7%  miss  55.9  fg  35.5  reads  64.5  ( 206.7 MiB)  prec 0.702
+session, 11 chats, full length:
+  LFU, never reset       hit  66.8%  fg  55.9  reads  84.9 (271.9 MiB)  prec 0.817
+  LFU, reset per chat    hit  74.7%  fg  39.8  reads  68.8 (220.3 MiB)  prec 0.719
+  decay 0.97             hit  75.3%  fg  39.0  reads  68.0 (217.9 MiB)  prec 0.702
+  decay 0.97 + reset     hit  75.7%  fg  38.2  reads  67.2 (215.2 MiB)  prec 0.696
+phone protocol: same order, each chat cut at 512 tokens (5567 tokens):
+  order: val-logic-grid, val-rust-borrow, val-sql-debug, val-es-recipe, val-compare-table, val-fr-translate, val-multi-turn, test-short-explanation, test-medium-review, test-long-synthesis, val-dialogue
+  LFU, never reset       hit  66.5%  fg  56.7  reads  85.7 (274.6 MiB)  prec 0.819  | per chat hit: 69.3 68.0 68.2 67.4 64.7 61.1 67.5 63.8 70.6 68.7 61.9
+                                                 per chat fg:  51.2 53.4 53.2 56.0 60.6 69.0 54.4 61.5 47.2 51.3 66.0
+  LFU, reset per chat    hit  74.6%  fg  40.0  reads  69.0 (221.0 MiB)  prec 0.719  | per chat hit: 69.3 73.7 72.2 81.3 75.3 72.9 73.5 79.0 75.6 73.2 74.9
+                                                 per chat fg:  51.2 41.6 45.0 28.1 38.8 44.7 42.2 30.7 37.4 42.5 38.5
+  decay 0.97             hit  75.2%  fg  39.3  reads  68.3 (218.7 MiB)  prec 0.701  | per chat hit: 70.0 75.2 73.5 81.5 75.4 74.6 73.5 78.8 76.2 73.0 75.0
+                                                 per chat fg:  50.0 39.3 42.6 28.3 39.1 41.0 42.3 31.4 36.7 43.1 38.7
+  decay 0.97 + reset     hit  75.7%  fg  38.3  reads  67.3 (215.4 MiB)  prec 0.694  | per chat hit: 70.0 75.7 73.3 82.2 76.6 75.3 73.8 79.5 76.7 73.4 75.6
+                                                 per chat fg:  50.0 38.2 42.9 27.0 36.5 39.6 41.6 29.9 35.8 42.4 37.5

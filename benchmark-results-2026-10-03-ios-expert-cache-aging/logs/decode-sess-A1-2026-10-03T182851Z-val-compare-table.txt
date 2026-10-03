@@ -1,0 +1,23 @@
+### Database Comparison Table
+
+| Feature | PostgreSQL | SQLite | MongoDB | Redis |
+| :--- | :--- | :--- | :--- | :--- |
+| **Data Model** | Relational (SQL) | Relational (SQL) | Document (NoSQL/BSON) | Key-Value / Data Structures |
+| **Durability** | **Very High**: ACID compliant, write-ahead logging, robust crash recovery. | **High**: ACID compliant, single-file storage, reliable for local use. | **High**: Configurable-level durability (Journaling/Replication). | **Low to Medium**: Primarily in-memory; persistence is optional/asynchronous. |
+| **Concurrency** | **Very High**: Multi-user, multi-process, complex locking mechanisms. | **Low**: Single-writer model (locks the entire database file during writes). | **High**: Designed for distributed scaling and many simultaneous users. | **Very High**: Extremely fast single-threaded execution for massive throughput. |
+| **Typical Use** | Enterprise backends, complex analytical queries, "Source of Truth." | Local storage, mobile apps, edge computing, prototyping. | Content management, real-time analytics, flexible schema apps. | Caching, session management, message brokers, real-time leaderboards. |
+| **Operational Cost** | **High**: Requires server management, scaling, and maintenance. | **Zero**: No server to manage; it is just a file on a disk. | **Medium to High**: Requires managed service (Atlas) or server management. | **Low to Medium**: Low overhead, but memory-intensive scaling can be costly. |
+
+---
+
+### Recommendation for a Small Mobile App's Local Storage
+
+**Recommendation: SQLite**
+
+#### Justification:
+
+For the specific use case of **local storage on a mobile device**, SQLite is the industry standard for the following reasons:
+
+1.  **Zero Operational Overhead:** Unlike PostgreSQL or MongoDB, SQLite does not require a client-server architecture. There is no "server" to start or manage on the user's phone; the database is simply a file residing in the app's sandbox.
+2.  **Zero Latency:** Because the database engine runs within the same process as the mobile application, there is no network overhead or inter-process communication latency. This makes data retrieval near-instantaneous.
+3.  **Resource Efficiency:** Mobile devices have limited battery and CPU. SQLite is

@@ -1,0 +1,18 @@
+### Translation
+
+**La Grande Puanteur de '58**
+
+La Grande Puanteur de 1858 fut une période qui toucha le centre de Londres, durant laquelle la chaleur accablante exacerba l'odeur des déchets humains non traités et des effluents industriels présents sur les rives de la Tamise. Le problème s'était accentué au fil des années en raison d'un réseau d'égouts vieillissant et inadéquat qui se déversait directement dans le fleuve. On pensait que les miasmes provenant des effluents transmettaient des maladies contagieuses, et trois épidémies de choléra survenues avant la Grande Puanteur furent imputées aux problèmes persistants de la rivière. L'odeur, ainsi que les craintes de la population quant à ses effets potentiels, poussèrent les administrateurs nationaux et locaux à agir, alors que ces derniers envisageaient déjà des solutions possibles. Les autorités acceptèrent une proposition de l'ingénieur civil Joseph Bazalgette visant à diriger les effluents vers l'est, le long d'une série d'égouts interconnectés présentant une pente vers des exutoires situés au-delà de la zone métropolitaine. Les travaux sur le...
+
+***
+
+### Difficulties in Translation
+
+**1. "The Great Stink"**
+*   **Why:** In English, "The Great Stink" is a punchy, evocative title. Translating it literally as *"La Grande Odeur"* would be incorrect (as *odeur* is neutral/positive), and *"La Grande Puanteur"* sounds slightly more archaic or heavy. The challenge was finding a term that captured the historical gravity of the event while maintaining the descriptive nature of the English noun phrase.
+
+**2. "The miasma from the effluent was thought to transmit..."**
+*   **Why:** This phrase involves a combination of archaic medical terminology (*miasma*) and a passive construction (*was thought to*). In French, a literal translation like *"Le miasme était pensé pour..."* is grammatically incorrect. I had to use the impersonal construction *"On pensait que..."* to maintain the formal, historical tone while ensuring the sentence flowed naturally in French syntax.
+
+**3. "...outfalls beyond the metropolitan area."**
+*   **Why:** The word "outfall" is a technical term for the place where a sewer empties into a body of

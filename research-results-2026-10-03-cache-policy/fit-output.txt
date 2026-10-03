@@ -1,0 +1,24 @@
+train 18 traces, 8649 tokens; val 8 traces, 4292 tokens
+training samples: 1378634
+
+val, 24 slots:
+  lfu            hit  74.3%  miss  61.6  fg  40.7  reads  69.7  ( 223.4 MiB)  prec 0.719
+  lru            hit  72.1%  miss  66.9  fg  46.3  reads  75.3  ( 241.1 MiB)  prec 0.712
+  arc            hit  72.9%  miss  65.1  fg  44.6  reads  73.6  ( 235.7 MiB)  prec 0.709
+  belady         hit  84.1%  miss  38.2  fg  23.4  reads  52.4  ( 168.0 MiB)  prec 0.509
+  decay0.9       hit  74.9%  miss  60.2  fg  40.2  reads  69.2  ( 221.6 MiB)  prec 0.688
+  decay0.95      hit  75.5%  miss  58.8  fg  38.8  reads  67.8  ( 217.2 MiB)  prec 0.688
+  decay0.97      hit  75.6%  miss  58.6  fg  38.6  reads  67.6  ( 216.4 MiB)  prec 0.691
+  decay0.98      hit  75.5%  miss  58.7  fg  38.6  reads  67.6  ( 216.6 MiB)  prec 0.694
+  decay0.99      hit  75.3%  miss  59.4  fg  39.0  reads  68.0  ( 217.9 MiB)  prec 0.702
+  decay0.995     hit  74.9%  miss  60.3  fg  39.7  reads  68.7  ( 220.1 MiB)  prec 0.710
+  decay0.998     hit  74.5%  miss  61.1  fg  40.3  reads  69.3  ( 222.1 MiB)  prec 0.716
+  decay0.999     hit  74.4%  miss  61.4  fg  40.6  reads  69.6  ( 222.8 MiB)  prec 0.717
+  regress l=1    hit  76.3%  miss  56.9  fg  37.1  reads  66.1  ( 211.7 MiB)  prec 0.684
+  rank l=1       hit  76.3%  miss  56.8  fg  37.0  reads  66.0  ( 211.4 MiB)  prec 0.683
+  rank l=10      hit  76.3%  miss  56.8  fg  37.0  reads  66.0  ( 211.4 MiB)  prec 0.684
+  rank-quad l=1  hit  76.4%  miss  56.7  fg  36.9  reads  65.9  ( 211.0 MiB)  prec 0.682
+  rank-quad l=10 hit  76.4%  miss  56.6  fg  36.8  reads  65.8  ( 210.8 MiB)  prec 0.682
+  rank-quad l=100 hit  76.4%  miss  56.7  fg  36.9  reads  65.9  ( 211.1 MiB)  prec 0.683
+
+chosen: rank-quad, lambda 10, decay 0.97; weights (standardized):

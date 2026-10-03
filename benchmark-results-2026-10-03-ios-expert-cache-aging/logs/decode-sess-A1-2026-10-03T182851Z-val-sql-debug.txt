@@ -1,0 +1,36 @@
+### Why the query is slow
+
+There are three primary reasons why this query performs poorly on a 50M-row table:
+
+1.  **The "SARGability" Problem (Function on Column):** 
+    The expression `DATE(created_at)` is **non-sargable** (Search ARGumentable). When you wrap a column in a function, the database cannot use a standard B-Tree index on `created_at`. It must perform a **Full Table Scan**, calculating the `DATE()` function for every single one of the 50 million rows to see if it matches.
+2.  **The Inequality Operator (`<>`):** 
+    The `status <> 'cancelled'` clause is difficult for index optimizers. While it can sometimes use an index, inequality filters often result in the engine scanning large portions of the index rather than jumping to a specific location.
+3.  **The Sort (FileSort):** 
+    Because the query filters by a function and an inequality, the database likely cannot use an index to satisfy the `ORDER BY total DESC`. It must fetch all rows matching the date, load them into memory (or disk), and perform a manual sort (FileSort) before it can return the top 
+    20.
+
+---
+
+### The Solution: Index and Rewrite
+
+To make this query instant, we need to:
+1.  Make the date filter "SARGable" (range-based).
+2.  Create a **Composite Index** that follows the **Equality $\rightarrow$ Sort $\rightarrow$ Range** rule.
+
+#### 1. The New Index
+We will create a composite index. The order of columns in the index is critical.
+
+```sql
+CREATE INDEX idx_orders_status_created_at_total 
+ON orders (status, created_at, total DESC);
+```
+*Note: If `status` has very low cardinality (e.g., only 3 possible values), you might prefer putting `created_at` first. However, since we are filtering for "not cancelled," putting `status` first allows the engine to narrow the scope immediately.*
+
+#### 2. The Rewritten Query
+We must change the date logic to use a range comparison so the index can be used.
+
+```sql
+SELECT * 
+FROM orders 
+WHERE created_at >= '2024-05-01 00:0

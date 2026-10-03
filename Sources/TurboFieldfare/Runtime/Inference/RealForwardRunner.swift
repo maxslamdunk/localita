@@ -404,6 +404,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
     public func reset() {
         kv?.reset()
         resetTransientState()
+        model.routedExpertContextDidReset()
     }
 
     /// Abandons the newest KV tokens so a stateful conversation can resume at

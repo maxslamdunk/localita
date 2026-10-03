@@ -1,0 +1,17 @@
+Coastal wetlands—such as salt marshes, mangroves, and seagrass beds—act as a natural buffer between the ocean and human infrastructure. Rather than acting as a solid wall, they function as a dynamic, porous barrier that dissipates energy.
+
+### Physical Mechanisms
+The primary mechanism for flood reduction is **frictional resistance**. As storm surges and waves move toward the shore, they encounter the complex physical structure of the wetland. In mangroves, this involves the intricate network of aerial roots; in salt marshes, it involves dense vegetation and uneven terrain. 
+
+As water flows through this "rough" landscape, the vegetation creates drag, converting the kinetic energy of moving water into heat and turbulence. This slows the velocity of the surge and reduces the height of incoming waves. Additionally, wetlands act as **temporary storage basins**. During high-tide events or storm surges, the low-lying topography of a wetland allows water to spread out over a wide area. This vertical and horizontal distribution of water lowers the peak water levels that would otherwise strike inland residential or commercial areas.
+
+### Two Important Limits
+While effective, wetlands are not invincible. Two critical limits define their capacity:
+
+1.  **The Threshold of Inundation:** Wetlands have a maximum depth at which they can function. If a storm surge exceeds the height of the vegetation or the capacity of the basin, the water will simply "overtop" the buffer. Once the water moves past the wetland, the frictional benefits drop significantly, and the surge can strike inland with nearly its original force.
+2.  **The Rate of Sea-Level Rise:** For a wetland to remain effective, it must "keep pace" with rising seas through sediment accumulation. If sea levels rise too rapidly, the wetlands may be permanently submerged (drowned), turning a protective buffer into an open-water channel that can actually facilitate faster wave energy transfer to the coast.
+
+### Risk Reduction vs. Complete Protection
+It is vital to distinguish between **risk reduction** and **complete protection**. 
+
+Complete protection implies a "fail-safe" barrier—like a massive sea wall—that aims to stop all water from entering a specific area. In contrast, wetlands provide risk reduction. They do not guarantee that a property will remain dry; rather, they reduce the *probability* and *severity* of flooding. They lower the peak surge height and slow the arrival of water, making the eventual flood more manageable. In engineering terms, they mitigate the impact rather than eliminating the threat.

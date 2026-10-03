@@ -90,6 +90,15 @@ extension Model {
         return RoutedExpertFetchPlan(layer: layer, cachePlan: cachePlan)
     }
 
+    /// Tells every opened layer's expert cache that the KV started over; see
+    /// `PreadExpertStreamer.contextDidReset()`.
+    public func routedExpertContextDidReset() {
+        let streamers = streamersQueue.sync { streamersBox.streamers.compactMap { $0 } }
+        for streamer in streamers {
+            streamer.contextDidReset()
+        }
+    }
+
     public func routedExpertCacheSlotCount(layer _: Int) -> Int? {
         guard case .pread(let slotCount) = streamingMode else { return nil }
         return slotCount

@@ -1,0 +1,39 @@
+model: linear rank, lambda 10, 834396 pairs; weights (standardized):
+  bias         +0.000
+  log count    -0.081
+  log share    -0.132
+  log age      +0.125
+  log gap      -0.017
+  log recent8  -0.008
+  log crf0.9   -0.140
+  log crf0.98  -0.181
+  log crf0.995 -0.103
+  score z      -0.057
+  log rank     +0.110
+  layer        +0.000
+
+test, 24 slots, scored once:
+  lfu        test-long-synthesis      hit  73.7%  miss  63.0  fg  41.2  reads  70.2  ( 224.9 MiB)  prec 0.752
+  lfu        test-medium-review       hit  76.3%  miss  56.9  fg  36.1  reads  65.1  ( 208.7 MiB)  prec 0.715
+  lfu        test-short-explanation   hit  79.2%  miss  49.8  fg  30.0  reads  59.0  ( 189.0 MiB)  prec 0.683
+  lfu        pooled                   hit  76.2%  miss  57.0  fg  36.2  reads  65.2  ( 208.8 MiB)  prec 0.719
+  lru        test-long-synthesis      hit  70.5%  miss  70.7  fg  48.8  reads  77.8  ( 249.1 MiB)  prec 0.757
+  lru        test-medium-review       hit  73.5%  miss  63.6  fg  42.8  reads  71.8  ( 230.0 MiB)  prec 0.716
+  lru        test-short-explanation   hit  75.8%  miss  58.0  fg  37.7  reads  66.7  ( 213.6 MiB)  prec 0.700
+  lru        pooled                   hit  73.1%  miss  64.5  fg  43.4  reads  72.4  ( 232.0 MiB)  prec 0.726
+  arc        test-long-synthesis      hit  71.2%  miss  69.2  fg  47.3  reads  76.3  ( 244.4 MiB)  prec 0.754
+  arc        test-medium-review       hit  74.1%  miss  62.1  fg  41.3  reads  70.3  ( 225.3 MiB)  prec 0.715
+  arc        test-short-explanation   hit  76.8%  miss  55.6  fg  35.6  reads  64.6  ( 206.9 MiB)  prec 0.691
+  arc        pooled                   hit  73.9%  miss  62.7  fg  41.8  reads  70.8  ( 226.8 MiB)  prec 0.722
+  decay0.97  test-long-synthesis      hit  73.9%  miss  62.5  fg  41.1  reads  70.1  ( 224.5 MiB)  prec 0.739
+  decay0.97  test-medium-review       hit  76.9%  miss  55.4  fg  35.2  reads  64.2  ( 205.5 MiB)  prec 0.698
+  decay0.97  test-short-explanation   hit  79.9%  miss  48.3  fg  29.1  reads  58.1  ( 186.2 MiB)  prec 0.661
+  decay0.97  pooled                   hit  76.7%  miss  55.9  fg  35.5  reads  64.5  ( 206.7 MiB)  prec 0.702
+  learned    test-long-synthesis      hit  75.0%  miss  60.1  fg  39.1  reads  68.1  ( 218.1 MiB)  prec 0.724
+  learned    test-medium-review       hit  77.8%  miss  53.2  fg  33.4  reads  62.4  ( 199.9 MiB)  prec 0.683
+  learned    test-short-explanation   hit  80.3%  miss  47.3  fg  28.3  reads  57.3  ( 183.5 MiB)  prec 0.654
+  learned    pooled                   hit  77.5%  miss  53.9  fg  33.9  reads  62.9  ( 201.6 MiB)  prec 0.689
+  belady     test-long-synthesis      hit  82.7%  miss  41.6  fg  25.6  reads  54.6  ( 175.0 MiB)  prec 0.550
+  belady     test-medium-review       hit  84.8%  miss  36.5  fg  21.7  reads  50.7  ( 162.5 MiB)  prec 0.510
+  belady     test-short-explanation   hit  86.7%  miss  32.0  fg  18.0  reads  47.0  ( 150.7 MiB)  prec 0.480
+  belady     pooled                   hit  84.6%  miss  37.0  fg  22.0  reads  51.0  ( 163.5 MiB)  prec 0.516

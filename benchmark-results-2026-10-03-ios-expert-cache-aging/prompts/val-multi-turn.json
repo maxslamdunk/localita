@@ -1,0 +1,14 @@
+[
+ {
+  "role": "user",
+  "content": "What's the difference between a process and a thread?"
+ },
+ {
+  "role": "assistant",
+  "content": "A process is an independent program in execution with its own address space, while threads are units of execution inside a process that share its memory. Creating and switching threads is cheaper, but shared memory means threads need synchronization to avoid data races."
+ },
+ {
+  "role": "user",
+  "content": "OK, so how do Go's goroutines fit in? And why can I start a million of them but not a million OS threads?"
+ }
+]

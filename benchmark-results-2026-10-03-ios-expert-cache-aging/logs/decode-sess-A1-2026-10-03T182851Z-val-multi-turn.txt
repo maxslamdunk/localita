@@ -1,0 +1,29 @@
+To understand why you can run a million goroutines but not a million OS threads, you have to look at the difference between **OS-level scheduling** and **User-level scheduling.**
+
+### 1. The Hierarchy
+In a standard OS environment, the relationship looks like this:
+**Process $\rightarrow$ OS Thread $\rightarrow$ CPU Core**
+
+In Go, there is an extra layer:
+**Process $\rightarrow$ OS Threads $\rightarrow$ Goroutines $\rightarrow$ CPU Core**
+
+Go uses an **M:N Scheduler**. This means it maps $M$ own-managed "logical" threads (Goroutines) onto $N$ OS threads.
+
+### 2. Why can't you run a million OS threads?
+If you try to spawn a million OS threads, your computer will crash or freeze. This is due to three main constraints:
+
+*   **Memory (Stack Size):** An OS thread typically comes with a fixed, pre-allocated stack size (often **1MB to 8MB**). If you start 1 million threads at 1MB each, you would need 1 Terabyte of RAM just to initialize them.
+*   **Context Switching Overhead:** When the OS switches from one thread to another, it must save all CPU registers, floating-point states, and manage kernel-level data structures. This "context switch" is expensive in terms of CPU cycles.
+*   **Kernel Management:** The OS kernel has to manage the lifecycle of every thread. Managing a table of a million threads would overwhelm the kernel's scheduler.
+
+### 3. Why can you run a million Goroutines?
+Go solves the problems above through three clever engineering choices:
+
+#### A. Segmented/Dynamic Stacks
+Unlike OS threads, a goroutine starts with a very tiny stack—typically only **2KB**. 
+*   If a goroutine needs more space (e.g., a deep recursive function), the Go runtime automatically grows the stack to own space in the heap. 
+*   Because they start so small, 1 million goroutines only consume about **2GB of RAM** ($1,000,000 \times 2\text{KB}$), which fits easily on a modern laptop.
+
+#### B. User-Space Scheduling (The "Go Scheduler")
+The Go scheduler lives inside your application, not in the OS kernel. 
+*   When a goroutine switches (e.g.,

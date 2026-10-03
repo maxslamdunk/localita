@@ -1,0 +1,55 @@
+In Rust, the borrow checker enforces a strict rule: **you cannot have a mutable reference to a resource while you also hold an immutable reference to its contents.**
+
+Here is a breakdown of why this happens and how to fix it.
+
+---
+
+### 1. The Failing Code
+If you try to hold a reference to an element while calling `.push()`, the compiler will stop you.
+
+```rust
+fn main() {
+    let mut vec = vec![1, 2, 3];
+
+    // 1. We take an immutable reference to the first element
+    let first = &vec[0]; 
+
+    // 2. We try to push to the vector
+    vec.push(4); 
+
+    // 3. We try to use the reference
+    println!("The first element is: {}", first);
+}
+```
+
+#### The Error
+When you run this, you get:
+```text
+error[E0502]: cannot borrow `vec` as mutable because it is also borrowed as immutable
+  --> src/main.rs:6:5
+   |
+6  |     let first = &vec[0];
+   |          --------- immutable borrow occurs here
+...
+8  |     vec.push(4);
+   |     ^^^^^^^^^^^ mutable borrow occurs here
+9  | 
+10 |     println!("The first element is: {}", first);
+   |                    ------ immutable borrow later used here
+```
+
+---
+
+### 2. Why this fails (Memory Safety)
+
+The reason is **Pointer Invalidation**.
+
+A `Vec` is a dynamically growing array stored on the heap. It consists of a pointer to a block of memory, a capacity, and a length. When you call `.push()`, if the current capacity is full, the `Vec` must:
+1. Allocate a new, larger block of memory elsewhere on the heap.
+2. Copy all existing elements to the new location.
+3. Deallocate (free) the old memory block.
+
+**The Danger:**
+If the `first` reference points to the memory address of `vec[0]`, and then `vec.push()` triggers a reallocation, the memory address `first` points to is suddenly **freed**. 
+
+If Rust allowed this, `first` would become a **dangling pointer**. Accessing it would result in "Use-After-Free," a major

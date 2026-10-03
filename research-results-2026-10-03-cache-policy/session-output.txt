@@ -1,0 +1,12 @@
+session: 11 turns, 6114 tokens, 24 slots
+lfu                    all: hit  66.8%  fg  55.9 | first 64 tokens of turns 2+: hit  63.1%  fg  64.3
+decay:0.97             all: hit  75.3%  fg  39.0 | first 64 tokens of turns 2+: hit  69.4%  fg  51.2
+learned:../learned-24.json all: hit  76.1%  fg  37.3 | first 64 tokens of turns 2+: hit  71.7%  fg  46.5
+belady                 all: hit  84.1%  fg  23.3 | first 64 tokens of turns 2+: hit  83.3%  fg  25.1
+session: 11 turns, 6114 tokens, 24 slots
+lfu                    all: hit  67.1%  fg  55.4 | first 64 tokens of turns 2+: hit  63.1%  fg  64.2
+decay:0.97             all: hit  75.2%  fg  39.1 | first 64 tokens of turns 2+: hit  69.1%  fg  51.8
+learned:../learned-24.json all: hit  76.1%  fg  37.3 | first 64 tokens of turns 2+: hit  71.5%  fg  47.0
+belady                 all: hit  84.1%  fg  23.3 | first 64 tokens of turns 2+: hit  83.1%  fg  25.4
+seed 0 lfu, reset per turn    all: hit  74.7%  fg  39.8 | first 64 tokens of turns 2+: hit  73.2%  fg  43.5
+seed 1 lfu, reset per turn    all: hit  74.7%  fg  39.8 | first 64 tokens of turns 2+: hit  73.2%  fg  43.4

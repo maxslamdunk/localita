@@ -1,0 +1,30 @@
+whole session, per run
+label     aging     toks       mb      hit    reads     used       io     wall     cb1w    ghead  battery, thermal
+sess-A1   false     4.77   266.23    67.67    83.12    23.48   128.90   209.84    62.43    10.41  100%/charging, fair,nominal,serious
+sess-A2   false     4.69   266.23    67.67    83.12    23.48   131.85   213.54    62.95    10.45  80%/unplugged, fair,nominal,serious
+sess-B1    true     5.79   217.03    75.39    67.75    20.30    96.15   172.95    59.20     9.85  100%/full, fair,nominal,serious
+sess-B2    true     5.86   217.03    75.39    67.75    20.30    95.37   170.90    58.24     9.63  100%/full, fair,nominal,serious
+
+whole session, means: A n=2, B n=2
+    toks  A    4.734  B    5.828  B-A   +1.094 (+23.1%)
+      mb  A  266.230  B  217.027  B-A  -49.203 (-18.5%)
+     hit  A   67.674  B   75.387  B-A   +7.713 (+11.4%)
+   reads  A   83.118  B   67.754  B-A  -15.363 (-18.5%)
+    used  A   23.475  B   20.304  B-A   -3.171 (-13.5%)
+      io  A  130.376  B   95.762  B-A  -34.614 (-26.5%)
+    wall  A  211.687  B  171.927  B-A  -39.760 (-18.8%)
+    cb1w  A   62.690  B   58.720  B-A   -3.970 (-6.3%)
+   ghead  A   10.431  B    9.743  B-A   -0.688 (-6.6%)
+
+per case, means (hit %, tok/s, io ms, head GPU ms), and texts
+  val-logic-grid     hit  69.7 ->  70.8 ( +1.1)  tok/s  4.911 ->  5.155 ( +5.0%)  io  123.2 ->  121.9  head 10.71 ->  9.63  texts 7ed671ec
+  val-rust-borrow    hit  68.2 ->  75.8 ( +7.6)  tok/s  4.880 ->  5.955 (+22.0%)  io  129.9 ->   97.3  head 10.05 ->  9.41  texts a88fabf5
+  val-sql-debug      hit  69.0 ->  73.1 ( +4.1)  tok/s  4.961 ->  5.595 (+12.8%)  io  126.8 ->  105.9  head  9.96 ->  9.67  texts 5cfb2802
+  val-es-recipe      hit  68.8 ->  81.2 (+12.4)  tok/s  4.948 ->  6.567 (+32.7%)  io  127.6 ->   67.2  head  9.98 -> 11.14  texts b24501a4
+  val-compare-table  hit  66.7 ->  77.1 (+10.4)  tok/s  4.374 ->  6.145 (+40.5%)  io  149.4 ->   86.1  head 10.65 -> 10.12  texts 67d60e65
+  val-fr-translate   hit  61.8 ->  74.3 (+12.5)  tok/s  4.169 ->  5.575 (+33.7%)  io  157.4 ->  108.8  head 10.59 ->  9.18  texts d67d5693
+  val-multi-turn     hit  69.6 ->  73.9 ( +4.3)  tok/s  5.132 ->  5.435 ( +5.9%)  io  114.4 ->  101.6  head 10.62 -> 10.84  texts a974a96e
+  short-explanation  hit  66.4 ->  79.5 (+13.1)  tok/s  4.804 ->  6.941 (+44.5%)  io  133.2 ->   79.8  head 10.20 ->  8.54  texts d32db73b
+  medium-review      hit  71.7 ->  75.5 ( +3.8)  tok/s  5.054 ->  5.822 (+15.2%)  io  107.9 ->   95.5  head 10.77 ->  9.22  texts b1291891
+  long-synthesis     hit  69.7 ->  73.3 ( +3.6)  tok/s  4.681 ->  5.438 (+16.1%)  io  114.4 ->   95.6  head 10.77 ->  9.56  texts f2646527
+  val-dialogue       hit  62.8 ->  74.8 (+12.0)  tok/s  4.396 ->  5.958 (+35.5%)  io  149.7 ->   93.5  head 10.43 ->  9.87  texts 8701aa0f
