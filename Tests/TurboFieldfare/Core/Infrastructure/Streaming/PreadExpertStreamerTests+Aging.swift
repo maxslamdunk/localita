@@ -20,6 +20,11 @@ extension PreadExpertStreamerTests {
     }
   }
 
+  /// On by default since the session A/B on the iPhone.
+  @Test func countAgingIsTheDefault() {
+    #expect(PreadExpertStreamer.countAgingByDefault)
+  }
+
   private func agingStreamer(_ ages: Bool, url: URL) throws -> PreadExpertStreamer {
     try PreadExpertStreamer(
       layout: Self.makeLayout(path: url.path), device: MetalContext().device,

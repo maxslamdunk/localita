@@ -18,6 +18,7 @@ capacity and memory cost.
 | Predictor, Markov, read sorting, and single-trace layout | Rejected |
 | Fresh preallocated expert artifact | Unexecuted hypothesis |
 | Next-layer early read from the hidden state | Experimental switch; with the fitted guess about +17–20% tok/s on iPhone at +11–18% bytes/token |
+| LFU count aging (decay and a reset per conversation) | Production; +23% tok/s over an 11-chat session on iPhone, nothing on a fresh single prompt |
 
 ## Cache policy and capacity
 
@@ -217,12 +218,19 @@ capacity and memory cost.
   - Session: LFU **66.8–67.1%** against 74.7% with counts reset per prompt
     and 75.2–75.3% decayed. The app keeps one model's counts across all
     conversations.
+  - **On the phone, built as count aging** (decay 0.97 per plan, reset when
+    the KV resets), in a harness `--session` of 11 prompts, A B B A: **+23.1%
+    tok/s** (4.73 → 5.83), hit rate 67.7% → 75.4% (replay: 66.5% → 75.7%),
+    bytes/token −18.5%, byte-identical output. The first prompt gained 1
+    point. Prefill bytes rose 6.2%: the reset comes before prefill, which
+    then loses hits on the previous chat's experts.
 - **What changed the conclusion:** CACHE-02's windowed LFU was judged on fresh
   single-prompt runs, which cannot show staleness across conversations.
-- **Final disposition:** Runtime candidate, not yet built: reset or decay the
-  counts. That needs a multi-prompt session protocol on the phone. The learned
-  policy (+1.3 points) comes later. See
-  `research-results-2026-10-03-cache-policy/results.md`.
+- **Final disposition:** **Production since 2026-10-03, on both platforms**
+  (`TURBO_FIELDFARE_EXPERT_CACHE_AGING`). The Mac's case is replay only. Next
+  steps: moving the reset after prefill, and the learned policy (+1.3 points
+  in replay). See `research-results-2026-10-03-cache-policy/results.md` and
+  `benchmark-results-2026-10-03-ios-expert-cache-aging/results.md`.
 - **Lesson:** The benchmark starts a fresh process, so state that accumulates
   over a session is invisible to it. Replay sessions, not only prompts.
 

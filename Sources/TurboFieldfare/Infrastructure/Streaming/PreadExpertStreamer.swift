@@ -517,7 +517,10 @@ public final class PreadExpertStreamer: @unchecked Sendable {
     /// `contextDidReset()`. Without aging they only grow for as long as the
     /// model stays loaded, so an app session of several conversations keeps
     /// evicting by the first ones' routing. In replay that cost 8 hit-rate
-    /// points over 11 conversations back to back (CACHE-11).
+    /// points over 11 conversations back to back (CACHE-11). On the iPhone,
+    /// such a session ran +23% tok/s with aging, at identical output
+    /// (`benchmark-results-2026-10-03-ios-expert-cache-aging/`). On by
+    /// default on both platforms; the Mac's case is replay only.
     /// `TURBO_FIELDFARE_EXPERT_CACHE_AGING=1` or `=0` overrides the default.
     public static func usesCountAging(
         environment: [String: String],
@@ -530,7 +533,7 @@ public final class PreadExpertStreamer: @unchecked Sendable {
         }
     }
 
-    public static let countAgingByDefault = false
+    public static let countAgingByDefault = true
 
     static func coalescedAdjacentAdviceRanges(_ ranges: [(offset: UInt64, count: UInt64)])
         -> [(offset: UInt64, count: UInt64)] {

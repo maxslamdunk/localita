@@ -114,7 +114,7 @@ resident set size; and **NLL** is negative log-likelihood. See
 | [CACHE-08](summaries/03-expert-cache-prediction-and-layout.md#cache-08) — Packed layout | Natural text +3.61%; near-4K decode -16.1% and prefill worse. | Rejected. |
 | [CACHE-09](summaries/03-expert-cache-prediction-and-layout.md#cache-09) — APFS preallocation | Fragmentation observed; candidate not built. | Unexecuted hypothesis. |
 | [CACHE-10](summaries/03-expert-cache-prediction-and-layout.md#cache-10) — next-layer early read | iPhone +15.1 / +12.2 / +12.4% tok/s unfitted; fitted guess a further +5.2 / +4.2 / +13.4% (long inflated by GPU speed), precision 0.68–0.75, identical output. About +17–20% tok/s at +11–18% bytes/token against off. | Experimental switch, off by default. |
-| [CACHE-11](summaries/03-expert-cache-prediction-and-layout.md#cache-11) — replacement policies in replay, stale LFU counts | Replay within 0.33 points of live. Test hit rate: LFU 76.2%, learned 77.5%, Belady 84.6%. Over an 11-prompt session, LFU falls to 66.8–67.1% against 74.7–75.3% with reset or decayed counts. | Runtime candidate (reset/decay counts); learned policy later. |
+| [CACHE-11](summaries/03-expert-cache-prediction-and-layout.md#cache-11) — replacement policies in replay, stale LFU counts | Replay within 0.33 points of live. Test hit rate: LFU 76.2%, learned 77.5%, Belady 84.6%. Over an 11-prompt session, LFU falls to 66.8–67.1% against 74.7–75.3% with reset or decayed counts. Built as count aging; on the iPhone an 11-prompt session ran +23.1% tok/s (hit rate 67.7% → 75.4%), with identical output. | Production since 2026-10-03, both platforms; learned policy later. |
 
 ### RDADVISE
 
