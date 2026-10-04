@@ -85,3 +85,18 @@ loaded. Predictions, means of A B B A:
     per layer.
 12. Falsified if compressed `io` is not below raw in every pairing, or if
     (10) is not better than (11).
+
+## Addendum 2, before the side-only replay
+
+Written after (9)–(12) were scored (see results.md: split reads cost ~0.2 ms
+each on this SSD, and the full codec's decode tail cancels its saving), and
+before any replay of this variant. The variant keeps the 4-bit codes raw and
+compresses only scales and biases: records −7.42% (4 KiB-aligned), bit-exact,
+side decode ~210 µs per expert on one M1 thread, run as three parallel tasks.
+Production fan-out of whole reads; placement-matched emulation as in (10).
+
+13. **Side-only `io`:** −4 to −9% against raw, mean of A B B A A B B A over
+    192 tokens. The tail is one expert's side decode (~70 µs, three tasks)
+    per layer with a foreground read, ~1.3 ms/token.
+14. Falsified if the mean is not below raw by more than 2%, or if the B arms
+    do not each beat the A arm before them.
