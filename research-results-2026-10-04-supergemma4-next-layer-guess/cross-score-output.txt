@@ -1,0 +1,34 @@
+supergemma4 held-out precision@1 at 16 slots: own router (naive) 0.698, gemma4 shipped file 0.844
+supergemma4 held-out precision@1 at 24 slots: own router (naive) 0.579, gemma4 shipped file 0.721
+router drift, supergemma4 vs gemma4, per layer:
+  L00  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L01  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L02  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L03  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L04  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L05  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L06  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L07  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L08  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L09  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L10  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L11  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L12  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L13  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L14  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L15  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L16  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L17  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L18  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L19  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L20  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L21  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L22  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L23  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L24  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L25  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L26  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L27  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L28  rel. distance 0.0000  top-8 overlap 8.00 / 8
+  L29  rel. distance 0.0000  top-8 overlap 8.00 / 8
+mean rel. distance 0.0000, mean top-8 overlap 8.00 / 8

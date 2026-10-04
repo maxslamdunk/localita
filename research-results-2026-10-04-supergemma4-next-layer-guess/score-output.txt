@@ -1,0 +1,33 @@
+train: ['train-cosine-similarity', 'train-fibonacci', 'train-fieldfare', 'train-matrix-multiplication', 'train-metal-matmul', 'train-paris', 'train-recommendation-systems']
+test:  ['test-long-synthesis', 'test-medium-review', 'test-short-explanation']
+decode tokens: train 2109, test 1793
+train hit rate @16 from token 0: live 64.7%, replay 63.7%
+train hit rate @16 from token 32: live 64.9%, replay 64.0%
+test hit rate @16 from token 0: live 65.7%, replay 65.2%
+test hit rate @16 from token 32: live 66.0%, replay 65.5%
+  ridge early lambda=0.001: validation precision@1 0.646
+  ridge early lambda=0.01: validation precision@1 0.693
+  ridge early lambda=0.1: validation precision@1 0.734
+  ridge early lambda=1: validation precision@1 0.741
+  ridge early: chose lambda=1
+  ridge late lambda=0.001: validation precision@1 0.772
+  ridge late lambda=0.01: validation precision@1 0.791
+  ridge late lambda=0.1: validation precision@1 0.803
+  ridge late lambda=1: validation precision@1 0.810
+  ridge late: chose lambda=1
+
+=== held-out test, 16 replayed slots ===
+popularity    top-8 overlap 1.30 | precision@1 0.046 coverage@1 0.017 | precision@2 0.041 coverage@2 0.030
+naive-early   top-8 overlap 5.49 | precision@1 0.698 coverage@1 0.256 | precision@2 0.589 coverage@2 0.431
+fitted-early  top-8 overlap 6.61 | precision@1 0.844 coverage@1 0.309 | precision@2 0.737 coverage@2 0.540
+naive-late    top-8 overlap 6.25 | precision@1 0.825 coverage@1 0.302 | precision@2 0.715 coverage@2 0.524
+fitted-late   top-8 overlap 7.02 | precision@1 0.887 coverage@1 0.325 | precision@2 0.788 coverage@2 0.577
+oracle        precision@1 0.936 (transitions with any miss) | misses/transition 2.731
+
+=== held-out test, 24 replayed slots ===
+popularity    top-8 overlap 1.30 | precision@1 0.032 coverage@1 0.017 | precision@2 0.027 coverage@2 0.029
+naive-early   top-8 overlap 5.49 | precision@1 0.579 coverage@1 0.312 | precision@2 0.459 coverage@2 0.495
+fitted-early  top-8 overlap 6.61 | precision@1 0.720 coverage@1 0.388 | precision@2 0.583 coverage@2 0.628
+naive-late    top-8 overlap 6.25 | precision@1 0.706 coverage@1 0.381 | precision@2 0.564 coverage@2 0.609
+fitted-late   top-8 overlap 7.02 | precision@1 0.770 coverage@1 0.415 | precision@2 0.628 coverage@2 0.677
+oracle        precision@1 0.823 (transitions with any miss) | misses/transition 1.854

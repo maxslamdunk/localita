@@ -1,0 +1,10 @@
+train-paris: records 11970 tokens 399.0 max |scores - W x| = 1.53e-05 top-8 match 11970 / 11970 plans missing: 0  live misses/layer: 2.822 score range: -3.985 .. 8.394 
+train-fibonacci: records 7590 tokens 253.0 max |scores - W x| = 1.91e-05 top-8 match 7590 / 7590 plans missing: 0  live misses/layer: 2.871 score range: -3.540 .. 8.223 
+train-fieldfare: records 6210 tokens 207.0 max |scores - W x| = 1.57e-05 top-8 match 6209 / 6210 plans missing: 0  live misses/layer: 2.817 score range: -4.288 .. 7.633 
+train-cosine-similarity: records 9390 tokens 313.0 max |scores - W x| = 1.62e-05 top-8 match 9390 / 9390 plans missing: 0  live misses/layer: 2.925 score range: -3.647 .. 7.530 
+train-recommendation-systems: records 10230 tokens 341.0 max |scores - W x| = 1.57e-05 top-8 match 10230 / 10230 plans missing: 0  live misses/layer: 3.091 score range: -3.739 .. 7.547 
+train-matrix-multiplication: records 10320 tokens 344.0 max |scores - W x| = 1.53e-05 top-8 match 10319 / 10320 plans missing: 0  live misses/layer: 2.998 score range: -3.288 .. 8.655 
+train-metal-matmul: records 7560 tokens 252.0 max |scores - W x| = 1.72e-05 top-8 match 7559 / 7560 plans missing: 0  live misses/layer: 2.061 score range: -3.168 .. 7.326 
+test-short-explanation: records 15360 tokens 512.0 max |scores - W x| = 1.43e-05 top-8 match 15360 / 15360 plans missing: 0  live misses/layer: 2.534 score range: -4.218 .. 8.049 
+test-medium-review: records 21810 tokens 727.0 max |scores - W x| = 1.53e-05 top-8 match 21810 / 21810 plans missing: 0  live misses/layer: 2.690 score range: -4.701 .. 7.772 
+test-long-synthesis: records 16620 tokens 554.0 max |scores - W x| = 1.53e-05 top-8 match 16620 / 16620 plans missing: 0  live misses/layer: 3.003 score range: -4.372 .. 8.217 

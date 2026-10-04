@@ -1,0 +1,7 @@
+quantization: worst |error| / max |weight| over layers 0.0046
+held-out precision@1 at 16 slots: naive 0.698, fitted float 0.844, fitted 8-bit 0.844
+held-out precision@1 at 24 slots: naive 0.579, fitted float 0.720, fitted 8-bit 0.720
+  test-long-synthesis at 24 slots: naive 0.616, fitted 8-bit 0.768
+  test-medium-review at 24 slots: naive 0.571, fitted 8-bit 0.711
+  test-short-explanation at 24 slots: naive 0.549, fitted 8-bit 0.679
+wrote /private/tmp/claude-502/-Users-max-ml-projects-iphone-port-turbo-fieldfare/993bef73-a031-4df7-906c-3cbb9f536125/scratchpad/supergemma4-guess.bin: 11106368 bytes, sha256 c4b3e74294540dcdcef006c913b77aa0d6ba3afdb8b2b3f3728c3b035ede9a37
