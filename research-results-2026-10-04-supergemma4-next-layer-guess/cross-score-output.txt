@@ -1,5 +1,8 @@
 supergemma4 held-out precision@1 at 16 slots: own router (naive) 0.698, gemma4 shipped file 0.844
 supergemma4 held-out precision@1 at 24 slots: own router (naive) 0.579, gemma4 shipped file 0.721
+  test-long-synthesis at 24 slots: own router 0.616, gemma4 shipped file 0.770
+  test-medium-review at 24 slots: own router 0.571, gemma4 shipped file 0.712
+  test-short-explanation at 24 slots: own router 0.549, gemma4 shipped file 0.680
 router drift, supergemma4 vs gemma4, per layer:
   L00  rel. distance 0.0000  top-8 overlap 8.00 / 8
   L01  rel. distance 0.0000  top-8 overlap 8.00 / 8

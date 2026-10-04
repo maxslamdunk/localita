@@ -64,6 +64,9 @@ for slots in (16, 24):
     print("supergemma4 held-out precision@1 at %d slots: own router (naive) %.3f, "
           "gemma4 shipped file %.3f" % (slots, precision(test, slots, naive),
                                         precision(test, slots, gemma_guess)))
+for d, run in zip(test_dirs, test):
+    print("  %s at 24 slots: own router %.3f, gemma4 shipped file %.3f" % (
+        os.path.basename(d), precision([run], 24, naive), precision([run], 24, gemma_guess)))
 
 print("router drift, supergemma4 vs gemma4, per layer:")
 dists, overlaps = [], []
