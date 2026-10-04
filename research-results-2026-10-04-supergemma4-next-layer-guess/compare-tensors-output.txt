@@ -1,0 +1,23 @@
+resident tensors: 597
+language_model.model.embed_tokens.weight                           identical   1  differ   0
+language_model.model.layers.N.input_layernorm.weight               identical  30  differ   0
+language_model.model.layers.N.layer_scalar                         identical  30  differ   0
+language_model.model.layers.N.mlp.down_proj.weight                 identical   0  differ  30 (7.2% of weight bytes changed)
+language_model.model.layers.N.mlp.gate_proj.weight                 identical  30  differ   0
+language_model.model.layers.N.mlp.up_proj.weight                   identical  30  differ   0
+language_model.model.layers.N.post_attention_layernorm.weight      identical  30  differ   0
+language_model.model.layers.N.post_feedforward_layernorm.weight    identical  30  differ   0
+language_model.model.layers.N.post_feedforward_layernorm_1.weight  identical  30  differ   0
+language_model.model.layers.N.post_feedforward_layernorm_2.weight  identical  30  differ   0
+language_model.model.layers.N.pre_feedforward_layernorm.weight     identical  30  differ   0
+language_model.model.layers.N.pre_feedforward_layernorm_2.weight   identical  30  differ   0
+language_model.model.layers.N.router.per_expert_scale              identical  30  differ   0
+language_model.model.layers.N.router.proj.weight                   identical  30  differ   0
+language_model.model.layers.N.router.scale                         identical  30  differ   0
+language_model.model.layers.N.self_attn.k_norm.weight              identical  30  differ   0
+language_model.model.layers.N.self_attn.k_proj.weight              identical  22  differ   8 (15.1% of weight bytes changed)
+language_model.model.layers.N.self_attn.o_proj.weight              identical   0  differ  30 (11.3% of weight bytes changed)
+language_model.model.layers.N.self_attn.q_norm.weight              identical  30  differ   0
+language_model.model.layers.N.self_attn.q_proj.weight              identical  22  differ   8 (15.0% of weight bytes changed)
+language_model.model.layers.N.self_attn.v_proj.weight              identical  19  differ   6 (15.4% of weight bytes changed)
+language_model.model.norm.weight                                   identical   1  differ   0

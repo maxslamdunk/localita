@@ -73,6 +73,37 @@ absolute precision would shift, which the phone A/B measures directly.
 0.549 / 0.679, medium 0.571 / 0.711, long 0.616 / 0.768. gemma4's study had
 0.545 / 0.680, 0.593 / 0.723 and 0.621 / 0.770 on its own traces.
 
+## The routers, checked in the installed weights
+
+The headline rests on the routers the trace exports, which the runtime
+produces by running the production router kernel on unit vectors. Afterwards
+I checked them in the installs themselves: `compare_tensors.py` compares
+every resident tensor of the two `model_weights.bin` files, byte for byte
+(`compare-tensors-output.txt`).
+
+- **Identical in all 30 layers:**
+  - the router, meaning `router.proj`, `router.scale` and
+    `router.per_expert_scale`;
+  - every norm and the layer scalars;
+  - the shared MLP's `gate_proj` and `up_proj`.
+
+  The embedding and the final norm are identical too.
+- **Changed:**
+  - `o_proj` in all 30 layers (11.3% of its weight bytes);
+  - the shared MLP's `down_proj` in all 30 (7.2%);
+  - `q_proj` and `k_proj` in 8 layers and `v_proj` in 6 (about 15%);
+  - every routed-expert layer file (by the manifest hashes).
+
+Those are the weights that write into the residual stream. **So identical
+routers do not mean identical routing:** supergemma4's router inputs differ
+from gemma4's for the same token. That is why the guess has to be scored on
+supergemma4's own hidden states, as P9 did. gemma4's file was fitted on
+gemma4's hidden states, and on supergemma4's it scores 0.721 against 0.720 for
+supergemma4's own fit. The phone confirmed it: the gain was +0.127 / +0.143 /
++0.149 on supergemma4, against +0.134 / +0.141 / +0.146 for the same file on
+gemma4. The edits change the residual stream in ways the layer-to-layer guess
+does not depend on.
+
 ## Why the fit carries over
 
 The guess for layer L+1 is `x_L (W_{L+1} + B)^T`, with `x_L` layer L's router
@@ -125,3 +156,5 @@ against 3.894, but that is one run each on the Mac, so it is not a speed claim.
 - `score-output.txt`: the full predictor table from the 2026-10-02 scorer.
 - `fit-output.txt`: `fit_guess.py` on these traces.
 - `cross-score-output.txt`: P9 and the router comparison.
+- `compare_tensors.py`, `compare-tensors-output.txt`: every resident tensor of
+  the two installs, byte for byte.
