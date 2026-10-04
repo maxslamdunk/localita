@@ -1,0 +1,5 @@
+[stop=endOfTurn prefill=61tok new=513tok decode=128.13s tok/s=4.004]
+[expert-io decode bytes/tok=259.75MB hit-rate=68.3% req/tok=240.00 reads/tok=81.09 forwards=512 | prefill bytes=6953.98MB hit-rate=0.0% reads=2171 | early decode reads/tok=29.00 used/tok=23.94]
+[phase-time decode ms/fwd cb1=1.30 cb1-wait=88.83 io=136.28 cb2=1.04 routed-drain=1.91 head=14.68 wall=250.25 forwards=512 | sequential per layer; io hides the shared-expert branch]
+[gpu-time decode ms/fwd embed=0.01 cb1=44.50 shared=22.67 hit-experts=13.28 routed=27.40 head=14.43 busy=116.00 idle=134.25 wall=250.25 forwards=512 | command-buffer timestamps; parts may overlap, busy is their union]
+[read-latency decode reads=41520 mean=5.32ms <0.25ms=0.0% 0.25-0.5ms=0.2% 0.5-1ms=1.4% 1-2ms=4.0% 2-4ms=39.9% 4-8ms=34.6% 8-16ms=18.5% >=16ms=1.4% | prefill reads=2171 mean=2.30ms <0.25ms=0.0% 0.25-0.5ms=0.1% 0.5-1ms=4.1% 1-2ms=56.4% 2-4ms=35.6% 4-8ms=0.5% 8-16ms=1.9% >=16ms=1.4%]

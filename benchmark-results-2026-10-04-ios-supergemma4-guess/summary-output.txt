@@ -1,0 +1,17 @@
+run           tok/s  new   MB/tok      hit  reads   early    used      io    cb1w   gcb1   wall peakGB sha       guess                          thermal
+sg4long-F1    5.793  570   226.81    73.6%  70.81   29.00   21.63   97.07   60.20  31.53  172.9  3.380 236be50a  gemma-4-26b-a4b-it-4bit.bin@b1 nominal 40
+sg4long-F2    5.710  570   226.81    73.6%  70.81   29.00   21.63   99.30   60.59  31.95  175.4  3.378 236be50a  gemma-4-26b-a4b-it-4bit.bin@b1 fair 23 nominal 17
+sg4long-N1    5.568  570   240.65    73.6%  75.13   29.00   17.31  103.46   61.16  32.02  179.9  3.380 236be50a  router                         fair 37 nominal 3
+sg4long-N2    5.614  570   240.65    73.6%  75.13   29.00   17.31  103.21   60.06  31.37  178.4  3.379 236be50a  router                         fair 35 nominal 5
+sg4medium-F1  6.269  782   205.36    76.9%  64.11   29.00   20.24   90.84   53.92  26.52  159.7  3.227 ee39a822  gemma-4-26b-a4b-it-4bit.bin@b1 nominal 51
+sg4medium-F2  6.461  782   205.36    76.9%  64.11   29.00   20.24   86.61   53.83  26.45  155.0  3.227 ee39a822  gemma-4-26b-a4b-it-4bit.bin@b1 nominal 51
+sg4medium-N1  5.674  782   218.67    76.9%  68.27   29.00   16.09   92.40   66.52  34.00  176.5  3.227 ee39a822  router                         nominal 51
+sg4medium-N2  5.764  782   218.67    76.9%  68.27   29.00   16.09   88.78   67.34  34.61  173.7  3.228 ee39a822  router                         nominal 51
+sg4short-F1   7.181  531   186.38    79.9%  58.19   29.00   19.05   80.19   45.14  20.24  139.5  3.131 6a90d4c5  gemma-4-26b-a4b-it-4bit.bin@b1 nominal 36
+sg4short-F2   6.990  531   186.38    79.9%  58.19   29.00   19.05   83.09   45.59  20.50  143.3  3.112 6a90d4c5  gemma-4-26b-a4b-it-4bit.bin@b1 nominal 36
+sg4short-N1   6.753  531   198.14    79.9%  61.86   29.00   15.38   84.15   48.83  21.93  148.4  3.112 6a90d4c5  router                         nominal 36
+sg4short-N2   6.816  531   198.14    79.9%  61.86   29.00   15.38   83.42   48.43  21.75  147.0  3.112 6a90d4c5  router                         nominal 36
+
+sg4short: tok/s N 6.784 F 7.085 (+4.4%) | io -2.14 ms | cb1-wait -3.26 ms | GPU attn+router -1.47 ms | GPU head N 8.47 F 8.04 ms | reads/tok -3.67 (minus extra used -3.67) | MB/tok 198.14 -> 186.38 | precision N 0.530 F 0.657 | io per extra used read 0.58 ms | peak +10 MB | texts identical, hit identical
+sg4medium: tok/s N 5.719 F 6.365 (+11.3%) | io -1.87 ms | cb1-wait -13.06 ms | GPU attn+router -7.82 ms | GPU head N 9.93 F 8.15 ms | reads/tok -4.16 (minus extra used -4.15) | MB/tok 218.67 -> 205.36 | precision N 0.555 F 0.698 | io per extra used read 0.45 ms | peak -1 MB | texts identical, hit identical
+sg4long: tok/s N 5.591 F 5.752 (+2.9%) | io -5.15 ms | cb1-wait -0.21 ms | GPU attn+router +0.05 ms | GPU head N 8.33 F 8.46 ms | reads/tok -4.32 (minus extra used -4.32) | MB/tok 240.65 -> 226.81 | precision N 0.597 F 0.746 | io per extra used read 1.19 ms | peak -0 MB | texts identical, hit identical
