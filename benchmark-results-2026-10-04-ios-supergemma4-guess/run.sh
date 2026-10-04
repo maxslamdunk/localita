@@ -64,6 +64,8 @@ first=1
 for c in short-explanation:sg4short medium-review:sg4medium long-synthesis:sg4long; do
     case=${c%%:*} n=${c##*:}
     for arm in N1 F1 F2 N2; do
+        # A skipped run needs no cooldown before it.
+        case " ${SKIP:-} " in *" $n-$arm "*) say "skip $n-$arm"; continue;; esac
         [ $first -eq 1 ] || { say "cooldown ${COOL}s"; sleep $COOL; }
         first=0
         case $arm in

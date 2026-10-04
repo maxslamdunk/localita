@@ -1,0 +1,27 @@
+### Technical Assessment: TurboFieldfare
+
+TurboFieldfare is a specialized Swift/Metal runtime designed to run a 26B-parameter Mixture-of-Experts (MoE) model on hardware with limited RAM (specifically targeting 8 GB Apple Silicon).
+
+**Central Resource Constraint**
+The primary bottleneck is the discrepancy between the model's total weight size (~14.3 GB) and the available system memory. To enable inference on low-RAM machines, the runtime must manage a strict memory budget of approximately 2 GB, which must house the core model weights, the KV cache, and the active expert buffers.
+
+**Data Division: Resident vs. Streamed**
+The runtime splits the model into two distinct tiers:
+* **Resident Data:** The 1.35 GB core (shared weights) and the FP16 KV cache are kept permanently in memory to ensure the base transformer operations remain fast.
+* **Streamed Data:** The routed experts are stored on the SSD. For every layer, the CPU identifies the necessary experts via the router, and the runtime uses bounded, parallel `pread` calls to stream these specific weights from storage into Metal-visible buffers.
+
+**Prefill vs. Decode Behavior**
+The execution patterns differ significantly due to how weights are utilized:
+* **Prefill:** To maximize efficiency, the runtime uses chunked prefill (up to 128 tokens). This allows a single fetched expert to be reused across multiple tokens in a single pass, amortizing the cost of the SSD read.
+* **Decode:** During single-token generation, the runtime must fetch new experts for every token. This makes the process more sensitive to I/O latency and the efficiency of the LFU (Least Frequently Used) expert cache.
+
+**Interpreting Benchmarks**
+When reviewing performance metrics, engineers must account for the fact that throughput is not a fixed ceiling. Results are heavily influenced by:
+1. **Prompt/Generation Length:** Affects KV cache pressure and compute-to-I/O ratios.
+2. **Hardware/Storage State:** SSD throughput and the current state of the system page cache can drastically alter "real-world" speeds.
+3. **Task Type:** Prefill-heavy vs. decode-heavy workloads will yield different tokens-per-second.
+
+**Rules for Evaluating Changes**
+* **Isolate the Bottleneck:** Distinguish between compute-bound (Metal) and I/O-bound (SSD/Streaming) performance shifts.
+* **Check Memory Bounds:** Ensure any optimization to the expert cache or prefill chunk size does not violate the 2 GB resident memory limit.
+* **Normalize for Context:** Always compare benchmarks using consistent prompt lengths and hardware states to avoid misleading throughput gains.
