@@ -1,0 +1,6 @@
+# popularity from 14 training traces; misses and uses on 11 held-out traces
+cold share of experts -> share of held-out uses, of foreground reads
+  25.0% -> uses   7.7%, fg reads  10.3%
+  50.0% -> uses  25.2%, fg reads  37.1%
+  62.5% -> uses  36.7%, fg reads  53.7%
+  75.0% -> uses  48.6%, fg reads  68.1%

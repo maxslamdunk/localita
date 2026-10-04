@@ -1,0 +1,9 @@
+# 2026-10-04 23:24:47 commit c08caa6+dirty
+# label=smoke-ref sequences=seq2.json max-tokens=24 ref=ref env: 
+# System-wide memory free percentage: 72%; thermal: 
+# score: slots=24 prefill-chunk=256 lossy=off skip=off early=gemma-4-26b-a4b-it-4bit.bin@b18242445534d452b7efb9c7d1c358884ef56637ad6003c187e5bced50dc3dcd
+seq 0: prompt 56 tok, scored 24; KL 0.00000 top1 0.0000 NLL 0.0140; decode fg reads/tok 41.83, MiB/tok 226.86, 0.36 s/tok
+seq 1: prompt 39 tok, scored 24; KL 0.00000 top1 0.0000 NLL 0.3267; decode fg reads/tok 53.43, MiB/tok 264.05, 0.74 s/tok
+reference: 48 positions, NLL 0.1704
+decode: 46 forwards, fg reads/tok 47.63, early reads/tok 29.00, MiB/tok 245.46, hit 71.7%, 0.548 s/tok; prefill MiB 12187.9
+# done 23:25:34; total = 5120.00M  used = 3963.56M  free = 1156.44M  (encrypted)

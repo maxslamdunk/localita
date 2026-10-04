@@ -1,0 +1,10 @@
+# 2026-10-04 23:29:59 commit c08caa6+dirty
+# label=smoke-miss08 sequences=seq2.json max-tokens=24 ref=smoke-ref env: TURBO_FIELDFARE_EXPERT_SKIP=miss:0.08
+# System-wide memory free percentage: 68%; thermal: 
+# score: slots=24 prefill-chunk=256 lossy=off skip=miss:0.08 early=gemma-4-26b-a4b-it-4bit.bin@b18242445534d452b7efb9c7d1c358884ef56637ad6003c187e5bced50dc3dcd
+seq 0: prompt 56 tok, scored 24; KL 0.00211 top1 1.0000 NLL 0.0214; decode fg reads/tok 25.35, MiB/tok 174.08, 0.34 s/tok
+seq 1: prompt 39 tok, scored 24; KL 0.07974 top1 0.8333 NLL 0.4510; decode fg reads/tok 32.48, MiB/tok 196.92, 0.18 s/tok
+TOTAL: 48 positions, KL 0.04093 (max 0.698), top1 0.9167, NLL 0.2362 (ref 0.1704, +0.0659)
+decode: 46 forwards, fg reads/tok 28.91, early reads/tok 29.00, MiB/tok 185.50, hit 79.0%, 0.263 s/tok; prefill MiB 12191.1
+skip: dropped/layer 0.772, dropped mass/layer 0.0461, substituted/layer 0.000
+# done 23:30:26; total = 5120.00M  used = 4239.38M  free = 880.62M  (encrypted)

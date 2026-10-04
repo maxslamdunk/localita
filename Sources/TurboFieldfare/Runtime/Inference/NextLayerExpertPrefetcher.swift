@@ -133,6 +133,12 @@ final class NextLayerExpertPrefetcher: @unchecked Sendable {
         return index
     }
 
+    /// The expert an unadopted early read is bringing in for `layer`, if any.
+    func pendingExpert(layer: Int) -> Int? {
+        guard let current = pending, current.layer == layer, !current.adopted else { return nil }
+        return current.expert
+    }
+
     /// Blocks until the pending early read, if any, has finished, and rethrows
     /// its error.
     func waitForPending() throws {

@@ -85,6 +85,13 @@ let package = Package(
             dependencies: ["TurboFieldfareCLICore"],
             path: "Sources/TurboFieldfareCLI/Command"
         ),
+        // Research only: the teacher-forced quality meter for lossy changes
+        // (research-results-2026-10-04-lossy-experts/). Not a product.
+        .executableTarget(
+            name: "TurboFieldfareScore",
+            dependencies: ["TurboFieldfare", "TurboFieldfareCLICore"],
+            path: "Sources/TurboFieldfareScore"
+        ),
         .target(
             name: "TurboFieldfareAppCore",
             // No `TurboFieldfareDecodeProtocol`: the only two files that imported

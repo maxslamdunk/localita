@@ -323,7 +323,33 @@ public struct Model {
             cachePolicy: expertCachePolicy,
             counters: expertIOCounters,
             fileDescriptor: layerFD)
+        if let lossy = try lossyExpertSimulation() {
+            let layer = L
+            streamersBox.streamers[L]?.postReadTransform = { base, expert in
+                lossy.apply(to: base, layer: layer, expert: expert)
+            }
+        }
         streamersBox.layerVerified[L] = true
+    }
+
+    /// Research only: the lossy-expert simulation the environment asks for,
+    /// over this model's routed-expert tensor layout. Nil when it is unset.
+    func lossyExpertSimulation() throws -> LossyExpertSimulation? {
+        let expert = packedExpertsLayout.expert(layer: 0, expert: 0)
+        func tensor(_ role: String) -> LossyExpertSimulation.Tensor? {
+            guard let codes = expert.subTensors[role],
+                  let scales = expert.subTensors[role + "_scales"],
+                  let biases = expert.subTensors[role + "_biases"],
+                  codes.shape.count == 2 else { return nil }
+            // Codes are 4-bit values, shape [rows, cols]; one scale per 64.
+            return LossyExpertSimulation.Tensor(
+                codesOffset: Int(codes.offset), scalesOffset: Int(scales.offset),
+                biasesOffset: Int(biases.offset), rows: Int(codes.shape[0]),
+                cols: Int(scales.shape[1]) * LossyExpertSimulation.groupSize)
+        }
+        let tensors = ["gate", "up", "down"].compactMap(tensor)
+        guard tensors.count == 3 else { return nil }
+        return try LossyExpertSimulation(tensors: tensors)
     }
 
     /// Test hook: how many layer files have been opened so far.
