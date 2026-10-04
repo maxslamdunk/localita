@@ -6,6 +6,12 @@ built from `6765ad6`, model `scratch/supergemma4.gturbo`, early read off, 16
 live slots. AC power, preflight clean, memory 40% free. One row per run is in
 `MEASUREMENTS.md`. The traces themselves (1.7 GB) are not kept in the repo.
 
+**Correction to `predictions.md`:** the branch starts from `43c5574`, not
+`611c5e5`. The session's git snapshot was stale, and main had meanwhile merged
+expert-cache count aging **on by default** (`7bc3e23`). So every run here,
+traces and live check alike, used the aged LFU (counts × 0.97 per plan, reset
+when the KV starts over). The predictions assumed plain LFU.
+
 ## Headline
 
 **supergemma4's routers are byte-identical to gemma4's.** The fine-tune did
@@ -50,16 +56,18 @@ called a per-model file the safer choice. The identical routers remove the
 reason for that, and the 0.001 difference is below anything this data can
 resolve.
 
-**P1, the train miss.** On training traces, the replayed LFU runs 0.9 pp below
-the live cache, against 0.0 on the gemma4 traces of the same prompts. LFU
-counts never reset, so the experts prefill used keep their counts all through
-decode. The replay starts empty, so it differs for longer than the 32-token
-warmup. With byte-identical routers, the different prefill routing has to come
-from the other weights, which the fine-tune changed. Count aging was off by
-default at `6765ad6`, so it plays no part. The gap biases both predictors'
-precision the same way, and the held-out split, which is the one scored, is
-inside the bound. I count it as a miss and not as an invalid trace. The phone
-A/B measures the live cache directly.
+**P1, the train miss.** On training traces, the replayed cache runs 0.9 pp
+below the live one, against 0.0 on the gemma4 traces of the same prompts. The
+cause is the correction above. The live cache aged its counts, while
+`score.py` replays plain LFU, a mirror of the runtime as it was on 2026-10-02.
+Aging raises the live hit rate, as it was built to, so live runs above the
+replay. That also explains why these held-out runs hit 0.3–0.7 pp more than the
+2026-09-27 supergemma4 rows with identical tokens (P8's short case at 68.3%).
+I didn't separate this from prefill's lingering counts, which gemma4's replay
+had too. Neither changes the decision. The fit uses only router inputs and
+scores, and both models' precision was scored against the same plain-LFU
+replay, so 0.720 against 0.721 is like for like. Against an aged replay the
+absolute precision would shift, which the phone A/B measures directly.
 
 **Per prompt**, at 24 slots, naive / own fit (`fit-output.txt`): short
 0.549 / 0.679, medium 0.571 / 0.711, long 0.616 / 0.768. gemma4's study had
