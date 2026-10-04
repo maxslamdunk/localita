@@ -17,10 +17,12 @@ import Metal
 /// targetLayerCount), then per target layer UInt8 weights [E][D], BF16
 /// scales [E][D/64] and BF16 biases [E][D/64].
 ///
-/// The runtime ships one fitted file per supported model in its
-/// `NextLayerGuess/` resources, listed in `index.json` with the model's
-/// manifest `sourceSnapshotHash` and the file's SHA-256. A model with no entry
-/// (any other fine-tune) gets no fitted guess; the early read then scores with
+/// The runtime ships fitted files in its `NextLayerGuess/` resources, listed
+/// in `index.json` by the model's manifest `sourceSnapshotHash` with the
+/// file's SHA-256. Models may share a file: supergemma4's routers are
+/// byte-identical to gemma4's, and gemma4's file scores as well on it as its
+/// own fit (`research-results-2026-10-04-supergemma4-next-layer-guess/`). A
+/// model with no entry gets no fitted guess; the early read then scores with
 /// the next layer's own router.
 final class NextLayerGuessWeights {
     static let environmentKey = "TURBO_FIELDFARE_EARLY_EXPERT_GUESS"

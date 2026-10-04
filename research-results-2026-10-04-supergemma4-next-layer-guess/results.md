@@ -74,6 +74,29 @@ weights the fine-tune changed, but the two fits give the same held-out
 precision, so whatever moved did not change the drift in a way that matters to
 the guess.
 
+## Live check, Mac
+
+With the index entry in place (`4a95a1f` plus the entry, release CLI), I ran
+supergemma4 on `short-explanation` (seed 20260721) twice, back to back. The
+first run used the default early read, which now loads gemma4's file. The
+second forced the router guess (`TURBO_FIELDFARE_EARLY_EXPERT_GUESS=router`).
+Footers are in `live-check/`, and both runs have rows in `MEASUREMENTS.md`.
+
+| | fitted (gemma4's file) | router |
+| --- | --- | --- |
+| early reads / used per token | 29.00 / 23.94 | 29.00 / 19.78 |
+| precision (used / reads) | **0.826** | **0.682** |
+| offline prediction, 16 slots, pooled | 0.844 | 0.698 |
+| bytes/token | 259.75 MiB | 273.06 MiB |
+| hit rate | 68.3% | 68.3% |
+| text SHA-256 | `caa1935a…62a3fd` | same |
+
+The file loads for supergemma4 and is used. Live precision sits 0.016 below
+the offline pooled figure in both arms. That fits a single short prompt,
+which offline was the lowest of the three. The text matches the early-read-off
+trace run byte for byte, and the hit rate is unchanged. tok/s was 4.004
+against 3.894, but that is one run each on the Mac, so it is not a speed claim.
+
 ## What this does not show
 
 - **Speed.** This is offline precision on the Mac. On gemma4, precision
