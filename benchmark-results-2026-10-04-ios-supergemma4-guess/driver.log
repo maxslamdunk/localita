@@ -1,0 +1,68 @@
+# Run 1: all cases; long F1 failed
+02:29:17 install
+02:29:19 cooldown 60s
+02:30:19 launch sg4short-N1 (short-explanation)
+02:32:05 done sg4short-N1: [stop=endOfTurn prefill=61tok new=531tok decode=78.64s tok/s=6.753]
+02:32:05 cooldown 300s
+02:37:05 launch sg4short-F1 (short-explanation)
+02:38:31 done sg4short-F1: [stop=endOfTurn prefill=61tok new=531tok decode=73.95s tok/s=7.181]
+02:38:31 cooldown 300s
+02:43:31 launch sg4short-F2 (short-explanation)
+02:45:18 done sg4short-F2: [stop=endOfTurn prefill=61tok new=531tok decode=75.96s tok/s=6.990]
+02:45:18 cooldown 300s
+02:50:18 launch sg4short-N2 (short-explanation)
+02:52:04 done sg4short-N2: [stop=endOfTurn prefill=61tok new=531tok decode=77.90s tok/s=6.816]
+02:52:04 cooldown 300s
+02:57:04 launch sg4medium-N1 (medium-review)
+02:59:54 done sg4medium-N1: [stop=endOfTurn prefill=430tok new=782tok decode=137.82s tok/s=5.674]
+02:59:54 cooldown 300s
+03:04:54 launch sg4medium-F1 (medium-review)
+03:07:22 done sg4medium-F1: [stop=endOfTurn prefill=430tok new=782tok decode=124.74s tok/s=6.269]
+03:07:22 cooldown 300s
+03:12:22 launch sg4medium-F2 (medium-review)
+03:14:51 done sg4medium-F2: [stop=endOfTurn prefill=430tok new=782tok decode=121.03s tok/s=6.461]
+03:14:51 cooldown 300s
+03:19:51 launch sg4medium-N2 (medium-review)
+03:22:41 done sg4medium-N2: [stop=endOfTurn prefill=430tok new=782tok decode=135.68s tok/s=5.764]
+03:22:41 cooldown 300s
+03:27:41 launch sg4long-N1 (long-synthesis)
+03:30:51 done sg4long-N1: [stop=endOfTurn prefill=3015tok new=570tok decode=102.36s tok/s=5.568]
+03:30:51 cooldown 300s
+03:35:51 launch sg4long-F1 (long-synthesis)
+03:38:25 FAIL sg4long-F1: app exited without finishing; last line: 17, 80371, token, footprint=3226275688 peak=3379990376 available=3216175256 sys-free=64 sys-wired=5442 sys-compressor=572 sys-filebacked=926 compressions=7466472 decompressions=6805803, index=48 therm
+
+# Run 2: aborted (the driver cooled down before skipped runs; fixed in run.sh)
+03:39:03 cooldown 60s
+03:40:03 skip sg4short-N1
+03:40:03 cooldown 300s
+03:45:03 skip sg4short-F1
+03:45:03 cooldown 300s
+03:50:03 skip sg4short-F2
+03:50:03 cooldown 300s
+03:55:03 skip sg4short-N2
+03:55:03 cooldown 300s
+04:00:03 skip sg4medium-N1
+04:00:03 cooldown 300s
+04:05:03 skip sg4medium-F1
+04:05:03 cooldown 300s
+
+# Run 3: long F1, F2, N2
+04:09:35 cooldown 60s
+04:10:35 skip sg4short-N1
+04:10:35 skip sg4short-F1
+04:10:35 skip sg4short-F2
+04:10:35 skip sg4short-N2
+04:10:35 skip sg4medium-N1
+04:10:35 skip sg4medium-F1
+04:10:35 skip sg4medium-F2
+04:10:35 skip sg4medium-N2
+04:10:35 skip sg4long-N1
+04:10:35 launch sg4long-F1 (long-synthesis)
+04:13:25 done sg4long-F1: [stop=endOfTurn prefill=3015tok new=570tok decode=98.39s tok/s=5.793]
+04:13:25 cooldown 300s
+04:18:25 launch sg4long-F2 (long-synthesis)
+04:21:35 done sg4long-F2: [stop=endOfTurn prefill=3015tok new=570tok decode=99.83s tok/s=5.710]
+04:21:35 cooldown 300s
+04:26:35 launch sg4long-N2 (long-synthesis)
+04:29:46 done sg4long-N2: [stop=endOfTurn prefill=3015tok new=570tok decode=101.53s tok/s=5.614]
+04:29:46 ALL DONE
