@@ -20,6 +20,11 @@ Policies:
                   (not resident, not covered by the early read) and its
                   weight is < t. Cache-conditional: saves reads only.
   missrank<r>     drop a foreground miss whose rank is >= r (1-based)
+  bias<l>         cache-prior reranking (Skliar et al. 2024): resident
+                  experts' logits get + l * (average logit range), the top 8
+                  of those are used, weighted by the original logits. "mass"
+                  is then the original top-8 weight swapped out, "drop/L" the
+                  experts swapped.
 
 The top-1 expert is never dropped.
 
@@ -42,6 +47,23 @@ def weights(logits_top8):
     x = logits_top8.astype(np.float64)
     e = np.exp(x - x.max())
     return e / e.sum()
+
+
+def bias_select(logits, resident, guess_expert, lam, avg_range):
+    """Cache-prior reranking (Skliar et al. 2024, arXiv 2412.00099): add
+    lam * average logit range to resident experts' logits (the pending early
+    read counts as resident), keep the original top 1, take the top 8 of the
+    biased logits. Weights stay those of the original logits."""
+    z = logits.astype(np.float64).copy()
+    top1 = int(np.argmax(z))
+    mask = np.zeros(z.size, bool)
+    if resident:
+        mask[list(resident)] = True
+    if guess_expert is not None:
+        mask[guess_expert] = True
+    zb = z + lam * avg_range * mask
+    zb[top1] = np.inf
+    return [int(e) for e in np.argsort(-zb, kind="stable")[:8]]
 
 
 def keep_list(policy, w, chosen, resident, guess_expert):
@@ -67,6 +89,7 @@ def run(trace, policy):
     T, L = trace.T, trace.L
     pols = [DecayLFU(slots=SLOTS, decay=0.97, layer=l, trace=trace) for l in range(L)]
     fg = np.zeros(T)
+    avg_range = 0.0
     mass = np.zeros(T)
     dropped = np.zeros(T)
     for t in range(T):
@@ -74,12 +97,21 @@ def run(trace, policy):
         for l in range(L):
             chosen = [int(e) for e in trace.experts[t, l]]
             w = weights(trace.scores[t, l, chosen])
-            keep = keep_list(policy, w, chosen, pols[l].resident, guess_expert)
-            m = pols[l].access(t, [chosen[i] for i in keep])
+            if policy[0] == "bias":
+                z = trace.scores[t, l].astype(np.float64)
+                avg_range = 0.999 * avg_range + 0.001 * (z.max() - z.min()) if avg_range else z.max() - z.min()
+                picked = bias_select(z, pols[l].resident, guess_expert, policy[1], avg_range)
+                m = pols[l].access(t, picked)
+                # weight of the original top 8 that the new set lost
+                mass[t] += sum(w[i] for i in range(8) if chosen[i] not in picked)
+                dropped[t] += sum(1 for e in chosen if e not in picked)
+            else:
+                keep = keep_list(policy, w, chosen, pols[l].resident, guess_expert)
+                m = pols[l].access(t, [chosen[i] for i in keep])
+                mass[t] += 1.0 - w[keep].sum()
+                dropped[t] += 8 - len(keep)
             hit_early = guess_expert is not None and guess_expert in m
             fg[t] += len(m) - hit_early
-            mass[t] += 1.0 - w[keep].sum()
-            dropped[t] += 8 - len(keep)
             if l + 1 < L:
                 g = trace.guess[t, l].astype(np.float32)
                 res = pols[l + 1].resident
@@ -98,11 +130,16 @@ POLICIES = [("base", ("none", 0)), ("top7", ("topk", 7)), ("top6", ("topk", 6)),
             ("miss0.05", ("miss", 0.05)), ("miss0.08", ("miss", 0.08)), ("miss0.10", ("miss", 0.10)),
             ("miss0.12", ("miss", 0.12)), ("miss0.15", ("miss", 0.15)),
             ("missrank8", ("missrank", 8)), ("missrank7", ("missrank", 7)),
-            ("missrank6", ("missrank", 6)), ("missrank5", ("missrank", 5))]
+            ("missrank6", ("missrank", 6)), ("missrank5", ("missrank", 5)),
+            ("bias0.05", ("bias", 0.05)), ("bias0.10", ("bias", 0.10)), ("bias0.15", ("bias", 0.15)),
+            ("bias0.20", ("bias", 0.20)), ("bias0.30", ("bias", 0.30))]
 
 
 def main():
     traces = sim.load(sys.argv[1] if len(sys.argv) > 1 else TRACES)
+    if len(sys.argv) > 2:  # policy name prefix filter
+        global POLICIES
+        POLICIES = [POLICIES[0]] + [p for p in POLICIES if p[0].startswith(sys.argv[2])]
     print("# %d traces, %d decode tokens after warmup; %d slots, DecayLFU 0.97, early read on"
           % (len(traces), sum(t.T - sim.WARMUP for t in traces), SLOTS))
     ws = np.array([weights(tr.scores[t, l, tr.experts[t, l]])

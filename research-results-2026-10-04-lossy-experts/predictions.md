@@ -184,3 +184,39 @@ under expert skipping, which is decode only.
   `miss:0.05` above the yardstick.
 - **The skip-versus-bits comparison:** a lower-bit format beating a skip
   policy at equal KL.
+
+## Addendum 1: published cache-aware routing as a baseline (before its runs)
+
+Skliar et al. 2024, "Mixture of Cache-Conditional Experts for Efficient
+Mobile Device Inference" (arXiv 2412.00099), already does training-free
+cache-aware routing. They add λ × (average logit range) to cached experts'
+logits, protect the top J, and weight the chosen experts by their original
+logits. They report more than 50% fewer misses at a 0.1–3% perplexity cost
+and under 0.1% on MMLU and GSM8K. Their models were Mixtral (top 2 of 8),
+Phi-3.5-MoE (top 2 of 16), Qwen1.5-MoE (top 4 of 60) and DeepSeek-V2-Lite
+(top 6 of 64).
+
+Gemma 4 routes 8 of 128 with flat weights, which none of those resemble. So
+their method is added as `bias:<λ>` (J = 1; the pending early read counts as
+cached), to be scored beside the drop policies.
+
+Replay (`trace-policies-bias-output.txt`, same 29 traces):
+
+| λ | Foreground reads per token | Original top-8 weight swapped out per layer |
+| --- | --- | --- |
+| 0.05 | −33.9% | 0.030 |
+| 0.10 | −54.7% | 0.052 |
+
+### P6. Reranking against dropping
+
+| Variant | Foreground reads per token | KL |
+| --- | --- | --- |
+| `bias:0.05` | −28 to −40% | 0.015–0.04 |
+| `bias:0.10` | −48 to −60% | 0.03–0.07 |
+
+**At equal reads saved, reranking has lower KL than dropping.** Its stand-ins
+are real experts with nonzero router scores, where dropping leaves a hole.
+I'd put it at 0.6–1.0× the KL of the drop policy that saves the same reads.
+
+These runs use a binary that has the `bias` kind. The earlier queue's binary
+was built at 99841bb, and the `bias` code does not touch any other path.
