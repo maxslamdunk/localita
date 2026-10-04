@@ -65,3 +65,23 @@ of decompression (one chunk per layer if chunks pipeline with reads). At
 s = 12%: about **+6 to +8% tok/s** decode, prefill bytes −12%. Falsified as a
 worthwhile path if the bound in (6) is under 6%, or if no decoder reaches
 ~1 GB/s per core (then decompression, not storage, sets `io`).
+
+## Addendum, before the I/O replay (written after the entropy and codec results)
+
+The codec is built: −14.0% on 1,920 held-out experts, bit-exact, 1.97 GB/s
+per M1 performance core. `replay/replay.c` replays the read schedule of the
+medium `real-generation-v1` trace (24 slots, count aging, fitted early read;
+37.8 foreground + 29 early reads per token) on the Mac's SSD with F_NOCACHE,
+with a 2.7 ms idle gap per layer standing in for GPU work. No model is
+loaded. Predictions, means of A B B A:
+
+9. **Raw `io`:** 75–95 ms/token (37.8 serial reads at ~1.7 GB/s plus early
+   read waits).
+10. **Compressed, 6 sequential pieces per expert, decode as pieces land:**
+    `io` −9 to −13% against raw. Bytes are −14%; the loss is the decode tail
+    of the last piece per layer (~0.1 ms) and the extra read commands.
+11. **Compressed, the expert in 1 read:** `io` −4 to −9%, worse than (10),
+    because the whole last expert's decode (~0.25 ms on 8 cores) is exposed
+    per layer.
+12. Falsified if compressed `io` is not below raw in every pairing, or if
+    (10) is not better than (11).
