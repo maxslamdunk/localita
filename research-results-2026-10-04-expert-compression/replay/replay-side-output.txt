@@ -1,0 +1,25 @@
+# 2026-10-04 22:21 M1 MacBook Air 8 GB; replay --emulate --side (codes raw, scales+biases compressed), medium schedule (24 slots), 192 tokens, production fan-out
+### --side 
+side-only arm: codes raw, scales and biases compressed; records 0.9258 of raw
+schedule: 192 tokens, 36.72 foreground + 29.00 early reads per token; gap 2700 us per layer; comp pieces 6 (sequential); raw pieces 1, raw reads fanned out
+  A (raw): io 63.20 ms/token, wall 183.31 ms/token
+  B (compressed): io 60.32 ms/token, wall 181.45 ms/token
+  B (compressed): io 60.98 ms/token, wall 181.91 ms/token
+  A (raw): io 65.12 ms/token, wall 185.26 ms/token
+  A (raw): io 64.55 ms/token, wall 184.63 ms/token
+  B (compressed): io 61.85 ms/token, wall 182.68 ms/token
+  B (compressed): io 64.07 ms/token, wall 185.06 ms/token
+  A (raw): io 69.51 ms/token, wall 189.59 ms/token
+mean io: raw 65.60, compressed 61.80 ms/token (-5.8%); wall -1.6%
+### --side --no-decode
+side-only arm: codes raw, scales and biases compressed; records 0.9258 of raw
+schedule: 192 tokens, 36.72 foreground + 29.00 early reads per token; gap 2700 us per layer; comp pieces 6 (sequential), decode skipped; raw pieces 1, raw reads fanned out
+  A (raw): io 68.59 ms/token, wall 188.80 ms/token
+  B (compressed): io 58.95 ms/token, wall 179.27 ms/token
+  B (compressed): io 63.91 ms/token, wall 184.31 ms/token
+  A (raw): io 64.54 ms/token, wall 184.88 ms/token
+  A (raw): io 64.48 ms/token, wall 184.86 ms/token
+  B (compressed): io 58.23 ms/token, wall 178.63 ms/token
+  B (compressed): io 57.82 ms/token, wall 178.12 ms/token
+  A (raw): io 62.75 ms/token, wall 183.06 ms/token
+mean io: raw 65.09, compressed 59.73 ms/token (-8.2%); wall -2.9%

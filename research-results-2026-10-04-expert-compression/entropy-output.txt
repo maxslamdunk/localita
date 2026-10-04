@@ -1,0 +1,35 @@
+experts: 3840, layers 0..29
+z out of [0,15]: 0 groups; negative scales 50.5%
+groups containing code 0: 100.00%, code 15: 84.98%
+padding bytes nonzero: 0
+z distribution (code of 0.0): {7: '0.116%', 8: '65.343%', 9: '28.732%', 10: '5.327%', 11: '0.444%', 12: '0.034%', 13: '0.003%', 14: '0.000%'}
+
+## 4-bit codes, bits per code
+  order-0, per layer x tensor                      3.7059  (+7.35% vs 4 bits)
+  order-0, pooled per tensor kind                  3.7059  (+7.35% vs 4 bits)
+  byte (two codes) order-0 / 2                     3.7053  (+7.37% vs 4 bits)
+  given z                                          3.6835  (+7.91% vs 4 bits)
+  given z, pooled per tensor kind                  3.6835  (+7.91% vs 4 bits)
+  byte given z / 2                                 3.6832  (+7.92% vs 4 bits)
+  given z and the previous code in the group       3.6830  (+7.93% vs 4 bits)
+  Huffman over bytes, table per (layer,tensor,z)   3.6968  (max code length 20)
+  Huffman over bytes, table per (layer,tensor)     3.7201  (max code length 13)
+  given z, by kind: {'gate': np.float64(3.6831), 'up': np.float64(3.6834), 'down': np.float64(3.6839)}
+  given z, by layer: 3.681 3.683 3.683 3.679 3.681 3.682 3.682 3.677 3.680 3.681 3.684 3.678 3.679 3.681 3.682 3.675 3.674 3.671 3.681 3.682 3.683 3.682 3.688 3.691 3.692 3.695 3.692 3.694 3.696 3.692
+
+## BF16 scales, bits per scale
+  16-bit order-0                          8.058
+  high byte 1.560, low byte alone 7.045, low given high 6.499
+  high byte given previous high byte in the row 1.538
+  best: 8.037
+
+## BF16 biases, bits per bias
+  16-bit order-0                          8.206
+  given the scale: (z, residual) jointly   1.383  (escapes 0, charged 16 bits each)
+  residual (bias bits - bf16(-z*scale) bits): {-1: 5739984, 0: 344973693, 1: 6129843}
+
+## Whole expert, entropy bound (bytes, all experts)
+  order-0 everything, padding dropped          0.8765 of raw  (-12.35%)
+  conditioned (codes|z, scales, bias|scale)    0.8479 of raw  (-15.21%)
+  shares of the saving: codes 7.01%, scales 2.75%, biases 5.06%, padding 0.40%
+  Huffman bytes|z for codes + bounds for the rest: -14.92%

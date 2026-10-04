@@ -1,0 +1,53 @@
+# 2026-10-04 22:02 M1 MacBook Air 8 GB; replay --emulate, medium schedule (24 slots), 192 tokens, ABBAABBA
+### --serial-whole --order ABBAABBA
+resident in page cache: /Users/max/.claude/jobs/efe582f5/tmp/comp4.bin 0.0%
+emulating: compressed records in RAM (1478.5 MB); the comp arm reads their lengths from the installed layer files
+schedule: 192 tokens, 36.72 foreground + 29.00 early reads per token; gap 2700 us per layer; comp pieces 6 (ignored: serial, whole experts); raw pieces 1, raw reads fanned out
+  A (raw): io 65.18 ms/token, wall 166.18 ms/token
+  B (compressed): io 63.46 ms/token, wall 164.66 ms/token
+  B (compressed): io 67.36 ms/token, wall 173.23 ms/token
+  A (raw): io 65.71 ms/token, wall 183.89 ms/token
+  A (raw): io 67.72 ms/token, wall 186.16 ms/token
+  B (compressed): io 69.43 ms/token, wall 188.80 ms/token
+  B (compressed): io 67.55 ms/token, wall 186.89 ms/token
+  A (raw): io 64.48 ms/token, wall 182.86 ms/token
+mean io: raw 65.77, compressed 66.95 ms/token (+1.8%); wall -0.8%
+### --serial-tail --order ABBAABBA
+resident in page cache: /Users/max/.claude/jobs/efe582f5/tmp/comp4.bin 0.0%
+emulating: compressed records in RAM (1478.5 MB); the comp arm reads their lengths from the installed layer files
+schedule: 192 tokens, 36.72 foreground + 29.00 early reads per token; gap 2700 us per layer; comp pieces 6 (ignored: serial, last expert split rest/3/1 chunks); raw pieces 1, raw reads fanned out
+  A (raw): io 65.43 ms/token, wall 183.75 ms/token
+  B (compressed): io 67.17 ms/token, wall 185.85 ms/token
+  B (compressed): io 67.95 ms/token, wall 187.09 ms/token
+  A (raw): io 66.50 ms/token, wall 185.13 ms/token
+  A (raw): io 66.02 ms/token, wall 184.22 ms/token
+  B (compressed): io 71.52 ms/token, wall 190.17 ms/token
+  B (compressed): io 69.94 ms/token, wall 188.28 ms/token
+  A (raw): io 63.87 ms/token, wall 182.19 ms/token
+mean io: raw 65.46, compressed 69.15 ms/token (+5.6%); wall +2.2%
+### --pieces 1 --order ABBAABBA
+resident in page cache: /Users/max/.claude/jobs/efe582f5/tmp/comp4.bin 0.0%
+emulating: compressed records in RAM (1478.5 MB); the comp arm reads their lengths from the installed layer files
+schedule: 192 tokens, 36.72 foreground + 29.00 early reads per token; gap 2700 us per layer; comp pieces 1 (sequential); raw pieces 1, raw reads fanned out
+  A (raw): io 65.25 ms/token, wall 183.59 ms/token
+  B (compressed): io 68.89 ms/token, wall 188.77 ms/token
+  B (compressed): io 68.55 ms/token, wall 188.47 ms/token
+  A (raw): io 63.96 ms/token, wall 183.68 ms/token
+  A (raw): io 63.06 ms/token, wall 183.00 ms/token
+  B (compressed): io 66.54 ms/token, wall 187.19 ms/token
+  B (compressed): io 66.41 ms/token, wall 186.95 ms/token
+  A (raw): io 65.11 ms/token, wall 185.02 ms/token
+mean io: raw 64.34, compressed 67.60 ms/token (+5.1%); wall +2.2%
+### --serial-whole --no-decode --order ABBAABBA
+resident in page cache: /Users/max/.claude/jobs/efe582f5/tmp/comp4.bin 0.0%
+emulating: compressed records in RAM (1478.5 MB); the comp arm reads their lengths from the installed layer files
+schedule: 192 tokens, 36.72 foreground + 29.00 early reads per token; gap 2700 us per layer; comp pieces 6 (ignored: serial, whole experts), decode skipped; raw pieces 1, raw reads fanned out
+  A (raw): io 64.80 ms/token, wall 184.58 ms/token
+  B (compressed): io 53.33 ms/token, wall 173.27 ms/token
+  B (compressed): io 53.06 ms/token, wall 172.82 ms/token
+  A (raw): io 66.04 ms/token, wall 185.86 ms/token
+  A (raw): io 67.87 ms/token, wall 187.90 ms/token
+  B (compressed): io 56.02 ms/token, wall 176.45 ms/token
+  B (compressed): io 52.51 ms/token, wall 172.83 ms/token
+  A (raw): io 65.58 ms/token, wall 185.80 ms/token
+mean io: raw 66.07, compressed 53.73 ms/token (-18.7%); wall -6.6%

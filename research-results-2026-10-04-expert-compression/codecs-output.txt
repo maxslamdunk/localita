@@ -1,0 +1,23 @@
+30 experts (1 per layer), 100.8 MB; padding dropped from every variant below (0.40%)
+
+## zstd, whole expert and independent chunks
+  zstd -1, whole expert                        0.9041 of raw (-9.59%)   decode 1.16 GB/s
+  zstd -3, whole expert                        0.9011 of raw (-9.89%)   decode 1.15 GB/s
+  zstd -9, whole expert                        0.8998 of raw (-10.02%)   decode 1.12 GB/s
+  zstd -19, whole expert                       0.8961 of raw (-10.39%)   decode 0.91 GB/s
+  zstd -3, 64 KiB chunks                       0.9024 of raw (-9.76%)   decode 1.14 GB/s
+  zstd -3, 128 KiB chunks                      0.9098 of raw (-9.02%)   decode 1.08 GB/s
+  zstd -3, 256 KiB chunks                      0.9067 of raw (-9.33%)   decode 1.05 GB/s
+  zstd -19, 128 KiB chunks                     0.8944 of raw (-10.56%)   decode 0.92 GB/s
+
+## zstd on split streams (codes | scale+bias high bytes | low bytes)
+  zstd -3, split streams                       0.8934 of raw (-10.66%)   decode 1.18 GB/s
+  zstd -19, split streams                      0.8887 of raw (-11.13%)   decode 1.11 GB/s
+
+## Apple libcompression, whole expert
+  LZ4                                          0.9933 of raw (-0.67%)   decode 28.88 GB/s
+  ZLIB                                         0.9038 of raw (-9.62%)   decode 0.25 GB/s
+  LZMA                                         0.8953 of raw (-10.47%)   decode 0.03 GB/s
+  LZFSE                                        0.9112 of raw (-8.88%)   decode 0.70 GB/s
+  LZBITMAP                                     0.9732 of raw (-2.68%)   decode 22.09 GB/s
+  BROTLI                                       0.9025 of raw (-9.75%)   decode 0.20 GB/s

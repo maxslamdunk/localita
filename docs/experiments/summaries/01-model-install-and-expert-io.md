@@ -19,6 +19,7 @@ runtime artifact appears last.
 | Fetch-path bandwidth gap vs. the SSD roof | Closed as nonexistent |
 | Install-time write order (~1.3x on read rate, 0 bytes/token) | **Held on the second artifact (+15–21% tok/s at 26.8 d); the first decayed within 7 d**, [IO-12](#io-12) |
 | Why the first rewritten artifact decayed | **Open; reframed 2026-09-15**, [IO-13](#io-13) |
+| Lossless expert compression on the iPhone | Bound −15.2%, codec −14.0% but its decode tail cancels the gain; scales+biases only −7.4% bytes, −5.8% `io` in replay; a candidate, not built, [IO-14](#io-14) |
 
 ## Runtime expert I/O
 
@@ -133,6 +134,9 @@ runtime artifact appears last.
 - **Lesson:** Already
   quantized weights may contain too little redundancy for transparent runtime
   compression.
+- **Revisited 2026-10-04 for the iPhone:** [IO-14](#io-14) measured the bound
+  (−15.2%) and a −14.0% codec. Decode pays for it only when the scales and
+  biases alone are compressed.
 
 <a id="io-08"></a>
 ### IO-08: Speculative expert reads
@@ -545,6 +549,53 @@ treated as a phenomenon we have observed rather than a number we know.
   the read rate by 10% or more within a day, twice, under both geometries.
 
 ## Model installation
+
+<a id="io-14"></a>
+### IO-14: Lossless expert compression, measured (iPhone target, Mac replay)
+
+- **Hypothesis:** The phone is storage-bound and its CPU idles during reads,
+  so a lossless expert format could cut decode and prefill bytes by about 10%
+  for +6–8% tok/s. IO-07's CPU objection was made on the Mac.
+- **Variants tested:**
+  - the Shannon bound over all 3,840 installed experts;
+  - zstd and Apple libcompression;
+  - a purpose-built Huffman codec, with code tables chosen by each group's
+    zero code z, on CPU and GPU;
+  - a variant that compresses only scales and biases;
+  - a placement-matched replay of a real 24-slot decode read schedule on the
+    Mac's SSD;
+  - a phone model built from the measured read latency.
+- **Evidence:**
+  - **Bound −15.2%:** codes 3.68 bits given z, scales 8.0 bits, biases
+    1.4 bits given the scale. MLX stores the bias as `bf16(-z × scale)`.
+  - **Codec −14.0%,** bit-exact on 1,920 held-out experts, 1.97 GB/s per M1
+    core. zstd −10%, LZ4 ~0.
+  - **Decode tail:** at ~1.2 foreground reads per layer, decoding the last
+    expert costs as much as its smaller read saves.
+  - **Mac replay, full codec:** reads alone −18.7%, with decode +1.8%.
+  - **Scales and biases only:** −7.4% bytes, codes untouched. Mac replay
+    **−5.8% `io`**, inside its prediction.
+  - **Phone model:** full codec +0.2 to +4% tok/s, side-only +2 to +3%.
+  - **Read cost on this Mac SSD:** 206 µs per command plus bytes at 2.30 GB/s,
+    so split reads do not pay.
+- **What changed the conclusion:**
+  - **The CPU is idle on the phone,** as hoped, but that is not the limit.
+  - **The limit is the decode tail of a layer's last read.** The early read
+    and count aging cut foreground reads to ~1.2 per layer, so little read
+    time is left to hide the decode behind.
+- **Final disposition:**
+  - **Full codec:** rejected for decode.
+  - **Side-only format:** a candidate, at +2–3% tok/s for a `.gturbo` v2 with
+    per-expert record lengths. Not built. Two phone probes come first: read
+    latency against size, and A19 decode speed.
+  - **TurboQuant:** lossy and aimed at the KV cache; it does not apply to a
+    lossless format.
+  - See `research-results-2026-10-04-expert-compression/results.md`.
+- **Lesson:**
+  - **Reason a read saving per read, not per byte.** Each read carries a fixed
+    command cost and a decode tail.
+  - **Placement matters:** a freshly written file on a full volume read at
+    half the speed of the installed one, which would have faked the result.
 
 <a id="io-10"></a>
 ### IO-10: Remote streaming repack
