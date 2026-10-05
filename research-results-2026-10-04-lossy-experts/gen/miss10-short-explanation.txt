@@ -1,0 +1,17 @@
+Coastal wetlands—such as salt marshes, mangroves, and seagrass beds—act as a natural buffer between the ocean and human infrastructure. When storm surges or tidal waves approach the coast, these ecosystems mitigate damage through several physical mechanisms.
+
+### Physical Mechanisms
+The primary way wetlands reduce flooding is through **frictional resistance**. As storm-driven water moves inland, it encounters the complex physical structure of the wetland: dense vegetation, roots, and uneven terrain. This "roughness" creates drag, slowing the velocity of the water and dissipating its kinetic energy. By slowing the surge, wetlands prevent the water from reaching higher elevations further inland.
+
+Additionally, wetlands provide **storage capacity**. During heavy rainfall or rising tides, the depression of a wetland acts as a natural basin, holding large volumes of water. This temporary storage prevents the sudden, synchronized arrival of water at coastal settlements, effectively "flattening" the flood peak.
+
+### Two Important Limits
+While effective, wetlands are not invincible. Two critical limits define their capacity:
+
+1.  **The Depth-to-Roughness Ratio:** The ability of vegetation to slow water is dependent on the water's depth. If a storm surge is deep enough to submerge the vegetation entirely, the "roughness" effect vanishes. Once the water flows over the tops of trees or marsh grasses, the friction drops significantly, and the wetland loses its ability to impede the surge.
+2.  **The Rate of Sea-Level Rise:** Wetlands are dynamic; they must "migrate" inland or build up sediment to stay at the correct elevation relative to the sea. If sea levels rise too rapidly, the wetlands may be drowned (submerged permanently) or squeezed against human sea walls. Once the ecosystem is lost, the protective buffer disappears.
+
+### Risk Reduction vs. Complete Protection
+It is vital to distinguish between **risk reduction** and **complete protection**. 
+
+Complete protection implies a barrier (like a massive sea wall) that aims to stop all water from entering a specific area. In contrast, wetlands provide risk reduction. They do not guarantee that a property will remain dry; rather, they reduce the *probability* and *severity* of flooding. They lower the peak height of a surge and reduce the force of the water, making the eventual flood more manageable and less destructive. In short, wetlands make the coast more resilient, but they do not make it immune to the sea.

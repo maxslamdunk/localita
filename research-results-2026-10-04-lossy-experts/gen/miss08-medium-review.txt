@@ -1,0 +1,28 @@
+### Risk Assessment
+
+**1. Critical Correctness Risks (Data Corruption & Crashes)**
+*   **Race Condition on Buffer Reuse:** The design allows a "hit" to return a view into a buffer while an asynchronous "miss" is overwriting that same buffer. Because the dictionary is updated *before* the read completes, a second request for the same key (or a different key assigned to the same slot) will access buffer contents being mutated by the background thread. This leads to corrupted reads or crashes if the buffer is resized.
+*   **Unbounded Memory/OOM:** There is no upper bound on payload size. A malicious or malformed file can trigger a massive `realloc`, causing an Out-of-Memory (OOM) crash.
+*   **Use-After-Free/Invalid Views:** Since views are returned to callers and can be retained, and the buffer can be resized or overwritten by a new "miss" task, the memory pointed to by a view may become invalid or contain different data while the caller is still reading it.
+
+**2. Performance & Logic Risks**
+*   **Work Duplication:** The design does not deduplicate work for the same key. If 100 requests arrive for a missing key, 100 concurrent reads will be triggered for the same file, potentially saturating I/O and CPU.
+*   **False Hit Metrics:** Counting in-flight/failed reads as "hits" inflates hit-rate metrics, making them useless for capacity planning.
+
+---
+
+### Proposed Safer Design
+
+**1. State Management: The "Promise" Pattern**
+Instead of mapping `Key -> Slot`, map `Key -> Future<Slot>`.
+*   **On Miss:** The service checks the dictionary. If the key is missing, it creates a "Promise" (a placeholder), inserts it into the dictionary, and then triggers the I/O.
+*   **Deduplication:** Subsequent requests for the same key will find the existing `Future` and await it, ensuring only one I/O task runs per key.
+*   **On Hit:** If the `Future` is resolved, return the view. If it is in-flight, the caller simply awaits the existing task.
+
+**2. Memory Safety: Reference Counting**
+To prevent corruption during buffer reuse:
+*   **Immutable Buffers:** Instead of a fixed pool of reusable buffers, use a reference-counted buffer management system (e.g., `Arc<Bytes>` in Rust or similar).
+*   **Lifecycle:** When a read completes, the buffer is wrapped in a reference-counted object. The "view" returned to the user holds a reference to this object. A slot is only "reusable" when its reference count drops to zero.
+
+**3. Robustness Improvements**
+*   **Size Bounds:** Enforce a `MAX_PAYLOAD

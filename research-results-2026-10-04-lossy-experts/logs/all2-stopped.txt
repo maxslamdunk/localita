@@ -1,0 +1,3 @@
+# 2026-10-05 15:20:55 commit da57c46+dirty
+# label=all2 sequences=sequences.json max-tokens=128 ref=ref env: TURBO_FIELDFARE_LOSSY_EXPERTS=all=2
+# System-wide memory free percentage: 66%; thermal: 

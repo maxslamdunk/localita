@@ -1,0 +1,27 @@
+### Risk Assessment
+
+**1. Critical Correctness Risks (Data Corruption & Crashes)**
+*   **Race Condition on Buffer Reuse:** The design allows a "hit" to return a view into a buffer while an asynchronous "miss" is overwriting that same buffer. Because the dictionary is updated *before* the read completes, a second request for the same key (or a different key that picked the same slot) will access the buffer while it is being mutated. This leads to torn reads or crashes if the buffer is resized.
+*   **Unbounded Memory/OOM:** There is no upper bound on payload size. A single malicious or oversized file can trigger a buffer resize that exhausts system memory.
+*   **Invalid State on Failure:** Leaving a key in the dictionary after a failed read causes "poisoning." Subsequent requests will hit the dictionary, see the key, and attempt to use a buffer containing garbage or partial data, leading to permanent cache corruption.
+
+**2. Performance Risks**
+*   **Work Duplication:** The design does not deduplicate work for the same key. If 100 requests arrive for a missing key, 100 concurrent reads will be dispatched to the executor for the same file, wasting I/O and CPU.
+*   **False Hit Metrics:** Counting in-flight/failed reads as "hits" provides misleading telemetry, masking the true cache performance.
+
+---
+
+### Proposed Safer Design
+
+**1. State Management: The "Promise" Pattern**
+Instead of mapping `Key -> Slot`, map `Key -> Future<Slot>`.
+*   **On Miss:** The caller performs an atomic `get_or_insert` on the dictionary. If the key is missing, it inserts a "Pending" state (a promise/future). Only the thread that successfully inserts the promise initiates the I/O.
+*   **On Hit:** If the key exists, the caller awaits the existing future. This naturally deduplicates work and prevents multiple threads from fighting over the same slot.
+
+**2. Memory & Buffer Safety**
+*   **Fixed-Size Slots:** Use fixed-size buffers (e.g., 64MB) to prevent unpredictable resizing. If a file exceeds the limit, it is handled as a "large object" (e.g., streamed or bypassed) rather than resizing the cache buffer.
+*   **Immutability via Reference Counting:** Use an atomic reference-counted structure for the buffer. A "view" returned to the caller should hold a reference to the buffer. A slot cannot be reused for a new key until its current reference count reaches zero.
+
+**3. Error Handling**
+*   **Atomic Cleanup:** If a read fails, the "Pending" state must be removed from the dictionary before the future is resolved. This ensures the next request triggers a fresh attempt.
+*   **Validation:** The checksum must be verified

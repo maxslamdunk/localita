@@ -1,0 +1,19 @@
+# 2026-10-05 00:01:48 commit da57c46+dirty
+# label=noise sequences=sequences.json max-tokens=128 ref=ref env: TURBO_FIELDFARE_LOSSY_EXPERTS=noise=0.0833333
+# System-wide memory free percentage: 64%; thermal: 
+# score: slots=24 prefill-chunk=256 lossy=noise=0.0833333 skip=off early=gemma-4-26b-a4b-it-4bit.bin@b18242445534d452b7efb9c7d1c358884ef56637ad6003c187e5bced50dc3dcd
+seq 0: prompt 56 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.1038; decode fg reads/tok 33.80, MiB/tok 201.14, 0.95 s/tok
+seq 1: prompt 39 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.2819; decode fg reads/tok 47.13, MiB/tok 243.87, 1.12 s/tok
+seq 2: prompt 47 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.1097; decode fg reads/tok 30.57, MiB/tok 190.83, 0.70 s/tok
+seq 3: prompt 205 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.4242; decode fg reads/tok 35.60, MiB/tok 206.92, 0.68 s/tok
+seq 4: prompt 89 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0702; decode fg reads/tok 50.34, MiB/tok 254.13, 0.33 s/tok
+seq 5: prompt 111 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0783; decode fg reads/tok 44.73, MiB/tok 236.17, 0.45 s/tok
+seq 6: prompt 56 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.1262; decode fg reads/tok 42.43, MiB/tok 228.78, 0.61 s/tok
+seq 7: prompt 79 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.1573; decode fg reads/tok 48.25, MiB/tok 247.45, 0.85 s/tok
+seq 8: prompt 37 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.1107; decode fg reads/tok 41.18, MiB/tok 224.80, 0.66 s/tok
+seq 9: prompt 54 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.1047; decode fg reads/tok 22.49, MiB/tok 164.92, 0.22 s/tok
+seq 10: prompt 37 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.1298; decode fg reads/tok 20.54, MiB/tok 158.69, 0.27 s/tok
+seq 11: prompt 49 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0423; decode fg reads/tok 40.43, MiB/tok 222.38, 0.83 s/tok
+reference: 1536 positions, NLL 0.1449
+decode: 1524 forwards, fg reads/tok 38.12, early reads/tok 29.00, MiB/tok 215.01, hit 76.2%, 0.638 s/tok; prefill MiB 75693.0
+# done 00:20:41; total = 7168.00M  used = 5874.75M  free = 1293.25M  (encrypted)

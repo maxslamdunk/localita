@@ -79,3 +79,28 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def paired(a_label, b_label, draws=2000):
+    """Ratio of mean KL, a / b, with a sequence-level paired bootstrap CI."""
+    a, b = positions(a_label), positions(b_label)
+    rng = np.random.default_rng(1)
+    seqs = np.unique(a[:, 0]).astype(int)
+    ka = np.array([a[a[:, 0] == s, 2].sum() for s in seqs])
+    kb = np.array([b[b[:, 0] == s, 2].sum() for s in seqs])
+    vals = []
+    for _ in range(draws):
+        pick = rng.integers(0, len(seqs), len(seqs))
+        vals.append(ka[pick].sum() / kb[pick].sum())
+    lo, hi = np.percentile(vals, [2.5, 97.5])
+    return ka.sum() / kb.sum(), lo, hi
+
+
+if __name__ == "__main__" and os.environ.get("PAIRED"):
+    print("\npaired KL ratios (sequence bootstrap, 95% CI):")
+    for a, b in [("miss05", "noise"), ("miss08", "noise"), ("missrank7", "noise"), ("miss10", "noise"),
+                 ("bias05", "noise"), ("bias10", "noise"), ("all3", "noise"), ("cold50-3", "noise"),
+                 ("miss08", "bias05"), ("miss10", "bias10"), ("misssub08", "miss08"),
+                 ("miss08-nonorm", "miss08"), ("top7", "miss08")]:
+        r, lo, hi = paired(a, b)
+        print("  %-14s / %-8s %.2f [%.2f, %.2f]" % (a, b, r, lo, hi))

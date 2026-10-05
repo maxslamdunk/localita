@@ -20,6 +20,7 @@ runtime artifact appears last.
 | Install-time write order (~1.3x on read rate, 0 bytes/token) | **Held on the second artifact (+15–21% tok/s at 26.8 d); the first decayed within 7 d**, [IO-12](#io-12) |
 | Why the first rewritten artifact decayed | **Open; reframed 2026-09-15**, [IO-13](#io-13) |
 | Lossless expert compression on the iPhone | Bound −15.2%, codec −14.0% but its decode tail cancels the gain; scales+biases only −7.4% bytes, −5.8% `io` in replay; a candidate, not built, [IO-14](#io-14) |
+| Lower-bit routed experts (3 and 2 bits, simulated) | 3 bits on all experts costs 3.05× the KL of one INT4 rounding for −22.5% bytes; dominated by cache-conditional expert skipping ([CACHE-12](03-expert-cache-prediction-and-layout.md#cache-12)); rejected for now, [IO-15](#io-15) |
 
 ## Runtime expert I/O
 
@@ -596,6 +597,46 @@ treated as a phenomenon we have observed rather than a number we know.
     command cost and a decode tail.
   - **Placement matters:** a freshly written file on a full volume read at
     half the speed of the installed one, which would have faked the result.
+
+<a id="io-15"></a>
+### IO-15: Lower-bit routed experts, quality measured (simulated, Mac)
+
+- **Hypothesis:** Upstream cancelled sub-INT4 weights for "the quality floor"
+  with no number behind it. 3-bit routed experts would read 22.5% fewer bytes
+  per expert and might cost little.
+- **Variants tested:**
+  - **Simulated in place.** Each expert is rewritten right after its read to
+    k-bit affine groups that are also valid INT4 groups
+    (`TURBO_FIELDFARE_LOSSY_EXPERTS`), so no kernel changes.
+  - **The variants:** all experts at 3 bits; gate and up only; down only; 3
+    bits on the least-used half of each layer's experts. 2 bits was stopped.
+  - **Scoring:** a teacher-forced KL meter, `TurboFieldfareScore`, over 1,536
+    positions of 12 transcripts.
+  - **Yardstick:** noise with the variance of one INT4 rounding, KL 0.045.
+- **Evidence:**
+
+| Variant | Bytes per expert | KL | Against the yardstick | Top-1 agreement |
+| --- | --- | --- | --- | --- |
+| All at 3 bits | −22.5% | 0.138 | **3.05×** [2.21, 4.33] | 0.929 |
+| Gate and up at 3 bits | −15.2% | 0.066 | ≈1.46× | 0.951 |
+| Down at 3 bits | −7.8% | 0.062 | ≈1.36× | 0.954 |
+| Cold half at 3 bits | about −8% of waited-for bytes | 0.053 | 1.18× | 0.960 |
+
+  - The costs add: gate and up plus down = 0.127, against 0.138 for all.
+- **What changed the conclusion:**
+  - Skipping a low-weight expert only when it would be a cache miss
+    ([CACHE-12](03-expert-cache-prediction-and-layout.md#cache-12)) removes
+    39% of the waited-for reads at 0.55× the yardstick.
+  - That is 3–5× more read reduction per unit of KL than any lower-bit
+    format, with no format or kernel change.
+- **Final disposition:** **Rejected for now.** Upstream's floor holds, now
+  with a measured reason. If revisited: 3 bits on gate and up, stacked on
+  skipping. See `research-results-2026-10-04-lossy-experts/results.md`.
+- **Lesson:**
+  - **A cold expert is not a cheap one.** The least-used half carried 25% of
+    uses on held-out traces but 39% of the full 3-bit cost on the scored
+    transcripts.
+  - **Down is about twice as sensitive per weight** as gate and up.
 
 <a id="io-10"></a>
 ### IO-10: Remote streaming repack

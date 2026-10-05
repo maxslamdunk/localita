@@ -1,0 +1,59 @@
+seq 11: prompt 49 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0359; decode fg reads/tok 40.69, MiB/tok 223.21, 0.23 s/tok
+reference: 1536 positions, NLL 0.0940
+decode: 1524 forwards, fg reads/tok 38.00, early reads/tok 29.00, MiB/tok 214.61, hit 76.2%, 0.216 s/tok; prefill MiB 75507.3
+# done 23:51:40; total = 6144.00M  used = 4606.31M  free = 1537.69M  (encrypted)
+seq 11: prompt 49 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0359; decode fg reads/tok 40.69, MiB/tok 223.21, 1.14 s/tok
+reference: 1536 positions, NLL 0.0940
+decode: 1524 forwards, fg reads/tok 38.00, early reads/tok 29.00, MiB/tok 214.61, hit 76.2%, 0.327 s/tok; prefill MiB 75507.3
+# done 00:01:47; total = 6144.00M  used = 5376.75M  free = 767.25M  (encrypted)
+seq 11: prompt 49 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0423; decode fg reads/tok 40.43, MiB/tok 222.38, 0.83 s/tok
+reference: 1536 positions, NLL 0.1449
+decode: 1524 forwards, fg reads/tok 38.12, early reads/tok 29.00, MiB/tok 215.01, hit 76.2%, 0.638 s/tok; prefill MiB 75693.0
+# done 00:20:41; total = 7168.00M  used = 5874.75M  free = 1293.25M  (encrypted)
+reference: 1536 positions, NLL 0.0992
+decode: 1524 forwards, fg reads/tok 34.14, early reads/tok 29.00, MiB/tok 202.24, hit 77.8%, 0.208 s/tok; prefill MiB 75475.2
+skip: dropped/layer 0.148, dropped mass/layer 0.0055, substituted/layer 0.000
+# done 00:27:31; total = 7168.00M  used = 6044.38M  free = 1123.62M  (encrypted)
+TOTAL: 1536 positions, KL 0.02465 (max 5.619), top1 0.9766, NLL 0.1236 (ref 0.0940, +0.0295)
+decode: 1524 forwards, fg reads/tok 23.14, early reads/tok 29.00, MiB/tok 167.00, hit 82.2%, 0.269 s/tok; prefill MiB 75408.0
+skip: dropped/layer 0.600, dropped mass/layer 0.0351, substituted/layer 0.000
+# done 00:36:17; total = 7168.00M  used = 6146.12M  free = 1021.88M  (encrypted)
+TOTAL: 1536 positions, KL 0.04231 (max 5.751), top1 0.9681, NLL 0.1446 (ref 0.0940, +0.0506)
+decode: 1524 forwards, fg reads/tok 14.44, early reads/tok 29.00, MiB/tok 139.14, hit 85.6%, 0.255 s/tok; prefill MiB 75452.8
+skip: dropped/layer 0.988, dropped mass/layer 0.0690, substituted/layer 0.000
+# done 00:44:32; total = 6144.00M  used = 5146.75M  free = 997.25M  (encrypted)
+TOTAL: 1536 positions, KL 0.02418 (max 2.457), top1 0.9772, NLL 0.1270 (ref 0.0940, +0.0330)
+decode: 1524 forwards, fg reads/tok 23.39, early reads/tok 29.00, MiB/tok 167.81, hit 82.1%, 0.452 s/tok; prefill MiB 75478.4
+skip: dropped/layer 0.577, dropped mass/layer 0.0392, substituted/layer 0.000
+# done 00:58:11; total = 6144.00M  used = 4963.44M  free = 1180.56M  (encrypted)
+TOTAL: 1536 positions, KL 0.02804 (max 2.980), top1 0.9694, NLL 0.1314 (ref 0.0940, +0.0374)
+decode: 1524 forwards, fg reads/tok 30.89, early reads/tok 29.00, MiB/tok 191.82, hit 79.6%, 0.986 s/tok; prefill MiB 75689.8
+skip: dropped/layer 1.000, dropped mass/layer 0.0669, substituted/layer 0.000
+# done 01:25:01; total = 6144.00M  used = 4931.19M  free = 1212.81M  (encrypted)
+TOTAL: 1536 positions, KL 0.02927 (max 4.055), top1 0.9694, NLL 0.1222 (ref 0.0940, +0.0281)
+decode: 1524 forwards, fg reads/tok 23.00, early reads/tok 29.00, MiB/tok 166.57, hit 82.3%, 0.145 s/tok; prefill MiB 75433.6
+skip: dropped/layer 0.584, dropped mass/layer 0.0343, substituted/layer 0.584
+# done 01:30:07; total = 6144.00M  used = 5104.81M  free = 1039.19M  (encrypted)
+TOTAL: 1536 positions, KL 0.02379 (max 4.497), top1 0.9798, NLL 0.1227 (ref 0.0940, +0.0287)
+decode: 1524 forwards, fg reads/tok 23.15, early reads/tok 29.00, MiB/tok 167.03, hit 82.2%, 0.153 s/tok; prefill MiB 75404.8
+skip: dropped/layer 0.599, dropped mass/layer 0.0351, substituted/layer 0.000
+# done 01:35:21; total = 6144.00M  used = 5236.19M  free = 907.81M  (encrypted)
+seq 11: prompt 49 tok, scored 128; KL 0.08666 top1 0.9531 NLL 0.0821; decode fg reads/tok 40.27, MiB/tok 221.87, 2.75 s/tok
+TOTAL: 1536 positions, KL 0.13798 (max 6.752), top1 0.9290, NLL 0.2328 (ref 0.0940, +0.1387)
+decode: 1524 forwards, fg reads/tok 38.01, early reads/tok 29.00, MiB/tok 214.65, hit 76.2%, 23.029 s/tok; prefill MiB 75561.7
+# done 12:45:00; total = 6144.00M  used = 5557.94M  free = 586.06M  (encrypted)
+seq 11: prompt 49 tok, scored 128; KL 0.01213 top1 0.9922 NLL 0.0367; decode fg reads/tok 40.15, MiB/tok 221.49, 1.10 s/tok
+TOTAL: 1536 positions, KL 0.05338 (max 4.170), top1 0.9603, NLL 0.1492 (ref 0.0940, +0.0551)
+decode: 1524 forwards, fg reads/tok 37.95, early reads/tok 29.00, MiB/tok 214.45, hit 76.2%, 3.062 s/tok; prefill MiB 75532.9
+# done 14:28:33; total = 7168.00M  used = 6155.69M  free = 1012.31M  (encrypted)
+seq 11: prompt 49 tok, scored 128; KL 0.04384 top1 0.9688 NLL 0.0418; decode fg reads/tok 40.25, MiB/tok 221.82, 0.99 s/tok
+TOTAL: 1536 positions, KL 0.06577 (max 3.159), top1 0.9505, NLL 0.1547 (ref 0.0940, +0.0606)
+decode: 1524 forwards, fg reads/tok 38.00, early reads/tok 29.00, MiB/tok 214.62, hit 76.2%, 1.344 s/tok; prefill MiB 75651.4
+# done 15:07:04; total = 8192.00M  used = 6741.44M  free = 1450.56M  (encrypted)
+seq 11: prompt 49 tok, scored 128; KL 0.04814 top1 0.9453 NLL 0.0744; decode fg reads/tok 40.50, MiB/tok 222.60, 0.60 s/tok
+TOTAL: 1536 positions, KL 0.06151 (max 2.468), top1 0.9538, NLL 0.1611 (ref 0.0940, +0.0671)
+decode: 1524 forwards, fg reads/tok 38.10, early reads/tok 29.00, MiB/tok 214.92, hit 76.1%, 0.440 s/tok; prefill MiB 75606.6
+# done 15:20:55; total = 6144.00M  used = 5687.25M  free = 456.75M  (encrypted)
+/Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/expert-compression/research-results-2026-10-04-lossy-experts/score.sh: line 39: 36403 Terminated: 15          "$root/.build/release/TurboFieldfareScore" --model "$model" --sequences "$sequences" --max-tokens "$maxtok" --slots 24 --ref "$here/refs/$ref.ref" --positions-out "$here/logs/$label.pos" >> "$out" 2>&1
+run all2 failed: 143
+queue done Mon Oct  5 15:31:43 CEST 2026
