@@ -1,0 +1,21 @@
+long-synthesis-1-off [stop=endOfTurn prefill=3015tok new=597tok decode=195.82s tok/s=3.049] 
+long-synthesis-2-router [stop=endOfTurn prefill=3015tok new=597tok decode=175.22s tok/s=3.407] [early-read guess=router needed/tok=92.08 loaded-early/tok=20.96 reads/tok=29.00 precision=0.723]
+long-synthesis-3-fitted [stop=endOfTurn prefill=3015tok new=597tok decode=165.35s tok/s=3.611] [early-read guess=fitted needed/tok=92.08 loaded-early/tok=25.23 reads/tok=29.00 precision=0.870]
+long-synthesis-4-fitted [stop=endOfTurn prefill=3015tok new=597tok decode=167.57s tok/s=3.563] [early-read guess=fitted needed/tok=92.08 loaded-early/tok=25.23 reads/tok=29.00 precision=0.870]
+long-synthesis-5-router [stop=endOfTurn prefill=3015tok new=597tok decode=169.67s tok/s=3.519] [early-read guess=router needed/tok=92.08 loaded-early/tok=20.96 reads/tok=29.00 precision=0.723]
+long-synthesis-6-off [stop=endOfTurn prefill=3015tok new=597tok decode=200.68s tok/s=2.975] 
+medium-review-1-off [stop=endOfTurn prefill=430tok new=665tok decode=203.14s tok/s=3.274] 
+medium-review-2-router [stop=endOfTurn prefill=430tok new=665tok decode=171.15s tok/s=3.885] [early-read guess=router needed/tok=83.93 loaded-early/tok=20.41 reads/tok=29.00 precision=0.704]
+medium-review-3-fitted [stop=endOfTurn prefill=430tok new=665tok decode=164.11s tok/s=4.052] [early-read guess=fitted needed/tok=83.93 loaded-early/tok=24.44 reads/tok=29.00 precision=0.843]
+medium-review-4-fitted [stop=endOfTurn prefill=430tok new=665tok decode=164.87s tok/s=4.033] [early-read guess=fitted needed/tok=83.93 loaded-early/tok=24.44 reads/tok=29.00 precision=0.843]
+medium-review-5-router [stop=endOfTurn prefill=430tok new=665tok decode=169.30s tok/s=3.928] [early-read guess=router needed/tok=83.93 loaded-early/tok=20.41 reads/tok=29.00 precision=0.704]
+medium-review-6-off [stop=endOfTurn prefill=430tok new=665tok decode=201.49s tok/s=3.300] 
+short-explanation-1-off [stop=endOfTurn prefill=61tok new=527tok decode=146.18s tok/s=3.605] 
+short-explanation-2-router [stop=endOfTurn prefill=61tok new=527tok decode=120.98s tok/s=4.356] [early-read guess=router needed/tok=77.45 loaded-early/tok=19.87 reads/tok=29.00 precision=0.685]
+short-explanation-3-fitted [stop=endOfTurn prefill=61tok new=527tok decode=116.09s tok/s=4.539] [early-read guess=fitted needed/tok=77.45 loaded-early/tok=24.10 reads/tok=29.00 precision=0.831]
+short-explanation-4-fitted [stop=endOfTurn prefill=61tok new=527tok decode=118.25s tok/s=4.457] [early-read guess=fitted needed/tok=77.45 loaded-early/tok=24.10 reads/tok=29.00 precision=0.831]
+short-explanation-5-router [stop=endOfTurn prefill=61tok new=527tok decode=121.12s tok/s=4.351] [early-read guess=router needed/tok=77.45 loaded-early/tok=19.87 reads/tok=29.00 precision=0.685]
+short-explanation-6-off [stop=endOfTurn prefill=61tok new=527tok decode=146.08s tok/s=3.608] 
+short-explanation: 1 distinct output(s) of 6
+medium-review: 1 distinct output(s) of 6
+long-synthesis: 1 distinct output(s) of 6

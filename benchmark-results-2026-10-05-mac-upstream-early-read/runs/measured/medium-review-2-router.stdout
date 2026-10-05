@@ -1,0 +1,29 @@
+### Risk Analysis
+
+**1. Critical Correctness Risks (Data Corruption & Crashes)**
+*   **Race Condition on Buffer Reuse:** The design allows a "hit" to return a view into a buffer while an asynchronous "miss" is overwriting that same buffer. This leads to **use-after-free-style corruption** where a caller reads partially written or invalid data.
+*   **Lack of Mutual Exclusion on Slots:** Because multiple misses can select the same slot, two concurrent reads can write to the same buffer simultaneously. This causes interleaved data and checksum failures.
+*   **Memory Exhaustion (OOM):** There is no upper bound on payload size. A single malicious or oversized file can trigger a buffer resize that exhausts system memory, crashing the service.
+*   **Dangling Pointers/Invalid Views:** Since the dictionary is updated *before* the read completes, a "hit" on a failed or in-flight read provides a view to garbage data.
+
+**2. Performance Risks**
+*   **Thundering Herd:** If many requests ask for the same missing key, the design lacks a mechanism to deduplicate work. Multiple threads will trigger multiple reads for the same file, wasting I/O and CPU.
+*   **False Hit Metrics:** Counting in-flight/failed reads as "hits" provides misleading latency and hit-rate metrics, masking the true cost of cache misses.
+
+---
+
+### Proposed Safer Design
+
+**1. State Management: The "Future-Slot" Pattern**
+Instead of mapping `Key -> Slot`, map `Key -> Promise/Future`.
+*   **The Dictionary:** Stores a `State` object: `{Status: [Empty | Loading | Ready], Buffer: Buffer, Future: Task}`.
+*   **Atomic Transitions:** Use a single lock (or atomic state machine) per slot. When a miss occurs, the thread must atomically transition the slot from `Empty` to `Loading`. If a slot is already `Loading`, the thread must wait on the existing task rather than picking a new slot.
+
+**2. Correctness & Memory Safety**
+*   **Immutability via Reference Counting:** Use reference-counted buffers (e.g., `Arc<Buffer>` in Rust or `shared_ptr` in C++). A "hit" returns a cloned handle to the buffer. The buffer is only returned to the "free pool" when its reference count reaches zero.
+*   **Size Bounds:** Enforce a `MAX_PAYLOAD_SIZE`. If a header exceeds this, fail the read immediately without resizing.
+*   **Two-Phase Commit:** A slot is only updated in the dictionary *after* the read succeeds. If a read fails, the key is removed from the dictionary so the next request can retry.
+
+**3. Performance & Deduplication**
+*   **Request Collapsing:** When a miss occurs, use the dictionary to check if the key is already being fetched. If yes, join the existing `Future`. This ensures one I/O operation per unique key.
+*   **Strict Metrics:** Only increment "Hit" metrics if the state is `Ready`. Separate "In-flight" as a distinct metric.
