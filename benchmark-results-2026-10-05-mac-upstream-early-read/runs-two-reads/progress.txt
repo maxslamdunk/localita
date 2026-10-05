@@ -1,0 +1,12 @@
+21:55:55 short-explanation 1-fitted
+22:00:06 short-explanation 2-fitted2
+22:04:09 short-explanation 3-fitted2
+22:08:07 short-explanation 4-fitted
+22:12:15 medium-review 1-fitted
+22:17:28 medium-review 2-fitted2
+22:22:24 medium-review 3-fitted2
+22:27:16 medium-review 4-fitted
+22:32:29 long-synthesis 1-fitted
+22:40:37 long-synthesis 2-fitted2
+22:48:14 long-synthesis 3-fitted2
+22:56:01 long-synthesis 4-fitted

@@ -1,0 +1,7 @@
+1a4c9abe4019f50576fa5aa77882ddc3f8dcf026
+ProductName:		macOS
+ProductVersion:		26.6.1
+BuildVersion:		25G76
+/dev/disk3s1s1   228Gi    12Gi    17Gi    41%    459k  178M    0%   /
+Now drawing from 'AC Power'
+ -InternalBattery-0 (id=36503651)	100%; charged; 0:00 remaining present: true
