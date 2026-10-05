@@ -1,8 +1,11 @@
 #!/bin/bash
 # Runs the quality meter once.
 #
-#   score.sh <label> <sequences.json> <max-tokens> ref        writes refs/<label>.ref
+#   score.sh <label> <sequences.json> <max-tokens> <label>     writes refs/<label>.ref
 #   score.sh <label> <sequences.json> <max-tokens> <ref-label> [VAR=value ...]
+#
+# A run writes a reference when its ref-label is its own label; otherwise it
+# is scored against refs/<ref-label>.ref.
 #
 # Extra VAR=value pairs are exported for that run only (the lossy-expert
 # simulation and the expert-skip policy are set this way). Output goes to
@@ -26,7 +29,7 @@ out="$here/logs/$label.txt"
     echo "# label=$label sequences=$(basename "$sequences") max-tokens=$maxtok ref=$ref env: $*"
     echo "# $(memory_pressure -Q | tail -1); thermal: $(pmset -g therm | grep -i 'CPU_Speed_Limit' | tr -s ' ' || true)"
 } > "$out"
-if [ "$ref" = ref ]; then
+if [ "$ref" = "$label" ]; then
     "$root/.build/release/TurboFieldfareScore" --model "$model" --sequences "$sequences" \
         --max-tokens "$maxtok" --slots 24 --ref-out "$here/refs/$label.ref" >> "$out" 2>&1
 else

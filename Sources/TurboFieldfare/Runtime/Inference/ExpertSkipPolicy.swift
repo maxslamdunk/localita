@@ -13,6 +13,11 @@ import Foundation
 /// - `missrank:<r>`: drop a foreground miss of rank r or later (1-based).
 /// - `misssub:<t>`: like `miss`, but put in its place the best-scoring
 ///   resident expert outside the top 8, and take the softmax over the new set.
+/// - `bias:<λ>`: cache-prior reranking (Skliar et al. 2024, arXiv
+///   2412.00099). Resident experts' logits (the pending early read counts as
+///   resident) get λ × the running average logit range, the original top 1
+///   is kept, and the top 8 of the biased logits are used, weighted by the
+///   softmax of their original logits. Nothing is dropped; experts are swapped.
 ///
 /// The kept experts' weights are renormalized to the full set's sum unless
 /// `:nonorm`. A dropped expert's slot in the routed kernels is filled by a
@@ -21,7 +26,7 @@ import Foundation
 package struct ExpertSkipPolicy: Sendable, Equatable {
     package static let environmentKey = "TURBO_FIELDFARE_EXPERT_SKIP"
 
-    package enum Kind: String, Sendable { case topk, wdrop, miss, missrank, misssub }
+    package enum Kind: String, Sendable { case topk, wdrop, miss, missrank, misssub, bias }
 
     package let kind: Kind
     package let value: Double
@@ -67,8 +72,13 @@ package struct ExpertSkipPolicy: Sendable, Equatable {
     ///   - pendingEarly: the expert an early read is bringing in, if any.
     package func decide(experts: [Int], logits: [Float], perExpertScale: [Float],
                         resident: Set<Int>, residentByUse: [Int],
-                        pendingEarly: Int?) -> Decision {
+                        pendingEarly: Int?, averageLogitRange: Float = 0) -> Decision {
         let k = experts.count
+        if kind == .bias {
+            return rerank(experts: experts, logits: logits, perExpertScale: perExpertScale,
+                          resident: resident, pendingEarly: pendingEarly,
+                          averageLogitRange: averageLogitRange)
+        }
         let top = experts.map { logits[$0] }
         let maxLogit = top.max() ?? 0
         let exps = top.map { Double(Foundation.exp($0 - maxLogit)) }
@@ -83,6 +93,7 @@ package struct ExpertSkipPolicy: Sendable, Equatable {
             case .wdrop: drop[i] = p[i] < value
             case .miss, .misssub: drop[i] = p[i] < value && foregroundMiss(experts[i])
             case .missrank: drop[i] = i + 1 >= Int(value) && foregroundMiss(experts[i])
+            case .bias: break
             }
         }
         var decision = Decision(experts: experts,
@@ -123,6 +134,46 @@ package struct ExpertSkipPolicy: Sendable, Equatable {
         for i in 0..<k {
             decision.weights[i] = drop[i] ? 0 : Float(p[i] * gain) * perExpertScale[experts[i]]
         }
+        return decision
+    }
+}
+
+extension ExpertSkipPolicy {
+    func rerank(experts: [Int], logits: [Float], perExpertScale: [Float],
+                resident: Set<Int>, pendingEarly: Int?,
+                averageLogitRange: Float) -> Decision {
+        let k = experts.count
+        let bonus = Float(value) * averageLogitRange
+        var biased = logits
+        for e in resident where e < biased.count { biased[e] += bonus }
+        if let pendingEarly, pendingEarly < biased.count, !resident.contains(pendingEarly) {
+            biased[pendingEarly] += bonus
+        }
+        biased[experts[0]] = .infinity
+        let picked = Array(biased.indices.sorted {
+            biased[$0] != biased[$1] ? biased[$0] > biased[$1] : $0 < $1
+        }.prefix(k))
+        let original = experts.map { logits[$0] }
+        let maxOriginal = original.max() ?? 0
+        let originalExps = original.map { Double(Foundation.exp($0 - maxOriginal)) }
+        let originalTotal = originalExps.reduce(0, +)
+        var decision = Decision(experts: experts, weights: [], dropped: 0, droppedMass: 0,
+                                substituted: 0)
+        let pickedSet = Set(picked)
+        let originalSet = Set(experts)
+        for i in 0..<k where !pickedSet.contains(experts[i]) {
+            decision.dropped += 1
+            decision.substituted += 1
+            decision.droppedMass += originalExps[i] / originalTotal
+        }
+        // Survivors keep their positions; newcomers fill the vacated ones.
+        var newcomers = picked.filter { !originalSet.contains($0) }
+        decision.experts = experts.map { pickedSet.contains($0) ? $0 : newcomers.removeFirst() }
+        let chosen = decision.experts.map { logits[$0] }
+        let m = chosen.max() ?? 0
+        let e = chosen.map { Double(Foundation.exp($0 - m)) }
+        let sum = e.reduce(0, +)
+        decision.weights = (0..<k).map { Float(e[$0] / sum) * perExpertScale[decision.experts[$0]] }
         return decision
     }
 }

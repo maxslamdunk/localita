@@ -224,6 +224,8 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
     private var perExpertScales: [[Float]] = []
     /// What `expertSkip` did since load.
     package private(set) var expertSkipCounts = ExpertSkipCounts()
+    /// Running average of the router's logit range, for `bias:` reranking.
+    private var expertSkipAverageLogitRange: Float = 0
     package var expertSkipDescription: String? { expertSkip?.description }
     /// `off`, `router`, or the fitted guess file's name and SHA-256, so a log
     /// can state which early read ran.
@@ -1772,11 +1774,15 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                 let logits = Array(UnsafeBufferPointer(
                     start: moe.lastRouterScores.contents().assumingMemoryBound(to: Float.self),
                     count: cfg.numExperts))
+                let range = (logits.max() ?? 0) - (logits.min() ?? 0)
+                expertSkipAverageLogitRange = expertSkipAverageLogitRange == 0
+                    ? range : 0.999 * expertSkipAverageLogitRange + 0.001 * range
                 let decision = expertSkip.decide(
                     experts: experts, logits: logits, perExpertScale: perExpertScales[L],
                     resident: streamer.residentExperts(),
                     residentByUse: streamer.residentExpertsByUse(),
-                    pendingEarly: earlyExpertReads?.pendingExpert(layer: L))
+                    pendingEarly: earlyExpertReads?.pendingExpert(layer: L),
+                    averageLogitRange: expertSkipAverageLogitRange)
                 expertSkipCounts.layerSteps += 1
                 expertSkipCounts.dropped += decision.dropped
                 expertSkipCounts.droppedMass += decision.droppedMass
