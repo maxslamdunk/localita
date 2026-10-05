@@ -207,6 +207,11 @@ capacity and memory cost.
     The cause is unseparated: a longer idle window per layer (the M1's GPU is
     slower), or the drive's gain from a second request in flight. The iPhone
     has never run two.
+  - Three and four were slower than two on the M1: −5.0 / −4.2 / −2.6% and
+    −21.7 / −17.6 / −11.9%, with identical output. Storage then ran at
+    1.68–1.78 GB/s, this Mac's random-read ceiling, so each extra wasted read
+    displaced a needed one
+    (`benchmark-results-2026-10-05-mac-upstream-early-read/results-three-four-reads.md`).
   - Idea, not built: drop the fixed read count. Read guesses best first, one
     at a time, until the next layer's plan arrives. Keep finished or
     in-flight reads the plan needs, abort an unneeded in-flight read, and drop
