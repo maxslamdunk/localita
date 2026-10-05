@@ -1,0 +1,3 @@
+
+[stop=maxTokens prefill=61tok new=64tok decode=14.57s tok/s=4.392]
+[early-read guess=router needed/tok=82.46 loaded-early/tok=19.78 reads/tok=29.00 precision=0.682]

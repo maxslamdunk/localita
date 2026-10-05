@@ -1,0 +1,5 @@
+1a4c9abe4019f50576fa5aa77882ddc3f8dcf026
+ProductName:		macOS
+ProductVersion:		26.6.1
+BuildVersion:		25G76
+/dev/disk3s1s1   228Gi    12Gi   4.3Gi    74%    459k   45M    1%   /

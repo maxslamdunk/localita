@@ -1,0 +1,32 @@
+### Why the query is slow
+
+There are three primary reasons why this query performs poorly on a 50M-row table:
+
+1.  **The "SARGability" Problem (The `DATE()` function):**
+    By wrapping `created_at` in a function (`DATE(created_at)`), you make the column **non-SARGable** (Search ARGumentable). The database cannot use a standard B-Tree index on `created_at` because it has to calculate the function for every single one of the 50 million rows to see if it matches. This forces a **Full Table Scan**.
+2.  **The Inequality Filter (`<>`):**
+    The `status <> 'cancelled'` clause is a "negative" filter. B-Tree indexes are designed to find what *is* there, not what *is not*. While the database can use an index to find non-cancelled orders, it is often less efficient than a positive match, especially if 'cancelled' represents a small fraction of the data.
+3.  **The Sort (FileSort):**
+    The `ORDER BY total DESC` requires the database to sort the results. Since the previous filters (the date function) prevented the use of an index for filtering, the database must pull all matching rows into memory (or disk) to perform a massive sort before it can return the top s_20.
+
+---
+
+### The Solution: Rewrite and Indexing
+
+To fix this, we need to make the date comparison "index-friendly" and create a composite index that handles both the filtering and the sorting.
+
+#### 1. The Optimized Query
+We replace the function with a **range comparison**. This allows the engine to jump straight to the start of the day in the index.
+
+```sql
+SELECT * 
+FROM orders 
+WHERE created_at >= '2024-05-01 00:00:00' 
+  AND created_at <  '2024-05-02 00:00:00'
+  AND status <> 'cancelled' 
+ORDER BY total DESC 
+LIMIT 20;
+```
+
+#### 2. The Optimized Index
+We need a **Composite Index**. The order of columns in a composite index is critical. We follow the **Equality $\to$

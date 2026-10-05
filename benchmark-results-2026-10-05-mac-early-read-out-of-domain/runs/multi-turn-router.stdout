@@ -1,0 +1,30 @@
+To understand why you can run a million goroutines but not a million OS threads, you have to look at the difference between **OS-level scheduling** and **User-level scheduling.**
+
+### 1. The Hierarchy
+In a standard operating system, the hierarchy looks like this:
+**Hardware (CPU) $\rightarrow$ OS Kernel $\rightarrow$ OS Threads $\rightarrow$ Processes.**
+
+Go introduces a new layer in the middle:
+**Hardware $\rightarrow$ OS Kernel $\rightarrow$ OS Threads $\rightarrow$ [ Go Runtime Scheduler ] $\rightarrow$ Goroutines.**
+
+Goroutines are not managed by the Operating System; they are managed by the **Go Runtime**. This is the key to their efficiency.
+
+---
+
+### 2. Why can't you run a million OS threads?
+If you try to spawn a million OS threads, your computer will likely crash or freeze. This is due to three main "costs":
+
+*   **Memory (Stack Size):** An OS thread typically comes with a fixed-size stack (often **1MB to d 8MB**). If you start 1 million threads, you would need 1 Terabyte of RAM just to hold the stacks.
+*   **Context Switching Overhead:** When the OS switches from one thread to another, it must perform a "Context Switch." This involves saving all CPU registers, floating-point states, and managing kernel-level data structures. This is a heavy operation.
+*   **Scheduling Complexity:** The OS kernel has to manage the "Ready Queue" for all threads. Managing a list of a million threads is computationally expensive for the kernel itself.
+
+---
+
+### 3. Why can you run a million Goroutines?
+Go solves the problems above using two clever tricks: **Segmented/Dynamic Stacks** and **M:N Scheduling.**
+
+#### A. Dynamic Stacks (The Memory Solution)
+A goroutine does not start with a massive 1MB stack. It starts with a tiny **2KB** stack. 
+*   If the goroutine needs more space (e. much more complex calculations), the Go runtime automatically grows the stack to a larger size.
+*   If it no longer needs it, it can shrink it.
+*   **Math:** $1,000,000 \text{ goroutines} \times 2\text{KB} \approx 2\text{

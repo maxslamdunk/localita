@@ -1,0 +1,3 @@
+
+[stop=maxTokens prefill=47tok new=500tok decode=109.93s tok/s=4.549]
+[early-read guess=fitted needed/tok=64.37 loaded-early/tok=20.19 reads/tok=29.00 precision=0.696]
