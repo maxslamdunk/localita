@@ -17,7 +17,7 @@ capacity and memory cost.
 | 24/32 slots | Conditional +memory experiments |
 | Predictor, Markov, read sorting, and single-trace layout | Rejected |
 | Fresh preallocated expert artifact | Unexecuted hypothesis |
-| Next-layer early read from the hidden state | Experimental switch; with the fitted guess about +17–20% tok/s on iPhone at +11–18% bytes/token |
+| Next-layer early read from the hidden state | Production since 2026-10-03, with the fitted guess: about +17–20% tok/s on iPhone at +11–18% bytes/token |
 | LFU count aging (decay and a reset per conversation) | Production; +23% tok/s over an 11-chat session on iPhone, nothing on a fresh single prompt |
 
 ## Cache policy and capacity
@@ -191,9 +191,12 @@ capacity and memory cost.
 - **What changed the conclusion:** Unlike CACHE-05, the guess reads the hidden
   state, not expert IDs. Unlike CACHE-06, the read waits for the layer's own
   reads and never touches a slot until the plan has assigned it.
-- **Final disposition:** Kept as an experimental switch, off by default, with
-  the fitted guess used when its file is given. Turning it on by default is a
-  bytes-for-speed trade that also means shipping a per-model guess file. See
+- **Final disposition:** First kept as an experimental switch; **on by
+  default on both platforms since 2026-10-03** (`e4eb3a4`), with the fitted
+  guess shipped in the runtime's `NextLayerGuess/` resources. Outside the
+  fit's training set the fitted guess still beat the router on all six prompts
+  tried, Russian, Chinese and Spanish included (+0.11 to +0.15 precision;
+  `benchmark-results-2026-10-05-mac-early-read-out-of-domain/results.md`). See
   `benchmark-results-2026-10-02-ios-next-layer-prefetch/results.md` and
   `benchmark-results-2026-10-03-ios-fitted-guess/results.md`.
 - **Lesson:** A prefetch that raises bytes/token can still win when it is
