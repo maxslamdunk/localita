@@ -201,6 +201,20 @@ capacity and memory cost.
   `benchmark-results-2026-10-03-ios-fitted-guess/results.md`.
 - **Lesson:** A prefetch that raises bytes/token can still win when it is
   confined to measured idle storage time. Measure the idle window first.
+- **Open:**
+  - Two reads per layer beat one on the M1 by +7.7 / +13.4 / +14.9%
+    (`benchmark-results-2026-10-05-mac-upstream-early-read/results-two-reads.md`).
+    The cause is unseparated: a longer idle window per layer (the M1's GPU is
+    slower), or the drive's gain from a second request in flight. The iPhone
+    has never run two.
+  - Idea, not built: drop the fixed read count. Read guesses best first, one
+    at a time, until the next layer's plan arrives. Keep finished or
+    in-flight reads the plan needs, abort an unneeded in-flight read, and drop
+    the rest. Not built because aborting needs reads split into chunks, and
+    chunks below 1 MiB have never been measured; the 2026-08-10 probe found
+    sizes of 1–64 MiB equal. A variant that never aborts needs no chunks and
+    risks at most one wasted read per layer. Measure the chunked read rate
+    first, on both devices.
 
 <a id="cache-11"></a>
 ### CACHE-11: Replacement policies in replay, and stale LFU counts
