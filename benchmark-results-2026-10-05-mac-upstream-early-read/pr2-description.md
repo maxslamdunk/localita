@@ -28,17 +28,23 @@ the trace recorder they need can follow in a separate PR if wanted.
 
 | | short | medium | long |
 | --- | --- | --- | --- |
-| tok/s router → fitted | TBD | TBD | TBD |
-| precision router → fitted | TBD | TBD | TBD |
-| output identical | TBD | TBD | TBD |
+| tok/s router → fitted | 4.354 → 4.498 (+3.3%) | 3.906 → 4.043 (+3.5%) | 3.463 → 3.587 (+3.6%) |
+| tok/s off → fitted | **+24.7%** | **+23.0%** | **+19.1%** |
+| precision router → fitted | 0.685 → 0.831 | 0.704 → 0.843 | 0.723 → 0.870 |
+| output identical, 6 runs | yes | yes | yes |
 
-Out-of-domain precision, router → fitted: TBD.
+Precision outside the training set, router → fitted (identical output in both):
+
+| Russian | Chinese | Spanish | story | multi-turn chat | SQL |
+| --- | --- | --- | --- | --- | --- |
+| 0.492 → 0.606 | 0.507 → 0.641 | 0.568 → 0.696 | 0.683 → 0.813 | 0.690 → 0.835 | 0.704 → 0.839 |
 
 ## Remaining limitations
 
 - Fitted for one model; another model needs its own fit, and falls back to
   the router until then.
-- Fitted on English prompts only; see the out-of-domain row.
+- Fitted on English prompts only; the gain held on the Russian, Chinese and
+  Spanish prompts above, but other languages and long contexts are untested.
 
 - [x] The change does not load a complete checkpoint, shard, or large model
       tensor into Swift heap memory.

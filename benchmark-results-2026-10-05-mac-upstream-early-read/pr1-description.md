@@ -24,7 +24,9 @@ runs, the CLI prints one more line after the footer:
   read and keeps the cache consistent, guess selection, the flag on CLI and
   server, the footer line.
 - Real model: `docs/COMMUNITY_BENCHMARKS.md` unchanged, with each case run six
-  times as off, router, router, off, … (script below).
+  times, interleaved, in the order off, router, fitted, fitted, router, off
+  (`fitted` is the follow-up PR; the same binary ran all three).
+- Community runs on other Macs: TBD.
 
 ## Memory and performance
 
@@ -33,11 +35,13 @@ Swift heap. M1 MacBook Air 8 GB, 16 slots:
 
 | | short | medium | long |
 | --- | --- | --- | --- |
-| tok/s off → router | TBD | TBD | TBD |
-| experts needed from disk per token | TBD | TBD | TBD |
-| already loaded when needed | TBD | TBD | TBD |
-| precision | TBD | TBD | TBD |
-| output identical | TBD | TBD | TBD |
+| tok/s off → router | 3.607 → 4.354 (**+20.7%**) | 3.287 → 3.906 (**+18.8%**) | 3.012 → 3.463 (**+15.0%**) |
+| experts needed from disk per token | 77.45 | 83.93 | 92.08 |
+| of those, already loaded early | 19.87 | 20.41 | 20.96 |
+| precision of the guess | 0.685 | 0.704 | 0.723 |
+| output identical, 6 runs | yes | yes | yes |
+
+tok/s is the mean of two runs per setting.
 
 Every correct guess is a read the token no longer waits for; every wrong one is
 an extra 3.36 MB read in otherwise idle storage time.
