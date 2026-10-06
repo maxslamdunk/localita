@@ -1,0 +1,12 @@
+21:23:16 short-explanation router
+21:25:38 short-explanation fitted
+21:29:11 short-explanation router2
+21:31:20 short-explanation fitted2
+21:33:20 medium-review router
+21:36:41 medium-review fitted
+21:39:53 medium-review router2
+21:42:59 medium-review fitted2
+21:45:55 long-synthesis router
+21:52:03 long-synthesis fitted
+21:58:04 long-synthesis router2
+22:03:56 long-synthesis fitted2

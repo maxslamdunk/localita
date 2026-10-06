@@ -14,7 +14,12 @@ mkdir -p "$OUT/measured"
 for case_seed in short-explanation:20260721 medium-review:20260722 long-synthesis:20260723; do
   c=${case_seed%%:*}; seed=${case_seed##*:}
   for setting in router fitted router2 fitted2; do
-    if pgrep -fl 'TurboFieldfareServer|TurboFieldfareMac|TurboFieldfareDecodeService|TurboFieldfareCLI|TurboFieldfarePackageTests|swiftpm-testing-helper|mlx_lm|mlx-lm'; then
+    # Resumable: a finished run is skipped.
+    grep -qs '^\[stop=' "$OUT/measured/$c-$setting.stderr" && continue
+    # The editor's index builds name package targets such as
+    # TurboFieldfareMacPresentation; they are compilers, not model processes.
+    if pgrep -fl 'TurboFieldfareServer|TurboFieldfareMac|TurboFieldfareDecodeService|TurboFieldfareCLI|TurboFieldfarePackageTests|swiftpm-testing-helper|mlx_lm|mlx-lm' \
+        | grep -v -E '/usr/bin/swift-(build|driver|frontend) '; then
       echo "Another model process is running; stopping." >&2; exit 1
     fi
     guess=${setting%2}; reads=1; [ "$guess" != "$setting" ] && reads=2

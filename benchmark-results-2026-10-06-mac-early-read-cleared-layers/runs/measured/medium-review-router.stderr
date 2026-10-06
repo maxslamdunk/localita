@@ -1,0 +1,4 @@
+
+[stop=endOfTurn prefill=430tok new=665tok decode=170.08s tok/s=3.910]
+[early-read guess=router needed/tok=83.93 loaded-early/tok=20.41 reads/tok=29.00 precision=0.704]
+[early-read-layers cleared/tok=2.78 layers-by-misses/tok=k0:1.79,k1:5.10,k2:7.05,k3:6.68,k4:4.84,k5:2.68,k6:1.21,k7:0.53,k8:0.12 used-by-misses/tok=k1:2.78,k2:4.99,k3:5.20,k4:3.82,k5:2.15,k6:0.95,k7:0.43,k8:0.09]

@@ -1,0 +1,4 @@
+
+[stop=endOfTurn prefill=61tok new=527tok decode=117.21s tok/s=4.496]
+[early-read guess=fitted needed/tok=77.45 loaded-early/tok=24.10 reads/tok=29.00 precision=0.831]
+[early-read-layers cleared/tok=4.60 layers-by-misses/tok=k0:2.42,k1:6.11,k2:7.51,k3:6.09,k4:3.91,k5:2.18,k6:1.12,k7:0.50,k8:0.17 used-by-misses/tok=k1:4.60,k2:6.67,k3:5.58,k4:3.59,k5:2.04,k6:1.01,k7:0.46,k8:0.15]
