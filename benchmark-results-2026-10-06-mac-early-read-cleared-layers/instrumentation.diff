@@ -1,0 +1,52 @@
+diff --git a/Sources/TurboFieldfare/Runtime/Inference/NextLayerExpertPrefetcher.swift b/Sources/TurboFieldfare/Runtime/Inference/NextLayerExpertPrefetcher.swift
+index 6eae4ba..47407c3 100644
+--- a/Sources/TurboFieldfare/Runtime/Inference/NextLayerExpertPrefetcher.swift
++++ b/Sources/TurboFieldfare/Runtime/Inference/NextLayerExpertPrefetcher.swift
+@@ -13,6 +13,12 @@ public struct EarlyExpertReadStats: Sendable, Equatable {
+     /// Early reads whose expert the next layer then missed. `reads - used`
+     /// were wasted.
+     public var used: UInt64 = 0
++    /// Scratch instrumentation. Layers by how many misses their plan had
++    /// (index k, 8 at most), the early reads used in those layers, and the
++    /// layers whose every miss an early read supplied, so they read nothing.
++    public var layersByMisses = [UInt64](repeating: 0, count: 9)
++    public var usedByMisses = [UInt64](repeating: 0, count: 9)
++    public var clearedLayers: UInt64 = 0
+ 
+     public init() {}
+ 
+@@ -157,6 +163,8 @@ final class NextLayerExpertPrefetcher: @unchecked Sendable {
+     /// `waitForAdopted`. Call before the plan's buffers are bound.
+     func adopt(into plan: RoutedExpertFetchPlan, streamer: PreadExpertStreamer) -> Set<Int> {
+         stats.misses += UInt64(plan.misses.count)
++        let k = min(plan.misses.count, 8)
++        stats.layersByMisses[k] += 1
+         guard pendingLayer == plan.layer else { return [] }
+         var adopted: Set<Int> = []
+         for i in pending.indices where !pending[i].adopted {
+@@ -168,6 +176,8 @@ final class NextLayerExpertPrefetcher: @unchecked Sendable {
+             adopted.insert(index)
+         }
+         stats.used += UInt64(adopted.count)
++        stats.usedByMisses[k] += UInt64(adopted.count)
++        if k > 0 && adopted.count == plan.misses.count { stats.clearedLayers += 1 }
+         return adopted
+     }
+ 
+diff --git a/Sources/TurboFieldfareCLI/Run.swift b/Sources/TurboFieldfareCLI/Run.swift
+index 258093b..aeed40d 100644
+--- a/Sources/TurboFieldfareCLI/Run.swift
++++ b/Sources/TurboFieldfareCLI/Run.swift
+@@ -490,4 +490,12 @@ func earlyExpertReadFooter(_ stats: EarlyExpertReadStats,
+         + " loaded-early/tok=\(perForward(stats.used))"
+         + " reads/tok=\(perForward(stats.reads))"
+         + " precision=\(precision)]\n"
++        + "[early-read-layers cleared/tok=\(perForward(stats.clearedLayers))"
++        + " layers-by-misses/tok="
++        + stats.layersByMisses.enumerated().map { "k\($0.offset):\(perForward($0.element))" }
++            .joined(separator: ",")
++        + " used-by-misses/tok="
++        + stats.usedByMisses.enumerated().dropFirst()
++            .map { "k\($0.offset):\(perForward($0.element))" }.joined(separator: ",")
++        + "]\n"
+ }
