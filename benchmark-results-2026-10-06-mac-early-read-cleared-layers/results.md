@@ -79,6 +79,13 @@ candidates remain:
 The prediction in `predictions.md` for the friend's stage 2 (median between
 −2% and +2%) followed from the falsified mechanism and has no basis now.
 
+**Scored 2026-10-07: missed.** The friend's run on the M1 Pro (16 GB, macOS
+27.0.1, `fa8bca9`, fork issue #3) gave fitted ×2 faster than router ×2 in
+**8 of 8 adjacent pairs, median +4.2%** (range +2.8 to +5.3%), with counters
+identical to these and one output per case. So candidate 1 holds: the old
+2-run means were noise, and the fitted guess helps on that 16 GB Mac too. The
+same run gave router ×2 no gain over router (+0.6 / +0.1 / +0.0%).
+
 Router ×2's counters land inside the ranges in
 [`predictions-two-stage.md`](../benchmark-results-2026-10-05-mac-upstream-early-read/predictions-two-stage.md):
 33.16 loaded early on short (predicted 32–39), 8.35 below fitted ×2
