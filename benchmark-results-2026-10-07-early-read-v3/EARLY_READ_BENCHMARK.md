@@ -48,10 +48,6 @@ setting next to each other show how much identical runs differ.
    `scratch/gemma4.gturbo` folder here instead, or pass `MODEL=<its path>`
    to the script.
 
-   **Don't start the benchmark right after installing.** macOS keeps working
-   on a freshly written 14 GB for a while; wait until the next day, or at least
-   an hour.
-
 3. Build, quit other apps, connect power, and run:
 
    ```bash
