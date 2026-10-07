@@ -1,0 +1,24 @@
+18:33:03 ru-history router
+18:34:56 ru-history fitted
+18:36:45 zh-explain fitted
+18:38:25 zh-explain router
+18:40:13 es-recipe router
+18:42:10 es-recipe fitted
+18:44:15 story fitted
+18:47:17 story router
+18:50:23 multi-turn router
+18:52:54 multi-turn fitted
+18:55:17 sql-debug fitted
+18:57:42 sql-debug router
+es-recipe-fitted b361bd362650296e [stop=maxTokens prefill=47tok new=500tok decode=109.93s tok/s=4.549] [early-read guess=fitted needed/tok=64.37 loaded-early/tok=20.19 reads/tok=29.00 precision=0.696]
+es-recipe-router b361bd362650296e [stop=maxTokens prefill=47tok new=500tok decode=104.13s tok/s=4.802] [early-read guess=router needed/tok=64.37 loaded-early/tok=16.46 reads/tok=29.00 precision=0.568]
+multi-turn-fitted 41ac995e730704ff [stop=maxTokens prefill=111tok new=500tok decode=126.67s tok/s=3.947] [early-read guess=fitted needed/tok=88.48 loaded-early/tok=24.22 reads/tok=29.00 precision=0.835]
+multi-turn-router 41ac995e730704ff [stop=maxTokens prefill=111tok new=500tok decode=134.23s tok/s=3.725] [early-read guess=router needed/tok=88.48 loaded-early/tok=20.00 reads/tok=29.00 precision=0.690]
+ru-history-fitted f45e41ddbacf8441 [stop=maxTokens prefill=54tok new=600tok decode=97.24s tok/s=6.170] [early-read guess=fitted needed/tok=51.40 loaded-early/tok=17.58 reads/tok=29.00 precision=0.606]
+ru-history-router f45e41ddbacf8441 [stop=maxTokens prefill=54tok new=600tok decode=102.27s tok/s=5.867] [early-read guess=router needed/tok=51.40 loaded-early/tok=14.26 reads/tok=29.00 precision=0.492]
+sql-debug-fitted 565833da88044da5 [stop=maxTokens prefill=79tok new=500tok decode=131.75s tok/s=3.795] [early-read guess=fitted needed/tok=91.00 loaded-early/tok=24.33 reads/tok=29.00 precision=0.839]
+sql-debug-router 565833da88044da5 [stop=maxTokens prefill=79tok new=500tok decode=136.80s tok/s=3.655] [early-read guess=router needed/tok=91.00 loaded-early/tok=20.43 reads/tok=29.00 precision=0.704]
+story-fitted 4c836d4571e065c2 [stop=endOfTurn prefill=51tok new=738tok decode=167.33s tok/s=4.410] [early-read guess=fitted needed/tok=73.89 loaded-early/tok=23.57 reads/tok=29.00 precision=0.813]
+story-router 4c836d4571e065c2 [stop=endOfTurn prefill=51tok new=738tok decode=172.73s tok/s=4.272] [early-read guess=router needed/tok=73.89 loaded-early/tok=19.81 reads/tok=29.00 precision=0.683]
+zh-explain-fitted a11f0673e3ad0c44 [stop=maxTokens prefill=41tok new=500tok decode=88.09s tok/s=5.676] [early-read guess=fitted needed/tok=58.57 loaded-early/tok=18.60 reads/tok=29.00 precision=0.641]
+zh-explain-router a11f0673e3ad0c44 [stop=maxTokens prefill=41tok new=500tok decode=95.40s tok/s=5.241] [early-read guess=router needed/tok=58.57 loaded-early/tok=14.72 reads/tok=29.00 precision=0.507]
