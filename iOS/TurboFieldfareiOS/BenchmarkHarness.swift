@@ -51,11 +51,32 @@ enum ModelLocation {
     /// killed and reopened from the home screen. Test-only: it is how a
     /// download into a test folder is resumed by a plain relaunch. Picking a
     /// model in the menu replaces it, as any choice does.
+    ///
+    /// `--remove-test-model-dir <name>` deletes such a test download, with
+    /// its partial download, checkpoint and lock, before anything opens it.
+    /// Only a name containing `-bgtest` is accepted, so it can never reach a
+    /// real model; the app has no Delete for models yet. Applied before
+    /// `--select-model-dir`, so the two together start a test afresh.
     static func applyLaunchArguments() {
         let arguments = ProcessInfo.processInfo.arguments
+        if let flag = arguments.firstIndex(of: "--remove-test-model-dir"),
+           arguments.indices.contains(flag + 1) {
+            removeTestFolder(arguments[flag + 1])
+        }
         if let flag = arguments.firstIndex(of: "--select-model-dir"),
            arguments.indices.contains(flag + 1) {
             rememberSelectedFolder(arguments[flag + 1])
+        }
+    }
+
+    private static func removeTestFolder(_ name: String) {
+        guard isValidFolderName(name), name.contains("-bgtest") else { return }
+        for suffix in ["", ".partial", ".install.lock", ".resume.json"] {
+            try? FileManager.default.removeItem(
+                at: root.appendingPathComponent(name + suffix))
+        }
+        if UserDefaults.standard.string(forKey: selectedFolderDefaultsKey) == name {
+            UserDefaults.standard.removeObject(forKey: selectedFolderDefaultsKey)
         }
     }
 

@@ -194,7 +194,7 @@ enum BackgroundDownload {
         }
         let notice = stopNotice(model, network: network)
         notify(title: notice.title, body: notice.body, after: nil)
-        finishTask(success: false)
+        finishUnfinished(model)
         // Let the cancellation reach its checkpoint before iOS suspends us.
         let window = BackgroundWindow()
         window.id = UIApplication.shared.beginBackgroundTask(withName: "Pause download") {
@@ -309,10 +309,12 @@ enum BackgroundDownload {
             return
         }
         guard wantsDownload(model) else {
-            // Cancelled or discarded by the person.
+            // Cancelled or discarded by the person: what they asked for was
+            // done, so the task ends as completed. Ended as failed, iOS would
+            // show "Task Failed" for a choice they made.
             UNUserNotificationCenter.current().removePendingNotificationRequests(
                 withIdentifiers: [notificationID])
-            finishTask(success: false)
+            finishTask(success: true)
             return
         }
         switch model.installState {
@@ -327,6 +329,18 @@ enum BackgroundDownload {
             // app does not come back to resume it within the delay.
             record("paused: \(model.installPhaseLabel) (app \(stateName))")
         }
+        finishUnfinished(model)
+    }
+
+    /// Ends a task whose download has not finished. iOS then shows its own
+    /// "Task Failed" under the title, and no app can change that line
+    /// (Apple forums thread 815830); the title above it can still be set, so
+    /// it says the download is only paused and how to continue it.
+    private static func finishUnfinished(_ model: AppModel) {
+        task?.updateTitle(
+            "\(model.installDescriptor.shortName) paused at \(percentText(model)) · "
+                + "open the app to continue",
+            subtitle: "Nothing downloaded is lost")
         finishTask(success: false)
     }
 
