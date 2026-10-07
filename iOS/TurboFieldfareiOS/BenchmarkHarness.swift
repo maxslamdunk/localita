@@ -46,6 +46,19 @@ enum ModelLocation {
         UserDefaults.standard.set(name, forKey: selectedFolderDefaultsKey)
     }
 
+    /// `--select-model-dir <name>` makes a folder the remembered choice, as if
+    /// it had been picked in the model menu, so it stays after the app is
+    /// killed and reopened from the home screen. Test-only: it is how a
+    /// download into a test folder is resumed by a plain relaunch. Picking a
+    /// model in the menu replaces it, as any choice does.
+    static func applyLaunchArguments() {
+        let arguments = ProcessInfo.processInfo.arguments
+        if let flag = arguments.firstIndex(of: "--select-model-dir"),
+           arguments.indices.contains(flag + 1) {
+            rememberSelectedFolder(arguments[flag + 1])
+        }
+    }
+
     /// `--model-dir <name>` points the app at a different folder beside the
     /// usual one. Test-only: it lets the in-app download run for real on a
     /// phone that already holds the side-loaded model, without touching it,

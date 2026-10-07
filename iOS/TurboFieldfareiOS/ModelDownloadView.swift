@@ -98,7 +98,7 @@ struct ModelDownloadView: View {
             titleVisibility: .visible
         ) {
             Button("Discard Download", role: .destructive) {
-                model.discardModelDownload()
+                BackgroundDownload.discard(model)
             }
             Button("Keep Download", role: .cancel) {}
         } message: {
@@ -242,7 +242,7 @@ struct ModelDownloadView: View {
     private var actions: some View {
         VStack(spacing: 12) {
             if model.isInstallingModel {
-                Button("Cancel Download", action: model.cancelInstall)
+                Button("Cancel Download") { BackgroundDownload.cancel(model) }
                     .buttonStyle(.bordered)
                     .disabled(!model.canCancelInstall)
             } else {
@@ -292,7 +292,7 @@ struct ModelDownloadView: View {
     }
 
     private func start(allowingMobileData: Bool) {
-        network.allowsMobileData = allowingMobileData
-        model.installModel(allowsExpensiveNetwork: allowingMobileData)
+        BackgroundDownload.start(model, network: network,
+                                 allowingMobileData: allowingMobileData)
     }
 }
