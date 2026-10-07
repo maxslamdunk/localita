@@ -5,6 +5,9 @@ public struct RemoteStreamingRepackOptions: Sendable {
     public let outputDir: String
     public let token: String?
     public let requireKnownSource: Bool
+    /// Lets `requireKnownSource` also pass a checkpoint off the pinned list
+    /// whose text model has the reference's exact layout: a community model.
+    public let acceptsReferenceLayout: Bool
     public let copyAuditPath: String?
     public let rangeChunkBytes: Int
     public let writeTileBytes: Int
@@ -22,6 +25,7 @@ public struct RemoteStreamingRepackOptions: Sendable {
                 outputDir: String,
                 token: String? = nil,
                 requireKnownSource: Bool = false,
+                acceptsReferenceLayout: Bool = false,
                 copyAuditPath: String? = nil,
                 rangeChunkBytes: Int = RemoteChunkPolicy.defaultBytes,
                 writeTileBytes: Int = WriterCore.tileBytes,
@@ -38,6 +42,7 @@ public struct RemoteStreamingRepackOptions: Sendable {
         self.outputDir = outputDir
         self.token = token
         self.requireKnownSource = requireKnownSource
+        self.acceptsReferenceLayout = acceptsReferenceLayout
         self.copyAuditPath = copyAuditPath
         self.rangeChunkBytes = rangeChunkBytes
         self.writeTileBytes = writeTileBytes
@@ -181,6 +186,7 @@ public final class RemoteStreamingRepacker {
         progress(.downloadingMetadata)
         let snapshot = try await RemoteSnapshotLoader.load(remote: remote,
                                                            requireKnownSource: options.requireKnownSource,
+                                                           acceptsReferenceLayout: options.acceptsReferenceLayout,
                                                            metadataDirectory: paths.metadataDirectory,
                                                            audit: audit)
         try Task.checkCancellation()
@@ -593,7 +599,12 @@ public final class RemoteStreamingRepacker {
         }
         let data = try GTurboJSON.encodeManifest(
             plan: plan,
-            modelID: plan.matchedModelID ?? "unknown/snapshot",
+            // The repository it came from, which the app labels answers and
+            // matches chats by. Not `plan.matchedModelID`: the index digest it
+            // is looked up by lists tensor names and shards, not weights, so a
+            // re-tune sharded like a pinned model has that model's digest
+            // (an abliterated Gemma 4 has gemma4's; checked 2026-10-07).
+            modelID: options.repoID,
             sourceSnapshotHash: "sha256:" + metadata.indexSha256Hex,
             files: files,
             expertsPerLayer: plan.layers.first(where: { $0.expertsPerLayer > 0 })?.expertsPerLayer ?? 0,

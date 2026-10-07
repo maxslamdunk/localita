@@ -20,25 +20,39 @@ public enum ConversationIdentityError: Error, CustomStringConvertible {
 /// anything. It is a refusal test. Token IDs index a vocabulary, sit at
 /// positions a template chose, and stand in for images a preprocessor produced;
 /// change any of those and the same integers describe a different conversation.
-/// The four fields are the four ways that can happen — a different checkpoint,
-/// a different model, a different chat framing, or different pixels out of the
-/// same file — and a mismatch in any of them leaves the transcript readable and
-/// says so rather than continuing on a lineage the model never had.
+/// Those are a different vocabulary, a different chat framing, or different
+/// pixels out of the same file, and a mismatch in any of them leaves the
+/// transcript readable and says so rather than continuing on a lineage the
+/// model never had.
+///
+/// The model itself is not one of those ways. Two checkpoints that share a
+/// tokenizer read the same IDs as the same text, so a chat recorded with one
+/// can be continued with the other; `tokenizerSHA256` is what says whether
+/// they do. `modelID` and `sourceSnapshotHash` name who wrote a turn.
 public struct ConversationIdentity: Sendable, Equatable, Codable {
     public let modelID: String
     public let sourceSnapshotHash: String
     public let templateIdentity: String
     public let imageProcessingVersion: Int
+    /// The SHA-256 of the model's `tokenizer/tokenizer.json`, as its manifest
+    /// records it. Nil on identities written before this field existed, and on
+    /// a manifest that does not list the file.
+    public let tokenizerSHA256: String?
 
     public init(modelID: String,
                 sourceSnapshotHash: String,
                 templateIdentity: String,
-                imageProcessingVersion: Int) {
+                imageProcessingVersion: Int,
+                tokenizerSHA256: String? = nil) {
         self.modelID = modelID
         self.sourceSnapshotHash = sourceSnapshotHash
         self.templateIdentity = templateIdentity
         self.imageProcessingVersion = imageProcessingVersion
+        self.tokenizerSHA256 = tokenizerSHA256
     }
+
+    /// The manifest key of the file whose digest is `tokenizerSHA256`.
+    public static let tokenizerFile = "tokenizer/tokenizer.json"
 
     /// The identity of a loaded model. The chat framing is the tokenizer's
     /// declared template identity, which is a type-level constant because the
@@ -54,7 +68,8 @@ public struct ConversationIdentity: Sendable, Equatable, Codable {
         self.init(modelID: model.modelID,
                   sourceSnapshotHash: snapshot,
                   templateIdentity: GFTokenizer.chatTemplateIdentity,
-                  imageProcessingVersion: VisionImageProcessing.version)
+                  imageProcessingVersion: VisionImageProcessing.version,
+                  tokenizerSHA256: model.manifest.files[Self.tokenizerFile]?.sha256)
     }
 
     /// The identity of an installed model, from its manifest alone.
@@ -72,6 +87,7 @@ public struct ConversationIdentity: Sendable, Equatable, Codable {
             modelID: manifest.modelID,
             sourceSnapshotHash: snapshot,
             templateIdentity: GFTokenizer.chatTemplateIdentity,
-            imageProcessingVersion: VisionImageProcessing.version)
+            imageProcessingVersion: VisionImageProcessing.version,
+            tokenizerSHA256: manifest.files[tokenizerFile]?.sha256)
     }
 }

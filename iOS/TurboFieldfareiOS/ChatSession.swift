@@ -44,6 +44,7 @@ enum ChatSession {
     static let prefillChunkTokens = PrefillRuntimeConfig.maxChunkTokens
 
     static func makeModel() -> AppModel {
+        ModelLocation.applyLaunchArguments()
         // Before the model, whose store takes the writer lock.
         MockChats.applyLaunchArguments(modelDirectory: ModelLocation.directory)
         let model = AppModel(
@@ -78,11 +79,15 @@ enum ChatSession {
         return model
     }
 
-    /// The text model a folder holds. A folder no model is named for is a
-    /// `--model-dir` test copy, which is always the default model.
+    /// The text model a folder holds, pinned or added from a link. A folder
+    /// no model is named for is a `--model-dir` test copy, which is always the
+    /// default model.
     static func descriptor(forFolder name: String) -> AppModelInstallDescriptor {
-        AppModelInstallDescriptor.textModels.first { $0.directoryName == name }
-            ?? .default
+        let community = CommunityModelStore.load(
+            forModelDirectory: ModelLocation.directory(named: name))
+            .map(AppModelInstallDescriptor.init(community:))
+        return (AppModelInstallDescriptor.textModels + community)
+            .first { $0.directoryName == name } ?? .default
     }
 
     /// Switches the phone to another text model: its own folder, its own
@@ -113,16 +118,20 @@ enum ChatSession {
         }
     }
 
-    /// The installed model a stored chat was recorded with, when that is not
-    /// the one running: tapping the chat switches to it rather than opening
-    /// it read-only.
-    static func modelToSwitch(for entry: ConversationMeta,
-                              in model: AppModel) -> AppModelInstallDescriptor? {
-        guard case .cannotReplay(.differentModel) = model.continuability(of: entry),
-              let recorded = model.textModel(for: entry),
-              recorded != model.installDescriptor,
-              isInstalled(recorded, current: model) else { return nil }
-        return recorded
+    /// The composer's Load or Download for a model picked in its menu.
+    ///
+    /// Switches to it with the chat on screen kept on screen: the chat is
+    /// reopened from its stored copy, and its next send replays it into the
+    /// new model. An installed model is then loaded; one that is not opens
+    /// its download in place of the chat, which comes back once it is done.
+    static func switchModel(to descriptor: AppModelInstallDescriptor,
+                            in model: AppModel) {
+        guard model.canSelectModel, descriptor != model.installDescriptor else { return }
+        selectModel(descriptor, in: model,
+                    openingConversation: model.history.selection)
+        if model.canLoadModel {
+            model.loadModel()
+        }
     }
 
     /// Whether a text model is installed on the phone, judged the same way the

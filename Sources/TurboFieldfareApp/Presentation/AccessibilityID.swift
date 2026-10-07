@@ -52,6 +52,8 @@ public enum AccessibilityID: String, CaseIterable, Sendable {
     case composerMessage = "composer.message"
     case composerGenerate = "composer.generate"
     case composerStop = "composer.stop"
+    /// iOS only: Load, Download, Retry or Reload in the send button's place.
+    case composerModelAction = "composer.modelAction"
     /// iOS only today: the Mac exposes no reasoning control yet, though the
     /// plumbing beneath this one is shared and would serve it unchanged.
     case composerThinking = "composer.thinking"
@@ -61,6 +63,9 @@ public enum AccessibilityID: String, CaseIterable, Sendable {
     case examplesMore = "examples.more"
 
     case transcriptCopyResponse = "transcript.copyResponse"
+    /// iOS only: the name of the model that wrote an answer, beside its copy
+    /// button.
+    case transcriptAnswerModel = "transcript.answerModel"
     case transcriptLoad = "transcript.load"
     case transcriptReload = "transcript.reload"
 

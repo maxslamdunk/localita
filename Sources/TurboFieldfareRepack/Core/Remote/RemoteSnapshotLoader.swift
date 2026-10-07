@@ -10,8 +10,12 @@ struct RemoteSnapshot {
 }
 
 enum RemoteSnapshotLoader {
+    /// With `requireKnownSource`, the index must be one of the pinned
+    /// checkpoints' or, with `acceptsReferenceLayout` too, a checkpoint whose
+    /// text model is laid out exactly as the reference's (`ReferenceLayout`).
     static func load(remote: HuggingFaceRemoteSource,
                      requireKnownSource: Bool,
+                     acceptsReferenceLayout: Bool = false,
                      metadataDirectory: String,
                      audit: RepackAudit? = nil) async throws -> RemoteSnapshot {
         try Posix.mkdirP(metadataDirectory)
@@ -39,7 +43,9 @@ enum RemoteSnapshotLoader {
                                         audit: audit)
 
         let metadata = try IndexLoader.load(snapshotDir: metadataDirectory)
-        if requireKnownSource && SourceFingerprint.modelID(forIndexSha256: metadata.indexSha256Hex) == nil {
+        let checksLayout = requireKnownSource
+            && SourceFingerprint.modelID(forIndexSha256: metadata.indexSha256Hex) == nil
+        if checksLayout && !acceptsReferenceLayout {
             throw RepackError.sourceFingerprintRejected(path: metadata.indexPath,
                                                         sha256: metadata.indexSha256Hex)
         }
@@ -98,6 +104,9 @@ enum RemoteSnapshotLoader {
                                                             headerBytes: headerData))
         }
 
+        if checksLayout {
+            try ReferenceLayout.check(arch: arch, meta: metadata, shardHeaders: headers)
+        }
         return RemoteSnapshot(metadata: metadata,
                               arch: arch,
                               shardHeaders: headers,

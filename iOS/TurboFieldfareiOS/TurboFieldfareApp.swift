@@ -40,7 +40,9 @@ struct TurboFieldfareiOSApp: App {
             .onChange(of: keepsScreenOn, initial: true) { _, on in
                 UIApplication.shared.isIdleTimerDisabled = on
             }
-            .onChange(of: scenePhase) { _, phase in
+            // `initial` so a launch counts as a return: a download that iOS
+            // stopped, or that died with the app, resumes when it opens.
+            .onChange(of: scenePhase, initial: true) { _, phase in
                 guard !Self.isBenchmarkRun else { return }
                 Suspension.handle(phase, model: model, network: network)
             }
@@ -77,7 +79,8 @@ struct TurboFieldfareiOSApp: App {
         Self.isBenchmarkRun
             || model.isTurnInFlight
             || model.loadState.isLoading
-            || model.isInstallingModel
+            // Not the model download: `BackgroundDownload` keeps it running on
+            // a locked phone, so holding the screen on would only cost battery.
             || model.isInstallingVisionPack
     }
 }
@@ -102,16 +105,18 @@ enum Suspension {
             if model.canCancel { model.cancel() }
         case .background:
             pauseDownloads(model, network: network)
-            flush(model)
+            flush(model, network: network)
         case .active:
             resumeDownloads(model, network: network)
+            BackgroundDownload.resumeIfWanted(model, network: network)
         @unknown default:
             break
         }
     }
 
     /// Stops a download at a saved checkpoint rather than letting iOS freeze
-    /// it mid-request.
+    /// it mid-request. A model download that `BackgroundDownload`'s task is
+    /// keeping alive is left running.
     ///
     /// A suspended app's connections die, and the installer would find out
     /// only on return, as a failure. Cancelled here, it records where it got
@@ -119,7 +124,8 @@ enum Suspension {
     /// then waits for the cancellation to land, inside the same background
     /// window.
     private static func pauseDownloads(_ model: AppModel, network: DownloadNetwork) {
-        if model.isInstallingModel && model.canCancelInstall {
+        if model.isInstallingModel && model.canCancelInstall
+            && !BackgroundDownload.keepsDownloadRunning {
             network.resumesModelOnReturn = true
             model.cancelInstall()
             log.info("model download paused for background")
@@ -131,24 +137,20 @@ enum Suspension {
         }
     }
 
-    /// Resumes what `pauseDownloads` paused, and only that. A quick return can
-    /// arrive before the cancellation has finished, so this waits it out
-    /// first; starting over a cancelling install is refused.
+    /// Resumes the image-support download `pauseDownloads` paused, and only
+    /// that. A quick return can arrive before the cancellation has finished,
+    /// so this waits it out first; starting over a cancelling install is
+    /// refused. The model download is resumed by
+    /// `BackgroundDownload.resumeIfWanted`, which also covers a download iOS
+    /// stopped or that died with the app.
     private static func resumeDownloads(_ model: AppModel, network: DownloadNetwork) {
-        guard network.resumesModelOnReturn || network.resumesImageSupportOnReturn else {
-            return
-        }
-        let resumesModel = network.resumesModelOnReturn
-        let resumesImageSupport = network.resumesImageSupportOnReturn
         network.resumesModelOnReturn = false
+        guard network.resumesImageSupportOnReturn else { return }
+        let resumesImageSupport = network.resumesImageSupportOnReturn
         network.resumesImageSupportOnReturn = false
         Task {
             while model.isInstallingModel || model.isInstallingVisionPack {
                 try? await Task.sleep(for: .milliseconds(100))
-            }
-            if resumesModel {
-                model.installModel(allowsExpensiveNetwork: network.allowsMobileData)
-                log.info("model download resumed")
             }
             if resumesImageSupport {
                 model.installVisionPack()
@@ -159,7 +161,7 @@ enum Suspension {
 
     /// Waits for the stopped turn to be written, and for any paused download
     /// to reach its checkpoint, inside the time iOS grants a backgrounded app.
-    private static func flush(_ model: AppModel) {
+    private static func flush(_ model: AppModel, network: DownloadNetwork) {
         let app = UIApplication.shared
         let task = BackgroundTask()
         task.id = app.beginBackgroundTask(withName: "Save conversation") {
@@ -174,7 +176,10 @@ enum Suspension {
             if !saved {
                 log.error("conversation not saved before suspension")
             }
-            while (model.isInstallingModel || model.isInstallingVisionPack)
+            // Only for the downloads that were paused; one the background
+            // task keeps running is not going to stop.
+            while ((network.resumesModelOnReturn && model.isInstallingModel)
+                   || (network.resumesImageSupportOnReturn && model.isInstallingVisionPack))
                 && ContinuousClock.now < deadline {
                 try? await Task.sleep(for: .milliseconds(100))
             }

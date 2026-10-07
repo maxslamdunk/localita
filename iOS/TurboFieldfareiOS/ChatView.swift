@@ -7,9 +7,11 @@ import TurboFieldfareAppPresentation
 /// opens.
 ///
 /// Every decision about what the status row may say and which lifecycle action
-/// it may offer comes from `AppPresentationState.resolve`, shared with the Mac.
-/// Re-deriving that here is how a platform ends up offering a fully enabled
-/// button that does nothing — the case its own comments record.
+/// it may offer comes from `AppPresentationState.resolve`, shared with the Mac,
+/// split between the top of the chat and the composer by
+/// `ChatControlsPresentation`. Re-deriving that here is how a platform ends up
+/// offering a fully enabled button that does nothing — the case its own
+/// comments record.
 struct ChatView: View {
     let model: AppModel
     let network: DownloadNetwork
@@ -143,8 +145,19 @@ struct ChatView: View {
 
     // MARK: - Status
 
+    /// The shared status, worded for the top of the chat: the model in memory
+    /// first, and only Unload or Cancel Load as its button. Load, Retry and
+    /// Reload belong to the composer (`ChatControlsPresentation`).
+    private var statusPresentation: AppPresentationState {
+        var presentation = model.presentation
+        presentation.label = ChatControlsPresentation.statusLabel(
+            presentation, loadState: model.loadState,
+            modelName: model.installDescriptor.shortName)
+        return presentation
+    }
+
     private var statusBar: some View {
-        let presentation = shownPresentation ?? model.presentation
+        let presentation = shownPresentation ?? statusPresentation
         return HStack(spacing: 10) {
             Button {
                 isShowingChats = true
@@ -183,16 +196,11 @@ struct ChatView: View {
                     .accessibilityIdentifier(.hudRate)
             }
 
-            // `.install` and `.cancelInstall` are dropped deliberately. The
-            // download screen owns those: it asks about mobile data before it
-            // starts a 14.6 GB download, and a small button here would skip
-            // that question. The load actions are kept, `.cancelLoad`
-            // included, because a load takes minutes and is worth being able
-            // to abandon. When there is no primary action, a loaded model's
-            // secondary one, Unload, takes the same place, so the one button
-            // reads Load before a load and Unload after it.
-            if let action = presentation.primaryAction ?? presentation.secondaryAction,
-               action != .install, action != .cancelInstall {
+            // Only what frees memory: Unload, or Cancel while a load runs,
+            // which takes long enough to be worth abandoning. Install belongs
+            // to the download screen, which asks about mobile data before it
+            // starts a 14.6 GB download, and Load to the composer.
+            if let action = ChatControlsPresentation.statusAction(presentation) {
                 Button(actionLabel(action)) { model.perform(action) }
                     .buttonStyle(.glass)
                     .controlSize(.regular)
@@ -201,7 +209,7 @@ struct ChatView: View {
                     .accessibilityIdentifier(.bannerModelAction)
             }
         }
-        .onChange(of: model.presentation, initial: true) { _, new in
+        .onChange(of: statusPresentation, initial: true) { _, new in
             enqueueStatus(new)
         }
         .padding(.horizontal, 16)

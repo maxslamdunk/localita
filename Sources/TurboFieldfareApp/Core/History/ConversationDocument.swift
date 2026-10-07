@@ -77,7 +77,11 @@ public struct ConversationDocument: Sendable {
                 promptTokens: turn.promptTokens,
                 cachedTokens: turn.cachedTokens,
                 generatedTokens: turn.generatedTokens,
-                tokenIDs: turn.tokens)
+                tokenIDs: turn.tokens,
+                // A turn that names no model was written by a build that
+                // only ever continued a chat with the model it started on.
+                modelID: turn.role == .assistant
+                    ? (turn.identity ?? opened.meta.identity).modelID : nil)
             turns.append(chatTurn)
             if chatTurn.role == .user {
                 pendingUser = chatTurn

@@ -530,7 +530,7 @@ import TurboFieldfare
         #expect(!Self.readingRefused.allowsSend)
         #expect(!ConversationScreen.reading(
             id: Self.row, document: Self.stored,
-            state: .cannotReplay(reason: .differentCheckpoint),
+            state: .cannotReplay(reason: .differentTokenizer),
             renderID: Self.renderA).allowsSend)
         #expect(!Self.replaying.allowsSend)
         #expect(!Self.unreadable.allowsSend)

@@ -1,4 +1,5 @@
 import Foundation
+import TurboFieldfare
 
 struct PersistenceLineageKey: Hashable, Sendable {
     let conversationID: UUID
@@ -16,4 +17,6 @@ struct CompletedTurnPersistence: Sendable {
     let sampling: ConversationSampling
     let boundary: ConversationBoundary
     let imageWrite: Task<TurnImageWriteOutcome, Never>?
+    /// The model both halves were tokenized and written by.
+    let identity: ConversationIdentity?
 }

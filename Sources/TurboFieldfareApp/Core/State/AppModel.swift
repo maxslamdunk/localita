@@ -302,6 +302,9 @@ public final class AppModel {
         self.installationStatus = AppModelInstallationProbe.status(
             at: directory, descriptor: installer.descriptor)
         self.visionInstallationStatus = AppVisionPackInstallationProbe.status(at: directory)
+        if settingsPersistenceEnabled {
+            self.communityRecords = CommunityModelStore.load(forModelDirectory: directory)
+        }
         self.client = client
         self.installer = installer
         self.installerFactory = installerFactory
@@ -434,9 +437,97 @@ public final class AppModel {
 
     public var installDescriptor: AppModelInstallDescriptor { installer.descriptor }
 
-    /// The text models this app can install and switch between.
+    /// The model an answer generated now is written by: the one the history
+    /// store is bound to, which is the one that loads. Recorded on every
+    /// answer, because a chat can be continued by another model that shares
+    /// its tokenizer.
+    public var answeringModelID: String {
+        conversationIdentity?.modelID ?? installDescriptor.repoID
+    }
+
+    /// The text models this app can install and switch between: the ones the
+    /// project pins, then the ones added from a Hugging Face link.
     public var availableModels: [AppModelInstallDescriptor] {
-        AppModelInstallDescriptor.textModels
+        AppModelInstallDescriptor.textModels + communityModels
+    }
+
+    /// Models added from a Hugging Face link, oldest first.
+    public var communityModels: [AppModelInstallDescriptor] {
+        communityRecords.map(AppModelInstallDescriptor.init(community:))
+    }
+
+    /// Read from beside the model folders when settings persist. Kept in
+    /// memory otherwise, so a model driven by tests never writes the user's
+    /// list.
+    private var communityRecords: [CommunityModelRecord] = []
+
+    /// The name an answer is labelled with, for any model this app lists.
+    public func modelName(forModelID modelID: String) -> String {
+        availableModels.first { $0.repoID == modelID }?.shortName
+            ?? AppModelInstallDescriptor.shortName(forModelID: modelID)
+    }
+
+    /// Whether a pasted repository can run here, read from Hugging Face. One
+    /// the app already lists is answered without a request.
+    public func checkCommunityModel(_ link: HuggingFaceLink) async throws -> CommunityModelCheck {
+        if let listed = listedModel(repoID: link.repoID) {
+            return .listed(listed)
+        }
+        return try await CommunityModelStore.check(link)
+    }
+
+    /// Adds a model `checkCommunityModel` found compatible. A repository
+    /// already listed returns that entry unchanged.
+    @discardableResult
+    public func addCommunityModel(_ record: CommunityModelRecord) throws
+        -> AppModelInstallDescriptor {
+        if let listed = listedModel(repoID: record.repoID) {
+            return listed
+        }
+        let records = communityRecords + [record]
+        if settingsPersistenceEnabled {
+            try CommunityModelStore.save(records, forModelDirectory: modelDirectoryURL)
+        }
+        communityRecords = records
+        return AppModelInstallDescriptor(community: record)
+    }
+
+    /// Repository names are matched as Hugging Face matches them, ignoring case.
+    private func listedModel(repoID: String) -> AppModelInstallDescriptor? {
+        availableModels.first { $0.repoID.lowercased() == repoID.lowercased() }
+    }
+
+    /// Why a model's files can't be deleted now, or nil when they can.
+    public func deletionBlocker(for descriptor: AppModelInstallDescriptor) -> String? {
+        if descriptor == installDescriptor {
+            return "In use. Switch to another model first."
+        }
+        // A model using Gemma 4's image pack reads it from Gemma 4's folder.
+        if AppVisionPackHost.textModelDirectory(for: modelDirectoryURL).lastPathComponent
+            == descriptor.directoryName {
+            return "\(installDescriptor.shortName) uses its image support."
+        }
+        return nil
+    }
+
+    /// Deletes a model other than the current one: its folder, any download
+    /// in progress, and its own image pack. A community model also leaves the
+    /// list; a pinned one stays in it, to be downloaded again.
+    public func deleteModel(_ descriptor: AppModelInstallDescriptor) throws {
+        guard deletionBlocker(for: descriptor) == nil else { return }
+        try AppModelRemoval.removeTextModel(
+            at: modelDirectoryURL.deletingLastPathComponent()
+                .appendingPathComponent(descriptor.directoryName, isDirectory: true))
+        guard descriptor.isCommunity else { return }
+        let records = communityRecords.filter { $0.repoID != descriptor.repoID }
+        if settingsPersistenceEnabled {
+            try CommunityModelStore.save(records, forModelDirectory: modelDirectoryURL)
+        }
+        communityRecords = records
+    }
+
+    private var modelDirectoryURL: URL {
+        URL(fileURLWithPath: modelPathText, isDirectory: true)
     }
 
     /// Whether the model selection can change right now. A switch rebinds the
@@ -454,13 +545,14 @@ public final class AppModel {
     /// (its checkpoint stays, so it resumes when that model is chosen again),
     /// and the conversation list is re-read against the new model's identity.
     /// The settings file and the conversation store sit beside the model
-    /// folders, so both models share them; a chat recorded with the other
-    /// model stays readable and is marked as not continuable.
+    /// folders, so both models share them, and a chat recorded with one
+    /// continues with the other when their tokenizers match.
     ///
     /// `openingConversation` reopens a stored chat once the new model's list
-    /// is read — the way to continue a chat recorded with the other model.
-    /// It rides the launch-restore path: the selection is saved, and the
-    /// rebind reads it back and opens it when its row appears.
+    /// is read, which is how the chat on screen stays on screen across a
+    /// switch: its next send replays it into the new model. It rides the
+    /// launch-restore path: the selection is saved, and the rebind reads it
+    /// back and opens it when its row appears.
     public func selectModel(_ descriptor: AppModelInstallDescriptor,
                             at directory: URL,
                             openingConversation conversationID: UUID? = nil) {
@@ -480,21 +572,13 @@ public final class AppModel {
             return
         }
         // `setModelURL` re-reads the settings file and reopens the chat it
-        // names. Left alone, that is the chat the switch was made from — a
-        // chat of the other model, which reopens read-only. So the saved
-        // selection is replaced first: with the chat asked for, or with none,
-        // which leaves the new model on a new chat.
+        // names. The saved selection is replaced first, with the chat asked
+        // for or with none, which leaves the new model on a new chat.
         if settingsPersistenceEnabled {
             history.selection = conversationID
             persistSettings()
         }
         setModelURL(URL(fileURLWithPath: path, isDirectory: true))
-    }
-
-    /// The text model a stored conversation was recorded with, if it is one
-    /// this app knows.
-    public func textModel(for meta: ConversationMeta) -> AppModelInstallDescriptor? {
-        AppModelInstallDescriptor.textModel(modelID: meta.identity.modelID)
     }
 
     public var installRequirement: AppModelInstallRequirement? {
@@ -2950,7 +3034,8 @@ public final class AppModel {
         self.diagnostics = diagnostics
         let userText = outputPromptText
         let assistantText = outputText
-        conversation.completeTurn(text: outputText, diagnostics: diagnostics)
+        conversation.completeTurn(text: outputText, diagnostics: diagnostics,
+                                  modelID: answeringModelID)
         // Written here and nowhere else: this is the one path that commits a
         // turn to the KV, so it is the one path where the transcript on disk
         // and the model's context can be made to say the same thing. A turn

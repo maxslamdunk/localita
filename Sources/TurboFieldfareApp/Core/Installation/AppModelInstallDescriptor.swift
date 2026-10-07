@@ -3,6 +3,9 @@ import TurboFieldfareRepackCore
 
 public struct AppModelInstallDescriptor: Equatable, Sendable {
     public let displayName: String
+    /// What a chat calls the model beside an answer and above the
+    /// conversation. The full name where none shorter was given.
+    public let shortName: String
     public let repoID: String
     public let revision: String
     public let sourceIndexSHA256: String
@@ -15,6 +18,9 @@ public struct AppModelInstallDescriptor: Equatable, Sendable {
     public let key: String
     /// Whether an image companion pack exists for this checkpoint.
     public let supportsImages: Bool
+    /// Added from a Hugging Face link (`CommunityModelStore`) rather than one
+    /// of the models this project pins and tests.
+    public let isCommunity: Bool
 
     public init(displayName: String,
                 repoID: String,
@@ -25,8 +31,11 @@ public struct AppModelInstallDescriptor: Equatable, Sendable {
                 rangeStagingBytes: UInt64,
                 reserveBytes: UInt64,
                 key: String = SupportedModelSource.gemma4.key,
-                supportsImages: Bool = true) {
+                supportsImages: Bool = true,
+                shortName: String? = nil,
+                isCommunity: Bool = false) {
         self.displayName = displayName
+        self.shortName = shortName ?? displayName
         self.repoID = repoID
         self.revision = revision
         self.sourceIndexSHA256 = sourceIndexSHA256
@@ -36,6 +45,7 @@ public struct AppModelInstallDescriptor: Equatable, Sendable {
         self.reserveBytes = reserveBytes
         self.key = key
         self.supportsImages = supportsImages
+        self.isCommunity = isCommunity
     }
 
     init(textModel model: SupportedModel) {
@@ -51,7 +61,8 @@ public struct AppModelInstallDescriptor: Equatable, Sendable {
                   // Every text model offers images: one without a vision tower
                   // borrows Gemma 4's pack (`AppVisionPackHost`). Checked on
                   // the iPhone 17 with SuperGemma 4 on 2026-09-30.
-                  supportsImages: true)
+                  supportsImages: true,
+                  shortName: model.shortName)
     }
 
     /// The folder a text model installs into, beside the others.
@@ -79,6 +90,13 @@ public struct AppModelInstallDescriptor: Equatable, Sendable {
     /// `modelID`, which the installer sets to the source repository.
     public static func textModel(modelID: String) -> AppModelInstallDescriptor? {
         textModels.first { $0.repoID == modelID }
+    }
+
+    /// The name an answer is labelled with: the short name of a model this
+    /// app knows, or the last part of the repository it came from.
+    public static func shortName(forModelID modelID: String) -> String {
+        if let known = textModel(modelID: modelID) { return known.shortName }
+        return modelID.split(separator: "/").last.map(String.init) ?? modelID
     }
 
     public static let visionCompanion = AppModelInstallDescriptor(

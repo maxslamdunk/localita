@@ -6,7 +6,7 @@ import TurboFieldfareAppPresentation
 ///
 /// The Mac's `ConversationSidebarView` is the behavioural reference, and
 /// everything it decides that is not AppKit is shared rather than restated:
-/// grouping by day, row titles, the line that says why a row cannot continue.
+/// grouping by day, row titles, the line under each title.
 /// What differs is only the idiom. Here a row is tapped to open, and renamed
 /// or deleted from the menu a long press brings up. There is no swipe on a
 /// row, because a sideways swipe closes the panel.
@@ -234,20 +234,6 @@ struct HistoryView: View {
         }
     }
 
-    /// A chat recorded with another model this app knows names it, instead of
-    /// the generic "a different model".
-    private func subtitle(_ entry: ConversationMeta,
-                          state: ConversationContinuability) -> String {
-        if case .cannotReplay(.differentModel) = state,
-           let recorded = model.textModel(for: entry),
-           recorded != model.installDescriptor {
-            return ChatSession.isInstalled(recorded, current: model)
-                ? recorded.displayName
-                : recorded.displayName + " \u{00B7} not downloaded"
-        }
-        return ConversationRowPresentation.subtitle(entry, state: state)
-    }
-
     /// One chat. Every row has the same rounded background, grey for the
     /// chat on screen, and a long press lifts exactly that shape. A tap
     /// rather than a button, so no press animation runs under the lift.
@@ -258,7 +244,7 @@ struct HistoryView: View {
         return VStack(alignment: .leading, spacing: 2) {
             Text(ConversationRowPresentation.title(entry))
                 .lineLimit(1)
-            Text(subtitle(entry, state: state))
+            Text(ConversationRowPresentation.subtitle(entry, state: state))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -273,11 +259,9 @@ struct HistoryView: View {
         .contentShape(.interaction, shape)
         .contentShape(.contextMenuPreview, shape)
         .onTapGesture {
-            if let recorded = ChatSession.modelToSwitch(for: entry, in: model) {
-                ChatSession.selectModel(recorded, in: model, openingConversation: entry.id)
-            } else {
-                model.openConversation(id: entry.id)
-            }
+            // Opens the chat whichever model wrote it. The model in use
+            // continues it; the composer is where another one is picked.
+            model.openConversation(id: entry.id)
             close()
         }
         .accessibilityElement(children: .combine)

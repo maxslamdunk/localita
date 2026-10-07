@@ -320,7 +320,7 @@ enum RepackPlanner {
                           excludedMultimodalTensorNames: excludedMultimodalNames)
     }
 
-    private static func isMultimodalTensorName(_ name: String) -> Bool {
+    static func isMultimodalTensorName(_ name: String) -> Bool {
         name.hasPrefix("vision_tower.") ||
             name.hasPrefix("embed_vision.") ||
             name.hasPrefix("audio_tower.")

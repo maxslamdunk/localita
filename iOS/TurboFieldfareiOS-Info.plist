@@ -4,5 +4,11 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- BackgroundDownload: each download's continued-processing task gets
+	     a unique identifier under this prefix. -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>io.github.maxslamdunk.TurboFieldfareiOS.download.*</string>
+	</array>
 </dict>
 </plist>

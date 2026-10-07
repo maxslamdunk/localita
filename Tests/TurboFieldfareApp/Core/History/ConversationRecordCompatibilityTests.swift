@@ -69,6 +69,43 @@ import TurboFieldfare
         #expect(header.sampling == nil)
     }
 
+    /// Every header and turn on disk was written before identities carried a
+    /// tokenizer digest, and before turns carried an identity at all. Both
+    /// still decode, with the new fields absent.
+    @Test func anIdentityWithoutATokenizerDigestStillDecodes() throws {
+        let line = """
+        {"type":"turn","turn":{"id":"E621E1F8-C36C-495A-93FC-0C247A3E6E5F",\
+        "role":"assistant","at":"2026-09-02T10:00:00Z","text":"hi","images":[],\
+        "tokens":[4],"identity":{"modelID":"google/gemma-4-26B-A4B-it",\
+        "sourceSnapshotHash":"0d77464e","templateIdentity":"t",\
+        "imageProcessingVersion":1}}}
+        """
+        let record = try Self.decoder().decode(
+            TranscriptRecord.self, from: Data(line.utf8))
+        guard case .turn(let turn) = record else {
+            Issue.record("the line decoded as something other than a turn")
+            return
+        }
+        #expect(turn.identity?.modelID == "google/gemma-4-26B-A4B-it")
+        #expect(turn.identity?.tokenizerSHA256 == nil)
+    }
+
+    @Test func aTurnNamingItsModelRoundTrips() throws {
+        let identity = ConversationIdentity(
+            modelID: Self.identity.modelID,
+            sourceSnapshotHash: Self.identity.sourceSnapshotHash,
+            templateIdentity: Self.identity.templateIdentity,
+            imageProcessingVersion: Self.identity.imageProcessingVersion,
+            tokenizerSHA256: "cafe")
+        let turn = ConversationTurnRecord(
+            id: UUID(), role: .assistant,
+            at: Date(timeIntervalSince1970: 1_756_800_000),
+            text: "hi", tokens: [4], identity: identity)
+        let data = try Self.encoder().encode(TranscriptRecord.turn(turn))
+        let decoded = try Self.decoder().decode(TranscriptRecord.self, from: data)
+        #expect(decoded == .turn(turn))
+    }
+
     /// The extra header fields survive a round trip through this build.
     @Test func aHeaderCarryingTheCreationFactsRoundTrips() throws {
         let header = ConversationHeaderRecord(

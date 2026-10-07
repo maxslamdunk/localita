@@ -2,6 +2,7 @@ import Foundation
 import Testing
 import TurboFieldfare
 @testable import TurboFieldfareAppCore
+import TurboFieldfareRepackCore
 
 /// The rule a sidebar row shows and a reopen obeys. It has to be the same rule
 /// the runtime's admission guard uses, or a row offers to continue a chat whose
@@ -98,34 +99,124 @@ import TurboFieldfare
             == .cannotReplay(reason: .tokenCountUnknown))
     }
 
-    @Test func everyIdentityFieldRefusesReplayOnItsOwn() {
-        func recorded(_ change: (inout ConversationIdentity) -> Void)
-            -> ConversationIdentity {
-            var value = identity
-            change(&value)
-            return value
-        }
+    /// Another model or checkpoint whose tokenizer cannot be established
+    /// refuses: its IDs might index a different vocabulary, and nothing says
+    /// they do not.
+    @Test func anotherModelWithAnUnknownTokenizerRefuses() {
+        let otherModel = ConversationIdentity(
+            modelID: "other", sourceSnapshotHash: identity.sourceSnapshotHash,
+            templateIdentity: identity.templateIdentity,
+            imageProcessingVersion: identity.imageProcessingVersion)
         #expect(ConversationContinuability.evaluate(
-            meta: meta(kvTokens: 100, identity: recorded { $0 = ConversationIdentity(
-                modelID: "other", sourceSnapshotHash: $0.sourceSnapshotHash,
-                templateIdentity: $0.templateIdentity,
-                imageProcessingVersion: $0.imageProcessingVersion) }),
+            meta: meta(kvTokens: 100, identity: otherModel),
             currentContext: 8_192, identity: identity)
-            == .cannotReplay(reason: .differentModel))
+            == .cannotReplay(reason: .differentTokenizer))
+        let otherCheckpoint = ConversationIdentity(
+            modelID: identity.modelID, sourceSnapshotHash: "deadbeef",
+            templateIdentity: identity.templateIdentity,
+            imageProcessingVersion: identity.imageProcessingVersion)
         #expect(ConversationContinuability.evaluate(
-            meta: meta(kvTokens: 100, identity: recorded { $0 = ConversationIdentity(
-                modelID: $0.modelID, sourceSnapshotHash: "deadbeef",
-                templateIdentity: $0.templateIdentity,
-                imageProcessingVersion: $0.imageProcessingVersion) }),
+            meta: meta(kvTokens: 100, identity: otherCheckpoint),
             currentContext: 8_192, identity: identity)
-            == .cannotReplay(reason: .differentCheckpoint))
+            == .cannotReplay(reason: .differentTokenizer))
+    }
+
+    @Test func aDifferentTemplateRefuses() {
+        let reframed = ConversationIdentity(
+            modelID: identity.modelID,
+            sourceSnapshotHash: identity.sourceSnapshotHash,
+            templateIdentity: "gemma4-it-text-no-tools-v2",
+            imageProcessingVersion: identity.imageProcessingVersion)
         #expect(ConversationContinuability.evaluate(
-            meta: meta(kvTokens: 100, identity: recorded { $0 = ConversationIdentity(
-                modelID: $0.modelID, sourceSnapshotHash: $0.sourceSnapshotHash,
-                templateIdentity: "gemma4-it-text-no-tools-v2",
-                imageProcessingVersion: $0.imageProcessingVersion) }),
+            meta: meta(kvTokens: 100, identity: reframed),
             currentContext: 8_192, identity: identity)
             == .cannotReplay(reason: .differentTemplate))
+    }
+
+    /// The point of the rule: which model wrote a chat does not decide whether
+    /// another can continue it. The same tokenizer does.
+    @Test func anotherModelWithTheSameTokenizerContinues() {
+        let current = ConversationIdentity(
+            modelID: "b/model", sourceSnapshotHash: "sha256:bbbb",
+            templateIdentity: identity.templateIdentity,
+            imageProcessingVersion: identity.imageProcessingVersion,
+            tokenizerSHA256: "cafe")
+        let recorded = ConversationIdentity(
+            modelID: "a/model", sourceSnapshotHash: "sha256:aaaa",
+            templateIdentity: identity.templateIdentity,
+            imageProcessingVersion: identity.imageProcessingVersion,
+            tokenizerSHA256: "cafe")
+        #expect(ConversationContinuability.evaluate(
+            meta: meta(kvTokens: 100, identity: recorded),
+            currentContext: 8_192, identity: current) == .continuable)
+        let differentVocabulary = ConversationIdentity(
+            modelID: "a/model", sourceSnapshotHash: "sha256:aaaa",
+            templateIdentity: identity.templateIdentity,
+            imageProcessingVersion: identity.imageProcessingVersion,
+            tokenizerSHA256: "beef")
+        #expect(ConversationContinuability.evaluate(
+            meta: meta(kvTokens: 100, identity: differentVocabulary),
+            currentContext: 8_192, identity: current)
+            == .cannotReplay(reason: .differentTokenizer))
+    }
+
+    /// Every chat on the phone before this rule carries no tokenizer digest.
+    /// One recorded with a pinned checkpoint takes the catalog's digest, so a
+    /// Gemma 4 chat continues with SuperGemma 4, whose tokenizer is the same
+    /// file. A snapshot the catalog does not pin is not guessed at.
+    @Test func aLegacyChatOfAPinnedCheckpointTakesTheCatalogsTokenizer() {
+        let gemma = SupportedModelSource.gemma4
+        let superGemma = SupportedModelSource.supergemma4
+        let legacy = ConversationIdentity(
+            modelID: gemma.repoID,
+            sourceSnapshotHash: "sha256:" + gemma.sourceIndexSHA256,
+            templateIdentity: identity.templateIdentity,
+            imageProcessingVersion: identity.imageProcessingVersion)
+        let current = ConversationIdentity(
+            modelID: superGemma.repoID,
+            sourceSnapshotHash: "sha256:" + superGemma.sourceIndexSHA256,
+            templateIdentity: identity.templateIdentity,
+            imageProcessingVersion: identity.imageProcessingVersion,
+            tokenizerSHA256: superGemma.tokenizerSHA256)
+        #expect(ConversationContinuability.evaluate(
+            meta: meta(kvTokens: 100, identity: legacy),
+            currentContext: 8_192, identity: current) == .continuable)
+
+        let unpinned = ConversationIdentity(
+            modelID: gemma.repoID, sourceSnapshotHash: "sha256:0000",
+            templateIdentity: identity.templateIdentity,
+            imageProcessingVersion: identity.imageProcessingVersion)
+        #expect(ConversationContinuability.evaluate(
+            meta: meta(kvTokens: 100, identity: unpinned),
+            currentContext: 8_192, identity: current)
+            == .cannotReplay(reason: .differentTokenizer))
+    }
+
+    /// Every model that wrote a turn is checked, not only the one the chat
+    /// started with: the IDs of each turn are in its writer's vocabulary.
+    @Test func aTurnWrittenInAnotherVocabularyRefusesTheWholeChat() {
+        let current = ConversationIdentity(
+            modelID: identity.modelID,
+            sourceSnapshotHash: identity.sourceSnapshotHash,
+            templateIdentity: identity.templateIdentity,
+            imageProcessingVersion: identity.imageProcessingVersion,
+            tokenizerSHA256: "cafe")
+        var mixed = meta(kvTokens: 100, identity: current)
+        mixed.turnIdentities = [ConversationIdentity(
+            modelID: "c/model", sourceSnapshotHash: "sha256:cccc",
+            templateIdentity: identity.templateIdentity,
+            imageProcessingVersion: identity.imageProcessingVersion,
+            tokenizerSHA256: "beef")]
+        #expect(ConversationContinuability.evaluate(
+            meta: mixed, currentContext: 8_192, identity: current)
+            == .cannotReplay(reason: .differentTokenizer))
+        mixed.turnIdentities = [ConversationIdentity(
+            modelID: "c/model", sourceSnapshotHash: "sha256:cccc",
+            templateIdentity: identity.templateIdentity,
+            imageProcessingVersion: identity.imageProcessingVersion,
+            tokenizerSHA256: "cafe")]
+        #expect(ConversationContinuability.evaluate(
+            meta: mixed, currentContext: 8_192, identity: current) == .continuable)
     }
 
     /// A preprocessing bump only matters to a conversation that has images.

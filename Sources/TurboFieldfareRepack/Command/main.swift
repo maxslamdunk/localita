@@ -9,6 +9,7 @@ Usage:
                        [--overwrite] [--resume]
   TurboFieldfareRepack --discard-partial --output <model.gturbo>
   TurboFieldfareRepack --verify-install --input-gturbo <model.gturbo>
+  TurboFieldfareRepack --check-source <owner/name>[@<revision>]
   TurboFieldfareRepack --vision-output <model.vision.gturbo>
                        --text-model <model.gturbo> [--overwrite] [--resume]
   TurboFieldfareRepack --verify-vision-install
@@ -29,6 +30,10 @@ picks the checkpoint: \(sourceList). The default is gemma4. Set HF_TOKEN
 only if Hugging Face requests authentication. A cancelled or interrupted
 download can be continued with --resume or removed with --discard-partial.
 
+--check-source reads a Hugging Face repository's config and weight headers
+(a few MB) and says whether this runtime can install it, as the app's Add
+Model does: a Gemma 4 26B-A4B checkpoint laid out exactly as the reference.
+
 The optional image companion pack installs beside an existing text model and
 is bound to it. Without the pack the text runtime is unchanged; image input is
 simply unavailable.
@@ -47,6 +52,7 @@ private struct Arguments {
     var verifyVisionInstall = false
     var activateVisionInstall = false
     var removeVisionInstall = false
+    var checkSource: String?
 
     static func parse(_ values: [String]) throws -> Arguments {
         var parsed = Arguments()
@@ -77,6 +83,16 @@ private struct Arguments {
             case "--remove-vision-install":
                 parsed.removeVisionInstall = true
                 index += 1
+            case "--check-source":
+                guard index + 1 < values.count else {
+                    throw ParseError.missingValue(flag)
+                }
+                parsed.checkSource = values[index + 1]
+                index += 2
+                guard values.count == 3 else {
+                    throw ParseError.invalidMode("--check-source takes no other arguments")
+                }
+                return parsed
             case "--vision-output":
                 guard index + 1 < values.count else {
                     throw ParseError.missingValue(flag)
@@ -299,6 +315,33 @@ private func runVisionInstall(_ arguments: Arguments) async -> Int32? {
     }
 }
 
+private func checkSource(_ value: String) async -> Int32 {
+    let parts = value.split(separator: "@", maxSplits: 1).map(String.init)
+    do {
+        let check = try await RemoteModelInspector.check(
+            repoID: parts[0],
+            revision: parts.count > 1 ? parts[1] : "main",
+            token: ProcessInfo.processInfo.environment["HF_TOKEN"])
+        switch check {
+        case .compatible(let model):
+            print("compatible: \(model.repoID)")
+            print("commit: \(model.resolvedCommit)")
+            print("index sha256: \(model.sourceIndexSHA256)")
+            print("download bytes: \(model.approximateDownloadBytes)")
+            print("installed bytes: \(model.installedBytes)")
+            print("vision tower: \(model.hasVisionTower)")
+            return 0
+        case .incompatible(let reason, let layout):
+            print("incompatible: \(reason)")
+            if let layout { print("layout sha256: \(layout)") }
+            return 3
+        }
+    } catch {
+        printError("check failed: \(error)")
+        return 1
+    }
+}
+
 private func run(_ values: [String]) async -> Int32 {
     let arguments: Arguments
     do {
@@ -309,6 +352,10 @@ private func run(_ values: [String]) async -> Int32 {
     } catch {
         printError("error: \(error)\n\n\(usage)")
         return 2
+    }
+
+    if let source = arguments.checkSource {
+        return await checkSource(source)
     }
 
     if let code = await runVisionInstall(arguments) {

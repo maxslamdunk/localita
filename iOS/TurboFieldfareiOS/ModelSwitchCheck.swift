@@ -1,23 +1,25 @@
 import Foundation
 import TurboFieldfareAppCore
 
-/// `--model-switch-check`: drives the chat's own `AppModel` through a round
-/// trip between the two text models and writes what happened to Documents.
+/// `--model-switch-check`: drives the chat's own `AppModel` through one chat
+/// that moves between the two text models, and writes what happened to
+/// Documents.
 ///
 /// Test-only, like `--autorun`, so `devicectl device process launch` can check
 /// on the phone what the Mac tests can only check with mocks: that switching
-/// releases one model before loading the other, that each loads and generates
-/// from its own folder, and that tapping a chat recorded with the other model
-/// switches back to it. It uses the paths the menu and the chat list use
-/// (`ChatSession.selectModel`, `ChatSession.modelToSwitch`), not copies.
+/// releases one model before loading the other, that the chat on screen stays
+/// on screen across the switch, and that its next message replays it into the
+/// other model and is answered there. It uses the path the composer's Load
+/// uses (`ChatSession.switchModel`), not a copy.
 ///
 /// It leaves the phone as it found it: back on the model it started on, with
-/// the two chats it wrote deleted.
+/// the chat it wrote deleted.
 @MainActor
 enum ModelSwitchCheck {
     static let isRequested = ProcessInfo.processInfo.arguments.contains("--model-switch-check")
 
     private static let prompt = "In one short sentence: why is the sky blue?"
+    private static let followUp = "And in one short sentence: why are sunsets red?"
 
     static func run(_ model: AppModel) async {
         let log = RunLog(label: "model-switch")
@@ -56,32 +58,43 @@ enum ModelSwitchCheck {
         var written: [UUID] = []
         do {
             try await load(model, emit: emit)
-            written.append(try await generate(model, emit: emit))
-            let first = written[0]
+            model.newChat()
+            let chat = try await send(prompt, model, emit: emit)
+            written.append(chat)
 
-            ChatSession.selectModel(other, in: model)
+            // The composer's Load with the other model picked.
+            ChatSession.switchModel(to: other, in: model)
             state("switched")
             try await waitForLoad(model, emit: emit)
-            state("loaded-after-switch")
-            written.append(try await generate(model, emit: emit))
-
-            // The chat list's tap on a row recorded with the first model.
-            guard let entry = model.history.entry(first) else {
-                emit("fail", "first chat is not in the list")
+            try await waitUntil(seconds: 20) {
+                model.history.selection == chat && model.canRun
+            }
+            guard let entry = model.history.entry(chat) else {
+                emit("fail", "the chat is not in the list")
                 return cleanUp(model, written, restoring: start, emit: emit)
             }
-            emit("row", "continuability=\(model.continuability(of: entry))")
-            guard let recorded = ChatSession.modelToSwitch(for: entry, in: model) else {
-                emit("fail", "chat list would not offer a switch for the first chat")
-                return cleanUp(model, written, restoring: start, emit: emit)
-            }
-            emit("row-switch", "to=\(recorded.key)")
-            ChatSession.selectModel(recorded, in: model, openingConversation: first)
-            try await waitForLoad(model, emit: emit)
-            try await waitUntil(seconds: 20) { model.history.selection == first }
-            state("reopened")
-            emit("reopened-chat", "selection=\(model.history.selection?.uuidString ?? "nil") "
+            emit("reopened", "selection=\(model.history.selection?.uuidString ?? "nil") "
                 + "continuability=\(model.continuability(of: entry))")
+            guard model.continuability(of: entry) == .continuable else {
+                emit("fail", "the chat cannot be continued with \(other.key)")
+                return cleanUp(model, written, restoring: start, emit: emit)
+            }
+
+            // The same chat, continued: the send replays it into this model.
+            let continued = try await send(followUp, model, emit: emit)
+            try await waitUntil(seconds: 20) {
+                (model.history.entry(chat)?.turnCount ?? 0) >= 4
+            }
+            let after = model.history.entry(chat)
+            let writers = after?.recordedIdentities.map(\.modelID) ?? []
+            emit("continued", "same-chat=\(continued == chat) "
+                + "turns=\(after?.turnCount ?? 0) "
+                + "tokens=\(after?.kvTokens.map(String.init) ?? "nil") "
+                + "models=\(writers.joined(separator: ","))")
+            if continued != chat || !writers.contains(start.repoID)
+                || !writers.contains(other.repoID) {
+                emit("fail", "the chat does not hold both models' turns")
+            }
         } catch {
             emit("fail", String(describing: error))
         }
@@ -120,10 +133,9 @@ enum ModelSwitchCheck {
             + "s=\(Int(Date().timeIntervalSince(started)))")
     }
 
-    /// One turn in a fresh chat. Returns the stored conversation's ID.
-    private static func generate(_ model: AppModel,
-                                 emit: (String, String) -> Void) async throws -> UUID {
-        model.newChat()
+    /// One turn in the chat on screen. Returns the stored conversation's ID.
+    private static func send(_ prompt: String, _ model: AppModel,
+                             emit: (String, String) -> Void) async throws -> UUID {
         model.promptText = prompt
         guard model.canRun else { throw CheckError("cannot run: load=\(model.loadState)") }
         model.send()

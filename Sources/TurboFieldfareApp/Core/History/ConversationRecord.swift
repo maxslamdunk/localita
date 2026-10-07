@@ -102,7 +102,12 @@ public struct ConversationMeta: Codable, Equatable, Sendable {
     /// chat that fails on its first turn.
     public var kvTokens: Int?
     public var imageCount: Int
+    /// The model the conversation was started with.
     public var identity: ConversationIdentity
+    /// The models that wrote turns after it, oldest first and each once. Nil
+    /// when no turn names a model other than `identity`, which includes every
+    /// conversation written before turns recorded one.
+    public var turnIdentities: [ConversationIdentity]?
     public var session: ConversationSessionSettings
     public var sampling: ConversationSampling
     public var boundary: ConversationBoundary
@@ -126,7 +131,8 @@ public struct ConversationMeta: Codable, Equatable, Sendable {
                 sampling: ConversationSampling,
                 boundary: ConversationBoundary = ConversationBoundary(),
                 imageWriteFailed: Bool? = nil,
-                pinned: Bool = false) {
+                pinned: Bool = false,
+                turnIdentities: [ConversationIdentity]? = nil) {
         self.version = version
         self.id = id
         self.title = title
@@ -142,6 +148,12 @@ public struct ConversationMeta: Codable, Equatable, Sendable {
         self.boundary = boundary
         self.imageWriteFailed = imageWriteFailed
         self.pinned = pinned
+        self.turnIdentities = turnIdentities
+    }
+
+    /// Every model whose token IDs this conversation holds.
+    public var recordedIdentities: [ConversationIdentity] {
+        [identity] + (turnIdentities ?? [])
     }
 }
 
@@ -216,6 +228,13 @@ public struct ConversationTurnRecord: Codable, Equatable, Sendable {
     /// Optional because a transcript written before this build has no answer to
     /// give; absent reads as "no failure was reported".
     public var imageWriteFailed: Bool?
+    /// The model whose tokenizer produced `tokens`, and on the assistant half
+    /// the model that wrote the answer. A chat can be continued by another
+    /// model that shares a tokenizer, so this is per turn rather than only in
+    /// the header. Absent on turns written before it was recorded, which were
+    /// all written by the header's model: a build that wrote no identity here
+    /// refused to continue a chat with any other.
+    public var identity: ConversationIdentity?
 
     public init(id: UUID = UUID(), role: Role, at: Date, text: String,
                 images: [ConversationImageRecord] = [],
@@ -224,7 +243,8 @@ public struct ConversationTurnRecord: Codable, Equatable, Sendable {
                 generatedTokens: Int? = nil, stopReason: String? = nil,
                 sampling: ConversationSampling? = nil,
                 boundary: ConversationBoundary? = nil,
-                imageWriteFailed: Bool? = nil) {
+                imageWriteFailed: Bool? = nil,
+                identity: ConversationIdentity? = nil) {
         self.id = id
         self.role = role
         self.at = at
@@ -239,6 +259,7 @@ public struct ConversationTurnRecord: Codable, Equatable, Sendable {
         self.sampling = sampling
         self.boundary = boundary
         self.imageWriteFailed = imageWriteFailed
+        self.identity = identity
     }
 }
 
