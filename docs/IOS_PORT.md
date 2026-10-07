@@ -254,6 +254,73 @@ Steps:
    launch argument installs it beside the side-loaded model without touching
    it. Whether the scattered write order it inherits costs read speed on the
    phone is measured in `benchmark-results-2026-09-24-ios-download-order/`.
+
+   ✅ **The download keeps running in the background since 2026-10-07**
+   (`BackgroundDownload`). The download is wrapped in an iOS 26
+   `BGContinuedProcessingTask`, whose system Live Activity shows the progress
+   on the Lock Screen. Background `URLSession` was the alternative. It was not
+   tried, because the installer writes ranges into the layer files as they
+   arrive and would need rebuilding around whole-file transfers.
+
+   Tested on the iPhone 17 with a full download into a test folder:
+   - **It keeps going** with the app in the background, with other apps in use
+     and with the phone locked. One run completed and installed entirely in
+     the background.
+   - **iOS ends it about 25 s after the phone leaves Wi-Fi**, because no bytes
+     arrive (24 s measured). Swiping the app away ends it too.
+   - **It cannot restart itself.** iOS only lets the task start while the app
+     is open, so getting Wi-Fi back changes nothing until the app is opened.
+
+   What covers a stop:
+   - **A notification** says why it stopped: waiting for Wi-Fi, no
+     connection, or paused. A swipe-away is caught by one notification kept
+     two minutes ahead and pushed back while bytes arrive.
+   - **The Live Activity title** says "paused at N% · open the app to
+     continue". iOS's own "Task Failed" line under it cannot be changed.
+   - **Opening the app resumes it** from the last 64 MiB checkpoint without a
+     tap.
+
+   The screen is no longer kept on during the download. If the task cannot
+   start, the old behaviour remains as the fallback: leaving the app pauses
+   the download at a checkpoint, and returning resumes it. The image-support
+   download still works that way.
+
+   ✅ **Community models from a pasted link since 2026-10-07.** Add Model in
+   the composer's model menu takes a Hugging Face link or `owner/name`.
+   `RemoteModelInspector` reads only the config, the index and each shard's
+   header (a few MB). It accepts a checkpoint only when its text model is
+   Gemma 4 26B-A4B laid out exactly as the reference's
+   (`ReferenceLayout`):
+   - same architecture;
+   - every text tensor with the same name, dtype, shape and bit width;
+   - vision and audio tensors left out.
+
+   gemma4 and supergemma4 give the same layout fingerprint. The installer
+   enforces the layout again when it runs. An added model:
+   - is pinned to the commit the check read;
+   - installs into `hf-<owner>--<name>.gturbo`;
+   - borrows Gemma 4's image pack;
+   - is listed in `community-models.json` beside the model folders.
+
+   Settings lists every model on the phone with Delete. The model in use
+   cannot be deleted, and neither can the model whose image pack it borrows.
+
+   - **The check, on real repositories (Mac CLI `--check-source`):**
+     - Passed: an abliterated Gemma 4, an uncensored re-tune, Orion,
+       Hermes-VLM, and a QAT build with the plain layout.
+     - Refused, each with a reason: LM Studio's QAT build (8-bit shared
+       expert, never run here), an 8-bit build, a GGUF repository, Qwen,
+       and a repository that does not exist.
+     - The 8-bit shared expert is the one refusal that could be lifted. The
+       runtime's manifest check allows it, but it has never been run or
+       measured on the phone.
+   - **Finding: the pinned "source fingerprint" does not identify weights.**
+     It is the SHA-256 of `model.safetensors.index.json`, which maps tensor
+     names to shard files. Any re-tune sharded the same way shares it: the
+     abliterated Gemma 4 has gemma4's, and two re-tunes have supergemma4's.
+     It pins a layout; the revision pins the weights. The installer used to
+     record the matched pinned model as the manifest's `modelID`. It now
+     records the repository actually downloaded.
 3. **Port the runtime — started 2026-09-16, app target building and running on
    the device.** 16-slot expert cache untouched, no optimization.
    - **The runtime needed no porting to compile.** `TurboFieldfare` (85 files,

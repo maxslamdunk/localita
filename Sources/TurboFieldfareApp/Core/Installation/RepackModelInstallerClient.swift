@@ -35,6 +35,9 @@ public final class RepackModelInstallerClient: AppModelInstallerClient, Sendable
                 outputDir: outputDirectory.path,
                 token: ProcessInfo.processInfo.environment["HF_TOKEN"],
                 requireKnownSource: true,
+                // A community model is off the pinned list; the installer
+                // still requires the reference's exact text layout.
+                acceptsReferenceLayout: descriptor.isCommunity,
                 minFreeReserveBytes: descriptor.reserveBytes,
                 overwrite: true,
                 resume: resume,

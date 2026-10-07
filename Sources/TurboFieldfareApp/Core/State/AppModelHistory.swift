@@ -411,7 +411,8 @@ extension AppModel {
             boundary: ConversationBoundary(
                 tokens: conversation.boundaryTokenIDs,
                 needsReplay: conversation.boundaryNeedsReplay),
-            imageWrite: pendingTurnImageWrite)
+            imageWrite: pendingTurnImageWrite,
+            identity: binding.identity)
         pendingTurnImageWrite = nil
         let prior = persistenceTail
         persistenceTail = Task { [weak self] in
@@ -465,7 +466,8 @@ extension AppModel {
                     // Recorded on the turn that cites them, so the projection
                     // can refuse the whole conversation a replay and the row
                     // can say why instead of failing on its first turn back.
-                    imageWriteFailed: lostImages > 0 ? true : nil)),
+                    imageWriteFailed: lostImages > 0 ? true : nil,
+                    identity: operation.identity)),
                 .turn(ConversationTurnRecord(
                     role: .assistant, at: now, text: operation.assistantText,
                     tokens: operation.diagnostics?.generatedTokenIDs,
@@ -473,7 +475,8 @@ extension AppModel {
                     stopReason: operation.diagnostics.map {
                         String(describing: $0.stopReason)
                     },
-                    boundary: operation.boundary)),
+                    boundary: operation.boundary,
+                    identity: operation.identity)),
             ], to: id)
             // The runtime's count and the record's are two answers to one
             // question, and they used to be reconciled by preferring the
@@ -536,7 +539,7 @@ extension AppModel {
     /// The state a stored row is in right now, against the context in force.
     public func continuability(of meta: ConversationMeta) -> ConversationContinuability {
         guard let identity = conversationIdentity else {
-            return .cannotReplay(reason: .differentModel)
+            return .cannotReplay(reason: .noModelInstalled)
         }
         return ConversationContinuability.evaluate(
             meta: meta, currentContext: maxContextTokens, identity: identity)

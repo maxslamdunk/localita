@@ -1,5 +1,6 @@
 import Foundation
 import TurboFieldfare
+import TurboFieldfareRepackCore
 
 /// Whether a stored conversation can be picked up again, and if not, why.
 ///
@@ -19,8 +20,12 @@ public enum ConversationContinuability: Equatable, Sendable {
 
     public enum Reason: Equatable, Sendable {
         case newerFormat
-        case differentModel
-        case differentCheckpoint
+        /// No text model is installed, so there is nothing to continue with.
+        case noModelInstalled
+        /// A model that wrote part of the conversation reads token IDs as
+        /// different text from the model in use, or which tokenizer it had
+        /// cannot be established.
+        case differentTokenizer
         case differentTemplate
         case differentImageProcessing
         case tokenCountUnknown
@@ -36,6 +41,11 @@ public enum ConversationContinuability: Equatable, Sendable {
     /// the chat was made under, and a 3,000-token chat recorded at 8K continues
     /// perfectly well at 4K. What decides is the tokens it holds against the
     /// context in force.
+    ///
+    /// Which model wrote the conversation does not decide it. Every model that
+    /// wrote a turn is checked, and each must read token IDs as the same text
+    /// as the one in use: same tokenizer, same chat framing, and for a chat
+    /// with pictures the same image processing.
     public static func evaluate(
         meta: ConversationMeta,
         currentContext: Int,
@@ -44,21 +54,20 @@ public enum ConversationContinuability: Equatable, Sendable {
         if meta.version > ConversationMeta.currentVersion {
             return .cannotReplay(reason: .newerFormat)
         }
-        if meta.identity.modelID != identity.modelID {
-            return .cannotReplay(reason: .differentModel)
-        }
-        if meta.identity.sourceSnapshotHash != identity.sourceSnapshotHash {
-            return .cannotReplay(reason: .differentCheckpoint)
-        }
-        if meta.identity.templateIdentity != identity.templateIdentity {
-            return .cannotReplay(reason: .differentTemplate)
-        }
-        if meta.identity.imageProcessingVersion != identity.imageProcessingVersion,
-           meta.imageCount > 0 {
-            // A processing bump only matters to a conversation that has images
-            // in it. Refusing a text chat for it would be a refusal with no
-            // cause the user could act on.
-            return .cannotReplay(reason: .differentImageProcessing)
+        for recorded in meta.recordedIdentities {
+            guard sharesVocabulary(recorded, identity) else {
+                return .cannotReplay(reason: .differentTokenizer)
+            }
+            if recorded.templateIdentity != identity.templateIdentity {
+                return .cannotReplay(reason: .differentTemplate)
+            }
+            if recorded.imageProcessingVersion != identity.imageProcessingVersion,
+               meta.imageCount > 0 {
+                // A processing bump only matters to a conversation that has
+                // images in it. Refusing a text chat for it would be a refusal
+                // with no cause the user could act on.
+                return .cannotReplay(reason: .differentImageProcessing)
+            }
         }
         // Checked before the count, which the projection also nils out for
         // this: "no replay record" would be true and would send the user
@@ -85,5 +94,38 @@ public enum ConversationContinuability: Equatable, Sendable {
                     forLineage: prefix))
         }
         return .continuable
+    }
+
+    /// Whether token IDs written by `recorded` mean the same text to `current`.
+    ///
+    /// The same checkpoint always does. Otherwise both tokenizer digests must
+    /// be known and equal; one that cannot be established refuses, because
+    /// replaying IDs into a vocabulary they were not written in gives the
+    /// model a different conversation without saying so.
+    static func sharesVocabulary(_ recorded: ConversationIdentity,
+                                 _ current: ConversationIdentity) -> Bool {
+        if recorded.modelID == current.modelID,
+           recorded.sourceSnapshotHash == current.sourceSnapshotHash {
+            return true
+        }
+        guard let a = tokenizerSHA256(of: recorded),
+              let b = tokenizerSHA256(of: current) else { return false }
+        return a == b
+    }
+
+    /// The identity's own digest, or for one recorded before identities carried
+    /// it, the digest of the pinned checkpoint it names.
+    static func tokenizerSHA256(of identity: ConversationIdentity) -> String? {
+        if let recorded = identity.tokenizerSHA256 { return recorded }
+        guard let known = SupportedModelSource.model(repoID: identity.modelID),
+              snapshotDigest(identity.sourceSnapshotHash) == known.sourceIndexSHA256
+        else { return nil }
+        return known.tokenizerSHA256
+    }
+
+    /// A manifest writes its snapshot as `sha256:<hex>`; the catalog keeps the
+    /// hex alone.
+    private static func snapshotDigest(_ snapshot: String) -> String {
+        snapshot.hasPrefix("sha256:") ? String(snapshot.dropFirst(7)) : snapshot
     }
 }

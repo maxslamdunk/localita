@@ -40,6 +40,18 @@ struct SupportedModelSourceTests {
         #expect(!SupportedModelSource.supergemma4.hasVisionTower)
     }
 
+    /// A chat moves between models whose tokenizer digests match, and chats
+    /// recorded before digests were stored take theirs from here. The two
+    /// pinned checkpoints ship the same `tokenizer.json`.
+    @Test func everyEntryPinsATokenizerDigestAndTheTwoShareOne() {
+        for model in SupportedModelSource.all {
+            #expect(model.tokenizerSHA256.range(
+                of: "^[0-9a-f]{64}$", options: .regularExpression) != nil)
+        }
+        #expect(SupportedModelSource.gemma4.tokenizerSHA256
+            == SupportedModelSource.supergemma4.tokenizerSHA256)
+    }
+
     @Test func installOptionsPinTheEntrysSource() {
         let options = SupportedModelSource.supergemma4.installOptions(
             outputDirectory: URL(fileURLWithPath: "/tmp/supergemma4.gturbo"),

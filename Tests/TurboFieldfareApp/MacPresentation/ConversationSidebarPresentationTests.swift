@@ -6,9 +6,11 @@ import TurboFieldfare
 @testable import TurboFieldfareAppPresentation
 @testable import TurboFieldfareMacPresentation
 
-/// A row that cannot be continued has to say which of the two very different
+/// A chat that cannot be continued has to say which of the very different
 /// things went wrong, and what it would take to fix. A greyed-out row says
-/// neither, which is why none of these states is one.
+/// neither, which is why none of these states is one: the row says how long
+/// the chat is, and what context it needs when that is the problem, and the
+/// open chat's notice says the rest.
 @Suite struct ConversationSidebarPresentationTests {
     private let identity = ConversationIdentity(
         modelID: "google/gemma-4-26B-A4B-it",
@@ -90,15 +92,21 @@ import TurboFieldfare
             meta(kvTokens: 6_120), state: .needsContext(required: 6_376))
             == "6,120 tokens \u{00B7} needs 8K context")
 
+        // A chat that cannot continue reads as long as it is. Why it cannot is
+        // the open chat's notice's to say, and which model wrote it is each
+        // answer's: a chat moves between models.
         #expect(ConversationRowPresentation.subtitle(
-            meta(), state: .cannotReplay(reason: .differentModel))
-            == "recorded with a different model")
+            meta(kvTokens: 6_120), state: .cannotReplay(reason: .differentTokenizer))
+            == "6,120 tokens")
         #expect(ConversationRowPresentation.subtitle(
-            meta(), state: .cannotReplay(reason: .differentTemplate))
-            == "recorded with a different chat format")
+            meta(kvTokens: 6_120), state: .cannotReplay(reason: .differentTemplate))
+            == "6,120 tokens")
+        #expect(ConversationRowPresentation.subtitle(
+            meta(kvTokens: 6_120), state: .cannotReplay(reason: .noModelInstalled))
+            == "6,120 tokens")
         #expect(ConversationRowPresentation.subtitle(
             meta(kvTokens: nil), state: .cannotReplay(reason: .tokenCountUnknown))
-            == "no replay record")
+            == "4 turns")
 
         let missingImage = ConversationMeta(
             id: UUID(), title: "roofs", createdAt: Date(), updatedAt: Date(),
@@ -113,8 +121,9 @@ import TurboFieldfare
             imageWriteFailed: true)
         let state = ConversationContinuability.evaluate(
             meta: missingImage, currentContext: 8_192, identity: identity)
+        #expect(state == .cannotReplay(reason: .imageRecordMissing))
         #expect(ConversationRowPresentation.subtitle(missingImage, state: state)
-            == "an image was not saved")
+            == "2 turns")
     }
 
     /// Raising the context reloads the model and ends the chat that is open.
@@ -138,7 +147,7 @@ import TurboFieldfare
     /// must never do.
     @Test func theUnreplayableNoticeOffersARereadAndSaysItIsOne() throws {
         let content = try #require(ConversationStateNotice.content(
-            for: .cannotReplay(reason: .differentModel), currentContext: 8_192))
+            for: .cannotReplay(reason: .differentTokenizer), currentContext: 8_192))
         #expect(content.offersReread)
         #expect(content.requiredContext == nil)
         #expect(content.message.contains("re-read"))
@@ -164,6 +173,14 @@ import TurboFieldfare
     @Test func aContinuableChatShowsNoNotice() {
         #expect(ConversationStateNotice.content(
             for: .continuable, currentContext: 8_192) == nil)
+    }
+
+    /// With no model installed the download screen is what is on show, and the
+    /// chat continues with whichever model is installed next.
+    @Test func noInstalledModelShowsNoNotice() {
+        #expect(ConversationStateNotice.content(
+            for: .cannotReplay(reason: .noModelInstalled),
+            currentContext: 8_192) == nil)
     }
 }
 

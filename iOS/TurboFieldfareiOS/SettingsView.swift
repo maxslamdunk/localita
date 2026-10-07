@@ -21,6 +21,8 @@ struct SettingsView: View {
     @Bindable var model: AppModel
     @Environment(\.dismiss) private var dismiss
     @State private var isConfirmingReset = false
+    @State private var pendingDeletion: AppModelInstallDescriptor?
+    @State private var deletionError: String?
 
     /// Context sizes this phone may offer. See the type comment.
     static let contextOptions: [AppContextLengthOption] = [.fourK, .eightK]
@@ -45,6 +47,7 @@ struct SettingsView: View {
                 }
                 resetSection
                 modelSection
+                storedModelsSection
                 Section {
                     NavigationLink("Benchmark harness") {
                         harness
@@ -72,6 +75,22 @@ struct SettingsView: View {
             } message: {
                 Text("Text chats keep working. Getting images back means "
                      + "downloading the pack again.")
+            }
+            .confirmationDialog(
+                "Delete \(pendingDeletion?.shortName ?? "model")?",
+                isPresented: Binding(get: { pendingDeletion != nil },
+                                     set: { if !$0 { pendingDeletion = nil } }),
+                titleVisibility: .visible,
+                presenting: pendingDeletion
+            ) { descriptor in
+                Button("Delete", role: .destructive) { delete(descriptor) }
+                Button("Cancel", role: .cancel) {}
+            } message: { descriptor in
+                Text(descriptor.isCommunity
+                     ? "Its download is removed and it leaves the model menu. "
+                       + "Chats are kept."
+                     : "Its download is removed. It stays in the model menu, to "
+                       + "download again. Chats are kept.")
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -414,6 +433,88 @@ struct SettingsView: View {
                 .font(.caption2.monospaced())
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
+        }
+    }
+
+    // MARK: - Models on this iPhone
+
+    /// Every model with files on the phone, and every added one, each with
+    /// Delete. A model is about 14 GB, and this is the only way to get the
+    /// space back short of deleting the app.
+    private var storedModelsSection: some View {
+        Section {
+            ForEach(storedModels, id: \.key) { descriptor in
+                storedModelRow(descriptor)
+            }
+            if let deletionError {
+                Text(deletionError)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+        } header: {
+            Text("Models on this iPhone")
+        } footer: {
+            Text("Add more from the model menu under the message box. "
+                 + "Community models were added from a Hugging Face link: they "
+                 + "run like Gemma 4 but are not tested here.")
+        }
+    }
+
+    private enum Stored { case installed, partial, none }
+
+    private var storedModels: [AppModelInstallDescriptor] {
+        model.availableModels.filter { $0.isCommunity || stored($0) != .none }
+    }
+
+    private func stored(_ descriptor: AppModelInstallDescriptor) -> Stored {
+        if ChatSession.isInstalled(descriptor, current: model) { return .installed }
+        let folder = ModelLocation.directory(named: descriptor.directoryName).path
+        let fm = FileManager.default
+        if fm.fileExists(atPath: folder + ".partial")
+            || fm.fileExists(atPath: folder + ".resume.json")
+            || fm.fileExists(atPath: folder) {
+            return .partial
+        }
+        return .none
+    }
+
+    private func storedModelRow(_ descriptor: AppModelInstallDescriptor) -> some View {
+        let blocker = model.deletionBlocker(for: descriptor)
+        var detail: [String] = []
+        if descriptor.isCommunity { detail.append("Community") }
+        switch stored(descriptor) {
+        case .installed: detail.append(MetricFormat.storage(descriptor.installedBytes))
+        case .partial: detail.append("Part-downloaded")
+        case .none: detail.append("Not downloaded")
+        }
+        return HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(descriptor.displayName)
+                Text(detail.joined(separator: " · "))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                if let blocker {
+                    Text(blocker)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 8)
+            Button("Delete", role: .destructive) {
+                pendingDeletion = descriptor
+            }
+            .buttonStyle(.borderless)
+            .disabled(blocker != nil)
+        }
+    }
+
+    private func delete(_ descriptor: AppModelInstallDescriptor) {
+        do {
+            try model.deleteModel(descriptor)
+            BackgroundDownload.forget(folder: descriptor.directoryName)
+            deletionError = nil
+        } catch {
+            deletionError = "\(descriptor.shortName) could not be deleted: \(error)"
         }
     }
 

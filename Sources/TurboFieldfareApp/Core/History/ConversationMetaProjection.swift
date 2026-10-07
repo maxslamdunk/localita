@@ -108,6 +108,16 @@ public enum ConversationMetaProjection {
         let boundary = turns.last(where: { $0.role == .assistant })?.boundary
             ?? origin?.boundary ?? legacy?.boundary ?? ConversationBoundary()
 
+        // Every model a turn names besides the one the chat started with, so
+        // the continuability rule can check each vocabulary the IDs are in
+        // without parsing the transcript.
+        var turnIdentities: [ConversationIdentity] = []
+        for turn in turns {
+            guard let named = turn.identity, named != identity,
+                  !turnIdentities.contains(named) else { continue }
+            turnIdentities.append(named)
+        }
+
         return ConversationMeta(
             version: max(header.version, legacy?.version ?? header.version),
             id: header.id,
@@ -126,7 +136,8 @@ public enum ConversationMetaProjection {
             // Written by every build and read by nothing. Kept in the file so a
             // reader with a non-optional field keeps decoding; removing it is a
             // separate decision.
-            pinned: false)
+            pinned: false,
+            turnIdentities: turnIdentities.isEmpty ? nil : turnIdentities)
     }
 
     /// The creation facts a legacy transcript has to be given before it can be

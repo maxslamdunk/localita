@@ -52,31 +52,22 @@ public enum ConversationRowPresentation {
         meta.title.isEmpty ? ConversationTitle.untitled : meta.title
     }
 
-    /// The line under the title.
+    /// The line under the title: how long the chat is.
     ///
-    /// A row that cannot be continued says so here rather than being greyed
-    /// out: a disabled row tells the user nothing, and the two reasons it can
-    /// happen have completely different remedies.
+    /// Only one state adds to it. A chat too long for the context in force
+    /// says what it needs, because that is fixed from settings rather than
+    /// from inside the chat. Which model wrote it is not said here: a chat
+    /// moves between models, and each answer names its own. The rarer reasons
+    /// a chat cannot continue are explained where they can be acted on, in
+    /// the notice under the open chat.
     public static func subtitle(_ meta: ConversationMeta,
                                 state: ConversationContinuability) -> String {
-        switch state {
-        case .continuable:
-            return meta.kvTokens.map { "\(decimal($0)) tokens" } ?? "\(meta.turnCount) turns"
-        case .needsContext(let required):
-            let held = meta.kvTokens.map(decimal) ?? "\(meta.turnCount) turns of"
-            return "\(held) tokens \u{00B7} needs \(contextLabel(required)) context"
-        case .cannotReplay(let reason):
-            switch reason {
-            case .newerFormat: return "recorded with a newer app version"
-            case .differentModel: return "recorded with a different model"
-            case .differentCheckpoint: return "recorded with a different checkpoint"
-            case .differentTemplate: return "recorded with a different chat format"
-            case .differentImageProcessing:
-                return "recorded with different image processing"
-            case .tokenCountUnknown: return "no replay record"
-            case .imageRecordMissing: return "an image was not saved"
-            }
+        let length = meta.kvTokens.map { "\(decimal($0)) tokens" }
+            ?? "\(meta.turnCount) turns"
+        if case .needsContext(let required) = state {
+            return "\(length) \u{00B7} needs \(contextLabel(required)) context"
         }
+        return length
     }
 
     /// Rounded up to the next context the picker offers, because "needs 6,376
@@ -122,7 +113,9 @@ public enum ConversationStateNotice {
     public static func content(for state: ConversationContinuability,
                                currentContext: Int) -> Content? {
         switch state {
-        case .continuable:
+        case .continuable, .cannotReplay(reason: .noModelInstalled):
+            // With no model installed, the download screen says what to do,
+            // and the chat is as continuable as any other once there is one.
             return nil
         case .needsContext(let required):
             let label = ConversationRowPresentation.contextLabel(required)
@@ -149,11 +142,13 @@ public enum ConversationStateNotice {
         case .newerFormat:
             return "This chat uses a newer history format. Open it with a newer "
                 + "version of the app to continue safely. Its saved files are unchanged."
-        case .differentModel, .differentCheckpoint:
-            return "It was recorded with a different model, so the tokens it "
-                + "kept no longer mean the same thing. You can read it here, or "
-                + "re-read it into a new chat, which starts a different "
-                + "conversation from the same text."
+        case .noModelInstalled:
+            return "No model is installed. Download one to continue this chat."
+        case .differentTokenizer:
+            return "Part of it was written by a model that reads text differently "
+                + "from the one you're using, so it can't pick up where it left "
+                + "off. You can read it here, or re-read it into a new chat, which "
+                + "starts a different conversation from the same text."
         case .differentTemplate:
             return "It was recorded with a different chat format, so the tokens "
                 + "it kept no longer line up. You can read it here, or re-read "
