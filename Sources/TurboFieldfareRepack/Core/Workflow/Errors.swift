@@ -43,6 +43,9 @@ public enum RepackError: Error, CustomStringConvertible {
     case dtypeMismatch(name: String, detail: String)
 
     case sourceFingerprintRejected(path: String, sha256: String)
+    /// A checkpoint off the pinned list whose text model is not laid out
+    /// exactly as the reference's (`ReferenceLayout`).
+    case sourceLayoutRejected(reason: String)
 
     case remoteProtocolInvalid(detail: String)
     case remoteHTTPStatus(url: String, status: Int)
@@ -110,6 +113,8 @@ public enum RepackError: Error, CustomStringConvertible {
         case .dtypeMismatch(let n, let d): return "dtype mismatch for \(n): \(d)"
         case .sourceFingerprintRejected(let p, let s):
             return "source fingerprint \(s) for \(p) is not in known set"
+        case .sourceLayoutRejected(let r):
+            return "source layout rejected: \(r)"
         case .remoteProtocolInvalid(let d):
             return "remote protocol invalid: \(d)"
         case .remoteHTTPStatus(let u, let s):
