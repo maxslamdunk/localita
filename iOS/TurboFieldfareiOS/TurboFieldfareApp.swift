@@ -79,7 +79,8 @@ struct TurboFieldfareiOSApp: App {
         Self.isBenchmarkRun
             || model.isTurnInFlight
             || model.loadState.isLoading
-            || model.isInstallingModel
+            // Not the model download: `BackgroundDownload` keeps it running on
+            // a locked phone, so holding the screen on would only cost battery.
             || model.isInstallingVisionPack
     }
 }

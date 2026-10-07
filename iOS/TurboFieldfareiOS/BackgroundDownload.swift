@@ -9,14 +9,18 @@ import os
 /// Keeps a model download running after the app leaves the screen, and says
 /// so when it stops.
 ///
-/// A prototype on iOS 26's continued-processing task: the download the user
+/// Built on iOS 26's continued-processing task: the download the user
 /// starts is wrapped in a `BGContinuedProcessingTask`, which keeps the process
 /// running in the background and shows the progress in a system Live Activity
 /// (Lock Screen and Dynamic Island) with a Stop button. The installer itself is
 /// unchanged; it still writes a checkpoint after every 64 MiB range.
 ///
-/// iOS may end the task at any time (heat, load, the Stop button, possibly a
-/// locked phone), so three things cover a stop:
+/// On the iPhone 17 (2026-10-07) the task kept downloading with the app in the
+/// background, with other apps in use, and on a locked phone. iOS ended it
+/// about 25 s after the phone left Wi-Fi, since bytes stopped arriving, and it
+/// ends it when the app is swiped away. It can also end it at any other time
+/// (heat, load, the Stop button), and it can only be started while the app is
+/// open, so three things cover a stop:
 /// - **A notification.** One "download stopped" notification is always kept
 ///   about two minutes ahead and pushed back while bytes arrive. If the
 ///   download stops for any reason, including the app being swiped away,

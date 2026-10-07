@@ -50,11 +50,10 @@ final class DownloadNetwork {
 /// Shown in place of the chat when no usable model is installed.
 ///
 /// The Mac's `ModelInstallView` is the reference for every state here. The
-/// download is 14.6 GB and runs only while the app is in front: leaving the
-/// app pauses it at a saved checkpoint and coming back resumes it
-/// (`Suspension`), and the screen is kept on meanwhile
-/// (`TurboFieldfareApp.keepsScreenOn`). It never uses mobile data without
-/// asking first.
+/// download is 14.6 GB and keeps running after the app leaves the screen or
+/// the phone locks (`BackgroundDownload`); when iOS stops it, it resumes from
+/// its last checkpoint the next time the app opens. It never uses mobile data
+/// without asking first.
 struct ModelDownloadView: View {
     let model: AppModel
     let network: DownloadNetwork
@@ -69,9 +68,10 @@ struct ModelDownloadView: View {
                 storage
                 progress
                 actions
-                Text("Keep the app open while it downloads. The screen stays on; "
-                     + "leaving the app pauses the download, and it resumes from "
-                     + "where it stopped when you come back.")
+                Text("You can leave the app or lock the iPhone while it downloads; "
+                     + "the progress shows on the Lock Screen. If iOS pauses it, a "
+                     + "notification says so, and opening the app continues from "
+                     + "where it stopped.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

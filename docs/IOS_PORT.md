@@ -254,6 +254,36 @@ Steps:
    launch argument installs it beside the side-loaded model without touching
    it. Whether the scattered write order it inherits costs read speed on the
    phone is measured in `benchmark-results-2026-09-24-ios-download-order/`.
+
+   ✅ **The download keeps running in the background since 2026-10-07**
+   (`BackgroundDownload`). The download is wrapped in an iOS 26
+   `BGContinuedProcessingTask`, whose system Live Activity shows the progress
+   on the Lock Screen. Background `URLSession` was the alternative. It was not
+   tried, because the installer writes ranges into the layer files as they
+   arrive and would need rebuilding around whole-file transfers.
+
+   Tested on the iPhone 17 with a full download into a test folder:
+   - **It keeps going** with the app in the background, with other apps in use
+     and with the phone locked. One run completed and installed entirely in
+     the background.
+   - **iOS ends it about 25 s after the phone leaves Wi-Fi**, because no bytes
+     arrive (24 s measured). Swiping the app away ends it too.
+   - **It cannot restart itself.** iOS only lets the task start while the app
+     is open, so getting Wi-Fi back changes nothing until the app is opened.
+
+   What covers a stop:
+   - **A notification** says why it stopped: waiting for Wi-Fi, no
+     connection, or paused. A swipe-away is caught by one notification kept
+     two minutes ahead and pushed back while bytes arrive.
+   - **The Live Activity title** says "paused at N% · open the app to
+     continue". iOS's own "Task Failed" line under it cannot be changed.
+   - **Opening the app resumes it** from the last 64 MiB checkpoint without a
+     tap.
+
+   The screen is no longer kept on during the download. If the task cannot
+   start, the old behaviour remains as the fallback: leaving the app pauses
+   the download at a checkpoint, and returning resumes it. The image-support
+   download still works that way.
 3. **Port the runtime — started 2026-09-16, app target building and running on
    the device.** 16-slot expert cache untouched, no optimization.
    - **The runtime needed no porting to compile.** `TurboFieldfare` (85 files,
