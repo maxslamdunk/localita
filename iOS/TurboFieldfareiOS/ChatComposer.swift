@@ -22,6 +22,7 @@ struct ChatComposer: View {
     /// loads or unloads until the button that then reads Load or Download is
     /// pressed, so the top of the chat keeps naming what is in memory.
     @State private var pickedKey: String?
+    @State private var isAddingModel = false
 
     /// The size of every round control in the bottom row.
     private static let control: CGFloat = 38
@@ -66,6 +67,13 @@ struct ChatComposer: View {
         .onChange(of: model.installDescriptor.key) { _, _ in
             pickedKey = nil
         }
+        // An added model is picked as if chosen in the menu: the button then
+        // reads Download.
+        .sheet(isPresented: $isAddingModel) {
+            AddModelView(model: model) { descriptor in
+                pickedKey = descriptor == model.installDescriptor ? nil : descriptor.key
+            }
+        }
     }
 
     private var controls: some View {
@@ -85,7 +93,7 @@ struct ChatComposer: View {
     /// The picked model, when it is not the one the app is on.
     private var pickedModel: AppModelInstallDescriptor? {
         guard let pickedKey,
-              let descriptor = AppModelInstallDescriptor.textModel(key: pickedKey),
+              let descriptor = model.availableModels.first(where: { $0.key == pickedKey }),
               descriptor != model.installDescriptor else { return nil }
         return descriptor
     }
@@ -121,6 +129,11 @@ struct ChatComposer: View {
                     }
                 }
             }
+            Section {
+                Button("Add Model…", systemImage: "plus") {
+                    isAddingModel = true
+                }
+            }
         } label: {
             HStack(spacing: 5) {
                 // As wide as the longest name, whichever is shown. A pick
@@ -134,6 +147,8 @@ struct ChatComposer: View {
                     Text(shortModelName)
                 }
                 .lineLimit(1)
+                // A pasted model's name can be long; the menu shows it whole.
+                .frame(maxWidth: 150)
                 Image(systemName: "chevron.down")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
@@ -159,6 +174,9 @@ struct ChatComposer: View {
     /// cannot do.
     private func menuDetail(for descriptor: AppModelInstallDescriptor) -> String? {
         var parts: [String] = []
+        if descriptor.isCommunity {
+            parts.append("Community")
+        }
         if !ChatSession.isInstalled(descriptor, current: model) {
             parts.append("Download " + MetricFormat.storage(descriptor.approximateDownloadBytes))
         }

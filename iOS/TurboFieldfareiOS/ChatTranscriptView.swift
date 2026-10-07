@@ -50,7 +50,7 @@ struct ChatTranscriptView: View {
                              response: pair.assistant.text,
                              responseSplit: nil,
                              modelName: pair.assistant.modelID.map(
-                                AppModelInstallDescriptor.shortName(forModelID:)))
+                                model.modelName(forModelID:)))
                     }
 
                     if model.showsLiveTurn, model.hasOutputTranscript {

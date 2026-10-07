@@ -126,6 +126,14 @@ struct ModelDownloadView: View {
                  + "Hugging Face.")
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            if model.installDescriptor.isCommunity {
+                Text("A community model, added from huggingface.co/"
+                     + "\(model.installDescriptor.repoID). It runs like Gemma 4, "
+                     + "but its answers are not tested here.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
             if !model.installDescriptor.supportsImages {
                 Text("This model reads text only; it cannot look at images.")
                     .font(.footnote)

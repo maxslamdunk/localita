@@ -79,11 +79,15 @@ enum ChatSession {
         return model
     }
 
-    /// The text model a folder holds. A folder no model is named for is a
-    /// `--model-dir` test copy, which is always the default model.
+    /// The text model a folder holds, pinned or added from a link. A folder
+    /// no model is named for is a `--model-dir` test copy, which is always the
+    /// default model.
     static func descriptor(forFolder name: String) -> AppModelInstallDescriptor {
-        AppModelInstallDescriptor.textModels.first { $0.directoryName == name }
-            ?? .default
+        let community = CommunityModelStore.load(
+            forModelDirectory: ModelLocation.directory(named: name))
+            .map(AppModelInstallDescriptor.init(community:))
+        return (AppModelInstallDescriptor.textModels + community)
+            .first { $0.directoryName == name } ?? .default
     }
 
     /// Switches the phone to another text model: its own folder, its own

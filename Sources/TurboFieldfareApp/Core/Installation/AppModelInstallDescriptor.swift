@@ -18,6 +18,9 @@ public struct AppModelInstallDescriptor: Equatable, Sendable {
     public let key: String
     /// Whether an image companion pack exists for this checkpoint.
     public let supportsImages: Bool
+    /// Added from a Hugging Face link (`CommunityModelStore`) rather than one
+    /// of the models this project pins and tests.
+    public let isCommunity: Bool
 
     public init(displayName: String,
                 repoID: String,
@@ -29,7 +32,8 @@ public struct AppModelInstallDescriptor: Equatable, Sendable {
                 reserveBytes: UInt64,
                 key: String = SupportedModelSource.gemma4.key,
                 supportsImages: Bool = true,
-                shortName: String? = nil) {
+                shortName: String? = nil,
+                isCommunity: Bool = false) {
         self.displayName = displayName
         self.shortName = shortName ?? displayName
         self.repoID = repoID
@@ -41,6 +45,7 @@ public struct AppModelInstallDescriptor: Equatable, Sendable {
         self.reserveBytes = reserveBytes
         self.key = key
         self.supportsImages = supportsImages
+        self.isCommunity = isCommunity
     }
 
     init(textModel model: SupportedModel) {

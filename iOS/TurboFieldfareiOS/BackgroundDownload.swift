@@ -69,6 +69,14 @@ enum BackgroundDownload {
         begin(model, network: network)
     }
 
+    /// A model's files were deleted: a download still wanted for its folder
+    /// is dropped with them.
+    static func forget(folder: String) {
+        if UserDefaults.standard.string(forKey: intentKey) == folder {
+            UserDefaults.standard.removeObject(forKey: intentKey)
+        }
+    }
+
     /// The Cancel button: stop and stay stopped.
     static func cancel(_ model: AppModel) {
         UserDefaults.standard.removeObject(forKey: intentKey)

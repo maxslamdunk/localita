@@ -302,6 +302,9 @@ public final class AppModel {
         self.installationStatus = AppModelInstallationProbe.status(
             at: directory, descriptor: installer.descriptor)
         self.visionInstallationStatus = AppVisionPackInstallationProbe.status(at: directory)
+        if settingsPersistenceEnabled {
+            self.communityRecords = CommunityModelStore.load(forModelDirectory: directory)
+        }
         self.client = client
         self.installer = installer
         self.installerFactory = installerFactory
@@ -442,9 +445,89 @@ public final class AppModel {
         conversationIdentity?.modelID ?? installDescriptor.repoID
     }
 
-    /// The text models this app can install and switch between.
+    /// The text models this app can install and switch between: the ones the
+    /// project pins, then the ones added from a Hugging Face link.
     public var availableModels: [AppModelInstallDescriptor] {
-        AppModelInstallDescriptor.textModels
+        AppModelInstallDescriptor.textModels + communityModels
+    }
+
+    /// Models added from a Hugging Face link, oldest first.
+    public var communityModels: [AppModelInstallDescriptor] {
+        communityRecords.map(AppModelInstallDescriptor.init(community:))
+    }
+
+    /// Read from beside the model folders when settings persist. Kept in
+    /// memory otherwise, so a model driven by tests never writes the user's
+    /// list.
+    private var communityRecords: [CommunityModelRecord] = []
+
+    /// The name an answer is labelled with, for any model this app lists.
+    public func modelName(forModelID modelID: String) -> String {
+        availableModels.first { $0.repoID == modelID }?.shortName
+            ?? AppModelInstallDescriptor.shortName(forModelID: modelID)
+    }
+
+    /// Whether a pasted repository can run here, read from Hugging Face. One
+    /// the app already lists is answered without a request.
+    public func checkCommunityModel(_ link: HuggingFaceLink) async throws -> CommunityModelCheck {
+        if let listed = listedModel(repoID: link.repoID) {
+            return .listed(listed)
+        }
+        return try await CommunityModelStore.check(link)
+    }
+
+    /// Adds a model `checkCommunityModel` found compatible. A repository
+    /// already listed returns that entry unchanged.
+    @discardableResult
+    public func addCommunityModel(_ record: CommunityModelRecord) throws
+        -> AppModelInstallDescriptor {
+        if let listed = listedModel(repoID: record.repoID) {
+            return listed
+        }
+        let records = communityRecords + [record]
+        if settingsPersistenceEnabled {
+            try CommunityModelStore.save(records, forModelDirectory: modelDirectoryURL)
+        }
+        communityRecords = records
+        return AppModelInstallDescriptor(community: record)
+    }
+
+    /// Repository names are matched as Hugging Face matches them, ignoring case.
+    private func listedModel(repoID: String) -> AppModelInstallDescriptor? {
+        availableModels.first { $0.repoID.lowercased() == repoID.lowercased() }
+    }
+
+    /// Why a model's files can't be deleted now, or nil when they can.
+    public func deletionBlocker(for descriptor: AppModelInstallDescriptor) -> String? {
+        if descriptor == installDescriptor {
+            return "In use. Switch to another model first."
+        }
+        // A model using Gemma 4's image pack reads it from Gemma 4's folder.
+        if AppVisionPackHost.textModelDirectory(for: modelDirectoryURL).lastPathComponent
+            == descriptor.directoryName {
+            return "\(installDescriptor.shortName) uses its image support."
+        }
+        return nil
+    }
+
+    /// Deletes a model other than the current one: its folder, any download
+    /// in progress, and its own image pack. A community model also leaves the
+    /// list; a pinned one stays in it, to be downloaded again.
+    public func deleteModel(_ descriptor: AppModelInstallDescriptor) throws {
+        guard deletionBlocker(for: descriptor) == nil else { return }
+        try AppModelRemoval.removeTextModel(
+            at: modelDirectoryURL.deletingLastPathComponent()
+                .appendingPathComponent(descriptor.directoryName, isDirectory: true))
+        guard descriptor.isCommunity else { return }
+        let records = communityRecords.filter { $0.repoID != descriptor.repoID }
+        if settingsPersistenceEnabled {
+            try CommunityModelStore.save(records, forModelDirectory: modelDirectoryURL)
+        }
+        communityRecords = records
+    }
+
+    private var modelDirectoryURL: URL {
+        URL(fileURLWithPath: modelPathText, isDirectory: true)
     }
 
     /// Whether the model selection can change right now. A switch rebinds the
