@@ -123,8 +123,17 @@ struct ChatComposer: View {
             }
         } label: {
             HStack(spacing: 5) {
-                Text(shortModelName)
-                    .lineLimit(1)
+                // As wide as the longest name, whichever is shown. A pick
+                // lands while the menu is still shrinking back into the pill,
+                // at the pill's old size, so a wider name spilled past its
+                // edges and was cut until the animation ended.
+                ZStack {
+                    ForEach(model.availableModels, id: \.key) { descriptor in
+                        Text(descriptor.shortName).hidden()
+                    }
+                    Text(shortModelName)
+                }
+                .lineLimit(1)
                 Image(systemName: "chevron.down")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
@@ -134,6 +143,10 @@ struct ChatComposer: View {
             .padding(.horizontal, 13)
             .frame(height: Self.smallControl)
             .background(Self.controlFill, in: .capsule)
+            // The press highlight and the menu's morph follow this shape;
+            // left to the default rectangle, a grey box flashed around it.
+            .contentShape(.capsule)
+            .contentShape(.contextMenuPreview, .capsule)
         }
         // A menu takes the app's tint for its label and its checked item.
         // Neutral like the rest of the box.
