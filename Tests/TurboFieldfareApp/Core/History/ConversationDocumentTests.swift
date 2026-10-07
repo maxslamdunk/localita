@@ -355,4 +355,30 @@ import TurboFieldfare
         }
         #expect(lineage.tokenIDs == [1, 2], "a partial reply entered the KV")
     }
+
+    /// Each answer names the model that wrote it. One written before turns
+    /// recorded a model was written by the one the chat started with.
+    @Test func eachAnswerNamesTheModelThatWroteIt() {
+        let other = ConversationIdentity(
+            modelID: "Jiunsong/supergemma4-26b-uncensored-mlx-4bit-v2",
+            sourceSnapshotHash: "sha256:df31",
+            templateIdentity: GFTokenizer.chatTemplateIdentity,
+            imageProcessingVersion: VisionImageProcessing.version)
+        let records: [TranscriptRecord] = [
+            .header(ConversationHeaderRecord(id: UUID(), createdAt: Date())),
+            .turn(ConversationTurnRecord(
+                role: .user, at: Date(), text: "one", tokens: [1])),
+            .turn(ConversationTurnRecord(
+                role: .assistant, at: Date(), text: "a", tokens: [2])),
+            .turn(ConversationTurnRecord(
+                role: .user, at: Date(), text: "two", tokens: [3], identity: other)),
+            .turn(ConversationTurnRecord(
+                role: .assistant, at: Date(), text: "b", tokens: [4], identity: other)),
+        ]
+        let document = ConversationDocument.load(
+            Self.opened(records), directory: Self.directory)
+        #expect(document.pairs.map(\.assistant.modelID)
+            == [Self.identity.modelID, other.modelID])
+        #expect(document.pairs.allSatisfy { $0.user.modelID == nil })
+    }
 }

@@ -143,6 +143,57 @@ import TurboFieldfare
         #expect(meta.turnCount == 2, "the turns are still there to read")
     }
 
+    // MARK: - Models
+
+    /// A chat continued by another model lists it once, after the one it
+    /// started with. Turns that name no model, or the one it started with, add
+    /// nothing: they were written by the header's model.
+    @Test func eachModelThatWroteATurnIsListedOnce() throws {
+        let id = UUID()
+        let other = Self.otherIdentity
+        let records: [TranscriptRecord] = [
+            Self.header(id: id),
+            .turn(ConversationTurnRecord(
+                role: .user, at: Self.at(10), text: "one", tokens: [1])),
+            .turn(ConversationTurnRecord(
+                role: .assistant, at: Self.at(11), text: "a", tokens: [2])),
+            .turn(ConversationTurnRecord(
+                role: .user, at: Self.at(20), text: "two", tokens: [3],
+                identity: other)),
+            .turn(ConversationTurnRecord(
+                role: .assistant, at: Self.at(21), text: "b", tokens: [4],
+                identity: other)),
+            .turn(ConversationTurnRecord(
+                role: .user, at: Self.at(30), text: "three", tokens: [5],
+                identity: Self.identity)),
+            .turn(ConversationTurnRecord(
+                role: .assistant, at: Self.at(31), text: "c", tokens: [6],
+                identity: Self.identity)),
+        ]
+        let meta = try ConversationMetaProjection.project(
+            directoryID: id, records: records, legacy: nil)
+        #expect(meta.identity == Self.identity)
+        #expect(meta.turnIdentities == [other])
+        #expect(meta.recordedIdentities == [Self.identity, other])
+    }
+
+    @Test func aChatOfOneModelListsNoOther() throws {
+        let id = UUID()
+        let records: [TranscriptRecord] = [
+            Self.header(id: id),
+            .turn(ConversationTurnRecord(
+                role: .user, at: Self.at(10), text: "one", tokens: [1],
+                identity: Self.identity)),
+            .turn(ConversationTurnRecord(
+                role: .assistant, at: Self.at(11), text: "a", tokens: [2],
+                identity: Self.identity)),
+        ]
+        let meta = try ConversationMetaProjection.project(
+            directoryID: id, records: records, legacy: nil)
+        #expect(meta.turnIdentities == nil)
+        #expect(meta.recordedIdentities == [Self.identity])
+    }
+
     // MARK: - Title
 
     @Test func aTitleRecordBeatsTheFirstMessageAndTheLastOneWins() throws {

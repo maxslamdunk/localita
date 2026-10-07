@@ -434,6 +434,14 @@ public final class AppModel {
 
     public var installDescriptor: AppModelInstallDescriptor { installer.descriptor }
 
+    /// The model an answer generated now is written by: the one the history
+    /// store is bound to, which is the one that loads. Recorded on every
+    /// answer, because a chat can be continued by another model that shares
+    /// its tokenizer.
+    public var answeringModelID: String {
+        conversationIdentity?.modelID ?? installDescriptor.repoID
+    }
+
     /// The text models this app can install and switch between.
     public var availableModels: [AppModelInstallDescriptor] {
         AppModelInstallDescriptor.textModels
@@ -454,13 +462,14 @@ public final class AppModel {
     /// (its checkpoint stays, so it resumes when that model is chosen again),
     /// and the conversation list is re-read against the new model's identity.
     /// The settings file and the conversation store sit beside the model
-    /// folders, so both models share them; a chat recorded with the other
-    /// model stays readable and is marked as not continuable.
+    /// folders, so both models share them, and a chat recorded with one
+    /// continues with the other when their tokenizers match.
     ///
     /// `openingConversation` reopens a stored chat once the new model's list
-    /// is read — the way to continue a chat recorded with the other model.
-    /// It rides the launch-restore path: the selection is saved, and the
-    /// rebind reads it back and opens it when its row appears.
+    /// is read, which is how the chat on screen stays on screen across a
+    /// switch: its next send replays it into the new model. It rides the
+    /// launch-restore path: the selection is saved, and the rebind reads it
+    /// back and opens it when its row appears.
     public func selectModel(_ descriptor: AppModelInstallDescriptor,
                             at directory: URL,
                             openingConversation conversationID: UUID? = nil) {
@@ -480,21 +489,13 @@ public final class AppModel {
             return
         }
         // `setModelURL` re-reads the settings file and reopens the chat it
-        // names. Left alone, that is the chat the switch was made from — a
-        // chat of the other model, which reopens read-only. So the saved
-        // selection is replaced first: with the chat asked for, or with none,
-        // which leaves the new model on a new chat.
+        // names. The saved selection is replaced first, with the chat asked
+        // for or with none, which leaves the new model on a new chat.
         if settingsPersistenceEnabled {
             history.selection = conversationID
             persistSettings()
         }
         setModelURL(URL(fileURLWithPath: path, isDirectory: true))
-    }
-
-    /// The text model a stored conversation was recorded with, if it is one
-    /// this app knows.
-    public func textModel(for meta: ConversationMeta) -> AppModelInstallDescriptor? {
-        AppModelInstallDescriptor.textModel(modelID: meta.identity.modelID)
     }
 
     public var installRequirement: AppModelInstallRequirement? {
@@ -2950,7 +2951,8 @@ public final class AppModel {
         self.diagnostics = diagnostics
         let userText = outputPromptText
         let assistantText = outputText
-        conversation.completeTurn(text: outputText, diagnostics: diagnostics)
+        conversation.completeTurn(text: outputText, diagnostics: diagnostics,
+                                  modelID: answeringModelID)
         // Written here and nowhere else: this is the one path that commits a
         // turn to the KV, so it is the one path where the transcript on disk
         // and the model's context can be made to say the same thing. A turn

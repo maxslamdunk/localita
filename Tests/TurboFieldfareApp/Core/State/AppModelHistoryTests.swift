@@ -1082,7 +1082,7 @@ import TurboFieldfare
         try await waitUntil { await !model.transcriptHistory.isEmpty }
 
         #expect(model.conversationIdentity == nil)
-        #expect(model.openedConversationState == .cannotReplay(reason: .differentModel))
+        #expect(model.openedConversationState == .cannotReplay(reason: .noModelInstalled))
         #expect(model.transcriptHistory.map(\.user.text) == ["stored"])
         #expect(model.historyDiagnostic?.contains("source snapshot hash") == true)
         #expect(await model.ensureStoredConversation(firstMessage: "private prompt") == nil)
@@ -1121,6 +1121,60 @@ import TurboFieldfare
         #expect(opened.meta.turnCount == 2)
         #expect(opened.meta.title == "hello")
         #expect(model.history.entries.count == 1)
+    }
+
+    /// A chat written by one model continues with another that shares its
+    /// tokenizer: opening it offers it, the send replays it, and the turns the
+    /// new model writes name it, on disk and on screen.
+    @MainActor
+    @Test func aChatContinuesWithAnotherModelThatSharesItsTokenizer() async throws {
+        let client = FakeInferenceClient(eventDelay: .milliseconds(1))
+        let (model, root) = try await readyModel(client)
+        defer { try? FileManager.default.removeItem(at: root) }
+        func identity(_ name: String) -> ConversationIdentity {
+            ConversationIdentity(
+                modelID: "\(name)/model", sourceSnapshotHash: "sha256:\(name)",
+                templateIdentity: GFTokenizer.chatTemplateIdentity,
+                imageProcessingVersion: VisionImageProcessing.version,
+                tokenizerSHA256: "cafe")
+        }
+        let first = identity("a")
+        let second = identity("b")
+
+        model.conversationIdentity = first
+        model.promptText = "first"
+        model.send()
+        try await finish(model)
+        let id = try #require(model.storedConversationID)
+        #expect(model.conversation.turns.last?.modelID == first.modelID)
+
+        // What a switch binds, without the rest of the rebind: only the model
+        // in force changes, and the chat is opened from its stored copy.
+        model.conversationIdentity = second
+        model.newChat()
+        model.openConversation(id: id)
+        try await waitUntil { await model.screen.document != nil }
+        #expect(model.openedConversationState == .continuable)
+        model.promptText = "second"
+        model.send()
+        await SendWaiting.turnEnds(model)
+        await model.awaitPendingPersistence()
+
+        #expect(client.restoredLineages.count == 1)
+        #expect(model.conversation.turns.last?.modelID == second.modelID)
+        let store = try #require(model.conversationStore)
+        let opened = try await store.open(id: id)
+        let turns = opened.records.compactMap { record -> ConversationTurnRecord? in
+            guard case .turn(let turn) = record else { return nil }
+            return turn
+        }
+        #expect(turns.map { $0.identity?.modelID }
+            == [first.modelID, first.modelID, second.modelID, second.modelID])
+        #expect(opened.meta.identity == first)
+        #expect(opened.meta.turnIdentities == [second])
+        let document = ConversationDocument.load(opened, directory: root)
+        #expect(document.pairs.map(\.assistant.modelID)
+            == [first.modelID, second.modelID])
     }
 
     @MainActor

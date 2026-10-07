@@ -20,12 +20,16 @@ public struct AppChatTurn: Identifiable, Equatable, Sendable {
     /// re-rendering `text` produces a different sequence. Nil on the
     /// single-prompt path, and on any turn the runtime rewound.
     public var tokenIDs: [Int32]?
+    /// The model that wrote this answer, by its manifest `modelID`. A chat can
+    /// move between models that share a tokenizer, so each answer names its
+    /// own. Nil on user turns, and where nothing recorded it.
+    public var modelID: String?
 
     public init(id: UUID = UUID(), role: Role, text: String,
                 images: [ChatImage] = [],
                 promptTokens: Int? = nil, cachedTokens: Int? = nil,
                 generatedTokens: Int? = nil, stopReason: AppStopReason? = nil,
-                tokenIDs: [Int32]? = nil) {
+                tokenIDs: [Int32]? = nil, modelID: String? = nil) {
         self.id = id
         self.role = role
         self.text = text
@@ -35,6 +39,7 @@ public struct AppChatTurn: Identifiable, Equatable, Sendable {
         self.generatedTokens = generatedTokens
         self.stopReason = stopReason
         self.tokenIDs = tokenIDs
+        self.modelID = modelID
     }
 }
 
@@ -235,7 +240,8 @@ public struct AppConversation: Equatable, Sendable {
     /// Records the reply. Called only when the generation stream completed,
     /// including a turn the user stopped: that one ends at a token boundary
     /// with its partial reply committed to the KV.
-    public mutating func completeTurn(text: String, diagnostics: AppDiagnostics?) {
+    public mutating func completeTurn(text: String, diagnostics: AppDiagnostics?,
+                                      modelID: String? = nil) {
         guard let pendingUserTurnID,
               let userIndex = turns.firstIndex(where: { $0.id == pendingUserTurnID }) else {
             return
@@ -247,7 +253,8 @@ public struct AppConversation: Equatable, Sendable {
             role: .assistant, text: text,
             generatedTokens: diagnostics?.generatedTokens,
             stopReason: diagnostics?.stopReason,
-            tokenIDs: diagnostics?.generatedTokenIDs))
+            tokenIDs: diagnostics?.generatedTokenIDs,
+            modelID: modelID))
         committedTurns += 1
         boundaryTokenIDs = diagnostics?.boundaryTokenIDs ?? []
         boundaryNeedsReplay = diagnostics?.boundaryNeedsReplay ?? false
