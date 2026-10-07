@@ -45,6 +45,9 @@ enum BackgroundDownload {
     private static var task: BGContinuedProcessingTask?
     private static var pendingRequestID: String?
     private static var monitor: Task<Void, Never>?
+    /// The last progress seen, for the notifications: once the download has
+    /// paused, the model no longer reports a fraction.
+    private static var lastFraction: Double?
 
     /// Whether the background task is keeping the download alive, in which
     /// case leaving the app must not pause it.
@@ -146,7 +149,7 @@ enum BackgroundDownload {
         let request = BGContinuedProcessingTaskRequest(
             identifier: identifier,
             title: title(model),
-            subtitle: subtitle(model))
+            subtitle: subtitle(model, network: network))
         // Queued rather than refused when the system has no room right now; it
         // then starts the task as soon as it can.
         request.strategy = .queue
@@ -183,15 +186,14 @@ enum BackgroundDownload {
     /// the app cannot tell which. Pause at the checkpoint, say so, and resume
     /// on the next return to the app.
     private static func expire(model: AppModel, network: DownloadNetwork) {
-        record("task expired at \(percentText(model)) (app \(stateName))")
+        record("task expired at \(percentText(model)) (app \(stateName), "
+               + "network \(networkName(network)))")
         if model.isInstallingModel && model.canCancelInstall {
             network.resumesModelOnReturn = true
             model.cancelInstall()
         }
-        notify(title: "Download paused",
-               body: "\(model.installDescriptor.shortName) paused at \(percentText(model)). "
-                   + "Open TurboFieldfare to continue; nothing downloaded is lost.",
-               after: nil)
+        let notice = stopNotice(model, network: network)
+        notify(title: notice.title, body: notice.body, after: nil)
         finishTask(success: false)
         // Let the cancellation reach its checkpoint before iOS suspends us.
         let window = BackgroundWindow()
@@ -243,10 +245,12 @@ enum BackgroundDownload {
             var lastWatchdog = ContinuousClock.now - .seconds(3_600)
             var lastSubtitle = ContinuousClock.now - .seconds(3_600)
             var lastLoggedGB: UInt64 = 0
+            var lastNetwork = networkName(network)
             while !Task.isCancelled && model.isInstallingModel {
                 switch model.installState {
                 case .copyingPayload:
                     let fraction = model.installProgressFraction ?? 0
+                    lastFraction = fraction
                     units = max(units, Int64(fraction * Double(progressUnits) * 0.98))
                     let gb = (model.installDownloadedBytes ?? 0) / 1_000_000_000
                     if gb > lastLoggedGB {
@@ -266,16 +270,23 @@ enum BackgroundDownload {
                 if let task {
                     task.progress.completedUnitCount = units
                     if now - lastSubtitle >= .seconds(3) {
-                        task.updateTitle(title(model), subtitle: subtitle(model))
+                        task.updateTitle(title(model),
+                                         subtitle: subtitle(model, network: network))
                         lastSubtitle = now
                     }
                 }
-                if units != lastUnits && now - lastWatchdog >= .seconds(15) {
-                    notify(title: "Download stopped",
-                           body: "\(model.installDescriptor.shortName) stopped at "
-                               + "\(percentText(model)). Open TurboFieldfare to continue; "
-                               + "nothing downloaded is lost.",
-                           after: watchdogDelay)
+                // The pending notification is re-worded as soon as the network
+                // changes, so a download that stalls waiting for Wi-Fi says so.
+                let currentNetwork = networkName(network)
+                let networkChanged = currentNetwork != lastNetwork
+                if networkChanged {
+                    record("network: \(currentNetwork) (app \(stateName))")
+                    lastNetwork = currentNetwork
+                }
+                if networkChanged
+                    || (units != lastUnits && now - lastWatchdog >= .seconds(15)) {
+                    let notice = stopNotice(model, network: network)
+                    notify(title: notice.title, body: notice.body, after: watchdogDelay)
                     lastWatchdog = now
                 }
                 lastUnits = units
@@ -289,6 +300,7 @@ enum BackgroundDownload {
     private static func ended(_ model: AppModel) {
         if model.isModelInstalled {
             UserDefaults.standard.removeObject(forKey: intentKey)
+            lastFraction = nil
             record("installed")
             notify(title: "Model ready",
                    body: "\(model.installDescriptor.shortName) is downloaded and verified.",
@@ -324,15 +336,56 @@ enum BackgroundDownload {
         "Downloading \(model.installDescriptor.shortName)"
     }
 
-    private static func subtitle(_ model: AppModel) -> String {
+    private static func subtitle(_ model: AppModel, network: DownloadNetwork) -> String {
+        let progress: String
         if let done = model.installDownloadedBytes, let total = model.installTotalBytes {
-            return "\(MetricFormat.storage(done)) of \(MetricFormat.storage(total))"
+            progress = "\(MetricFormat.storage(done)) of \(MetricFormat.storage(total))"
+        } else {
+            progress = model.installPhaseLabel
         }
-        return model.installPhaseLabel
+        if !network.isSatisfied { return "No connection · " + progress }
+        if waitsForWiFi(network) { return "Waiting for Wi-Fi · " + progress }
+        return progress
+    }
+
+    /// What a stop notification says, worded by why the download is likely
+    /// to have stopped: no network at all, or only mobile data, which this
+    /// download may not use.
+    private static func stopNotice(_ model: AppModel,
+                                   network: DownloadNetwork) -> (title: String, body: String) {
+        let name = model.installDescriptor.shortName
+        let at = percentText(model)
+        let kept = "nothing downloaded is lost."
+        if !network.isSatisfied {
+            return ("Download waiting for a connection",
+                    "\(name) paused at \(at): the iPhone has no internet connection. "
+                        + "Open TurboFieldfare once it is back to continue; " + kept)
+        }
+        if waitsForWiFi(network) {
+            return ("Download waiting for Wi-Fi",
+                    "\(name) paused at \(at) when the iPhone left Wi-Fi; it does not "
+                        + "use mobile data. Open TurboFieldfare on Wi-Fi to continue; " + kept)
+        }
+        return ("Download paused",
+                "\(name) paused at \(at). Open TurboFieldfare to continue; " + kept)
+    }
+
+    private static func waitsForWiFi(_ network: DownloadNetwork) -> Bool {
+        network.isExpensive && !network.allowsMobileData
+    }
+
+    private static func networkName(_ network: DownloadNetwork) -> String {
+        if !network.isSatisfied { return "none" }
+        if network.isExpensive {
+            return network.allowsMobileData ? "mobile data (allowed)" : "mobile data (not allowed)"
+        }
+        return "Wi-Fi"
     }
 
     private static func percentText(_ model: AppModel) -> String {
-        guard let fraction = model.installProgressFraction else { return "the start" }
+        guard let fraction = model.installProgressFraction ?? lastFraction else {
+            return "the start"
+        }
         return MetricFormat.percent(fraction * 100)
     }
 
