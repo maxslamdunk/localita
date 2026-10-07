@@ -1,0 +1,3 @@
+
+[stop=endOfTurn prefill=3015tok new=597tok decode=164.37s tok/s=3.632]
+[early-read guess=fitted needed/tok=92.08 loaded-early/tok=25.23 reads/tok=29.00 precision=0.870]

@@ -1,0 +1,16 @@
+Wed Oct  7 01:54:15 CEST 2026
+Now drawing from 'AC Power'
+Note: No thermal warning level has been recorded
+Note: No performance warning level has been recorded
+Note: No CPU power status has been recorded
+The system has 8589934592 (524288 pages with a page size of 16384).
+System-wide memory free percentage: 71%
+Busiest processes:
+ %CPU %MEM COMM
+ 38.5  0.1 /usr/libexec/trustd
+ 29.5  0.2 /System/Library/PrivateFrameworks/Ecosystem.framework/Support/ecosystemd
+ 25.2  0.1 /System/Library/PrivateFrameworks/EcosystemAnalytics.framework/Support/ecosystemanalyticsd
+  9.1  0.3 /usr/libexec/kernelmanager_helper
+  8.2  0.1 (hamachid)
+  6.0  0.0 /usr/libexec/sysmond
+  4.6  0.2 /usr/libexec/syspolicyd

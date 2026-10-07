@@ -1,0 +1,16 @@
+Wed Oct  7 02:46:51 CEST 2026
+Now drawing from 'AC Power'
+Note: No thermal warning level has been recorded
+Note: No performance warning level has been recorded
+Note: No CPU power status has been recorded
+The system has 8589934592 (524288 pages with a page size of 16384).
+System-wide memory free percentage: 64%
+Busiest processes:
+ %CPU %MEM COMM
+ 60.4  0.0 sh
+  4.6  0.1 /System/Library/PrivateFrameworks/MobileSoftwareUpdate.framework/Support/softwareupdated
+  3.7  0.1 /usr/libexec/mobileassetd
+  3.6  0.0 /System/Library/CoreServices/Finder.app/Contents/MacOS/Finder
+  3.4  0.1 /System/Library/Frameworks/Speech.framework/Versions/A/XPCServices/localspeechrecognition.xpc/Contents/MacOS/localspeechrecognition
+  3.2  0.0 /usr/libexec/sysmond
+  2.8  0.1 /System/Library/PrivateFrameworks/ModelCatalogRuntime.framework/Versions/A/modelcatalogd

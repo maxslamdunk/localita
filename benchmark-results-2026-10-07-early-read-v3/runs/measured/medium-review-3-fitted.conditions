@@ -1,0 +1,16 @@
+Wed Oct  7 03:02:51 CEST 2026
+Now drawing from 'AC Power'
+Note: No thermal warning level has been recorded
+Note: No performance warning level has been recorded
+Note: No CPU power status has been recorded
+The system has 8589934592 (524288 pages with a page size of 16384).
+System-wide memory free percentage: 74%
+Busiest processes:
+ %CPU %MEM COMM
+ 25.0  0.1 /usr/libexec/trustd
+ 21.9  0.2 /System/Library/PrivateFrameworks/Ecosystem.framework/Support/ecosystemd
+ 16.9  0.1 /System/Library/PrivateFrameworks/EcosystemAnalytics.framework/Support/ecosystemanalyticsd
+  5.5  0.3 /usr/libexec/kernelmanager_helper
+  5.3  0.2 /Library/Apple/System/Library/PrivateFrameworks/RemotePairing.framework/Versions/A/XPCServices/remotepairingd.xpc/Contents/MacOS/remotepairingd
+  2.8  0.1 /usr/libexec/syspolicyd
+  2.1  2.4 claude bg-spare

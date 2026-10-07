@@ -1,0 +1,16 @@
+Wed Oct  7 02:35:55 CEST 2026
+Now drawing from 'AC Power'
+Note: No thermal warning level has been recorded
+Note: No performance warning level has been recorded
+Note: No CPU power status has been recorded
+The system has 8589934592 (524288 pages with a page size of 16384).
+System-wide memory free percentage: 72%
+Busiest processes:
+ %CPU %MEM COMM
+ 75.9  0.1 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/FSEvents.framework/Versions/A/Support/fseventsd
+ 27.3  0.2 /System/Library/PrivateFrameworks/MediaStream.framework/Versions/A/Support/mstreamd
+ 24.3  0.1 /Library/Application Support/LogMeIn Hamachi/bin/hamachid
+ 21.1  0.2 /System/Library/PrivateFrameworks/iCloudDriveService.framework/XPCServices/ContainerMetadataExtractor.xpc/Contents/MacOS/ContainerMetadataExtractor
+ 16.4  0.4 /System/Library/PrivateFrameworks/iCloudDriveCore.framework/Versions/A/Support/bird
+  5.5  0.1 /usr/libexec/opendirectoryd
+  4.8  0.2 /sbin/launchd

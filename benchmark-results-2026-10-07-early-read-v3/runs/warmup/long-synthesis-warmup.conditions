@@ -1,0 +1,16 @@
+Wed Oct  7 04:14:30 CEST 2026
+Now drawing from 'AC Power'
+Note: No thermal warning level has been recorded
+Note: No performance warning level has been recorded
+Note: No CPU power status has been recorded
+The system has 8589934592 (524288 pages with a page size of 16384).
+System-wide memory free percentage: 63%
+Busiest processes:
+ %CPU %MEM COMM
+ 22.3  0.0 /Library/Application Support/LogMeIn Hamachi/bin/hamachid
+ 11.3  0.1 /System/Library/PrivateFrameworks/CoreAnalytics.framework/Support/analyticsd
+  6.5  0.0 /usr/libexec/sysmond
+  5.6  0.1 /usr/libexec/PerfPowerServices
+  4.5  0.1 /usr/libexec/runningboardd
+  4.0  0.1 /System/Library/PrivateFrameworks/HomeKitDaemon.framework/Support/homed
+  3.6  0.1 /usr/libexec/airportd

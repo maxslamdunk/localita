@@ -1,0 +1,1 @@
+Benchmark: early-read v3; order: off router fitted fitted2 fitted2 fitted router off; blocks: 2

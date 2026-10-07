@@ -1,0 +1,28 @@
+### Technical Assessment: TurboFieldfare
+
+**Overview**
+TurboFieldfare is a specialized Swift/Metal runtime designed to run a 26B-parameter Mixture-of-Experts (MoE) model on hardware with limited RAM (e.g., 8 GB Apple Silicon). It achieves this by treating the SSD as an extension of the model weights, maintaining a minimal memory footprint while managing high-throughput I/O.
+
+**Central Resource Constraint**
+The primary bottleneck is **available system RAM**. Because the full 14.3 GB model cannot fit into the memory of an 8 GB machine, the runtime must balance the resident memory required for the core model and KV cache against the bandwidth and latency of streaming weights from the SSD.
+
+**Data Division: Resident vs. Streamed**
+The runtime splits the model into two distinct categories:
+* **Resident Data:** The 1.35 GB core (shared weights) and the FP16 KV cache are kept entirely in memory to ensure constant availability for every computation.
+* **Streamed Data:** The routed "expert" weights are stored on the SSD. For every layer, the runtime identifies the necessary experts via the router and streams only those specific byte ranges into Metal-visible buffers.
+
+**Prefill vs. Decode Behavior**
+The two phases of inference utilize the streaming architecture differently:
+* **Prefill (Prompt Processing):** To maximize efficiency, the runtime uses **chunked prefill** (up to 128 tokens). By processing chunks, a single fetched expert can be applied to multiple tokens simultaneously, amortizing the cost of the I/O read.
+* **Decode (Token Generation):** This is a sequential, one-token-at-a-time process. The bottleneck shifts toward the latency of the "router-to-SSD" loop, as the engine must fetch new experts for every single token generated.
+
+**Interpreting Benchmarks**
+When reviewing performance numbers, engineers must account for the following variables:
+1. **Hardware Scaling:** Throughput varies wildly between different Apple Silicon generations (e.g., M2 vs. M5).
+2. **Input/Output Length:** Prompt length (prefill-heavy) and generation length (decode-heavy) change the ratio of compute to I/O.
+3. **System State:** Background processes and macOS page-cache status significantly impact effective throughput.
+
+**Rules for Evaluating Changes**
+1. **Prioritize I/O Amortization:** Any change to the prefill logic must ensure that fetched weights are utilized by as many tokens as possible.
+2. **Protect the Resident Core:** Ensure that streaming operations never infringe upon the memory reserved for the core weights and KV cache.
+3. **Validate against Hardware Baselines:** Always test against the 8 GB "floor" to ensure changes do not break the primary use case.

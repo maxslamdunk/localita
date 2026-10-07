@@ -1,0 +1,3 @@
+
+[stop=endOfTurn prefill=3015tok new=597tok decode=169.97s tok/s=3.512]
+[early-read guess=router needed/tok=92.08 loaded-early/tok=20.96 reads/tok=29.00 precision=0.723]
