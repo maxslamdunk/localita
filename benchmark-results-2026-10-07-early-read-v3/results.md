@@ -8,7 +8,8 @@ they arrive.
 macOS 26.6.1, Swift 6.3.3, on AC power, thermal nominal and 69–75% memory free
 at every run. `43da4c2` (runtime `1a4c9ab`), 2026-10-07 01:37–06:26. All 48
 runs finished, none failed. The script's last steps (opening the issue form and
-copying Results) were stubbed out; nothing was posted. Logs in
+copying Results) were stubbed out, and the report was then posted by hand as
+fork issue #5. Logs in
 [`runs/`](runs/), the report in [`runs/results.md`](runs/results.md), rows in
 `MEASUREMENTS.md`.
 
@@ -49,3 +50,32 @@ guess.
 every case), rule 2 (fitted's median over router above 0) and rule 3 (fitted
 ×2 beats fitted in ≥ 3 of 4 pairs every case) all pass. The rules apply across
 every Mac, so the decisions wait for the friends' reports.
+
+## The M1 Pro, 16 GB (fork issue #4)
+
+macOS 27.0.1, Swift 6.4, `43da4c2`, posted 2026-10-07 09:04. All 48 runs
+finished; one run flagged (short run 1, off, +3.6%).
+
+| | short | medium | long |
+| --- | ---: | ---: | ---: |
+| router vs off | **+30.8%** (+20 to +35) | **+30.2%** (+20 to +35) | **+26.6%** (+18 to +32) |
+| fitted vs router | **+0.9%** (+0.5 to +4) | **+1.6%** (+0.5 to +4) | **+1.9%** (+0.5 to +4) |
+| fitted ×2 vs fitted | **+4.9%** (−1.5 to +3) ✗ | **+2.4%** (−1.5 to +3) | **+3.6%** (−1.5 to +3) ✗ |
+
+Every step won all 12 of its pairs. **Noise: median 0.3%** (largest 0.9%),
+inside the predicted 1.5%. Counters and the three output SHAs exactly as on
+our M1.
+
+**Missed: fitted ×2 vs fitted, short and long.** The prediction netted the
+second read's hits against its wasted reads at the rate router ×2 implied
+(about +1%), and so expected rule 3 to fail on 16 GB Macs. It gained +2.4 to
++4.9% instead, every pair positive. The wasted-read cost inferred from router
+×2 on this Mac overstates what fitted ×2's wasted reads cost.
+
+**Decision rules on this Mac:** all three pass.
+
+## Decisions so far
+
+With our M1 and the M1 Pro, every rule passes on every Mac: router beats off,
+fitted beats router, and fitted ×2 beats fitted in every pair of every case.
+The decisions are final once the remaining friends' reports are in.
