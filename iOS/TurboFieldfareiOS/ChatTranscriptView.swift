@@ -48,7 +48,9 @@ struct ChatTranscriptView: View {
                         turn(prompt: pair.user.text,
                              images: pair.user.images,
                              response: pair.assistant.text,
-                             responseSplit: nil)
+                             responseSplit: nil,
+                             modelName: pair.assistant.modelID.map(
+                                AppModelInstallDescriptor.shortName(forModelID:)))
                     }
 
                     if model.showsLiveTurn, model.hasOutputTranscript {
@@ -120,6 +122,10 @@ struct ChatTranscriptView: View {
              thinking: model.thinkingText,
              thinkingSplit: thinkingBlocks.split,
              thinkingStreaming: thinkingBlocks,
+             // The live turn is always the bound model's: switching models
+             // ends the live conversation and reopens it as a stored copy.
+             modelName: AppModelInstallDescriptor.shortName(
+                forModelID: model.answeringModelID),
              // The finalize the Mac does in `closeTail`, which this port was
              // missing entirely. Once nothing more is arriving the trailing
              // block stops being an open block: its math is typeset and its
@@ -138,6 +144,7 @@ struct ChatTranscriptView: View {
                       thinking: String = "",
                       thinkingSplit: ResponseBlockSplitter.Split? = nil,
                       thinkingStreaming: StreamingBlocks? = nil,
+                      modelName: String? = nil,
                       isTerminal: Bool = true) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             // Above the prompt, on the user's side, in the order attached.
@@ -190,8 +197,20 @@ struct ChatTranscriptView: View {
 
             // Once the answer is complete: a half-streamed answer copied now
             // would be missing its end without saying so.
+            // Beside it, the model that wrote this answer. A chat can move
+            // between models, so each answer names its own.
             if isTerminal, !response.isEmpty {
-                CopyResponseButton(markdown: response)
+                HStack(spacing: 2) {
+                    CopyResponseButton(markdown: response)
+                    if let modelName {
+                        Text(modelName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .accessibilityLabel("Written by \(modelName)")
+                            .accessibilityIdentifier(.transcriptAnswerModel)
+                    }
+                }
             }
 
             if model.isTranscriptTurnInFlight, response.isEmpty {

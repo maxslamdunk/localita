@@ -113,16 +113,20 @@ enum ChatSession {
         }
     }
 
-    /// The installed model a stored chat was recorded with, when that is not
-    /// the one running: tapping the chat switches to it rather than opening
-    /// it read-only.
-    static func modelToSwitch(for entry: ConversationMeta,
-                              in model: AppModel) -> AppModelInstallDescriptor? {
-        guard case .cannotReplay(.differentModel) = model.continuability(of: entry),
-              let recorded = model.textModel(for: entry),
-              recorded != model.installDescriptor,
-              isInstalled(recorded, current: model) else { return nil }
-        return recorded
+    /// The composer's Load or Download for a model picked in its menu.
+    ///
+    /// Switches to it with the chat on screen kept on screen: the chat is
+    /// reopened from its stored copy, and its next send replays it into the
+    /// new model. An installed model is then loaded; one that is not opens
+    /// its download in place of the chat, which comes back once it is done.
+    static func switchModel(to descriptor: AppModelInstallDescriptor,
+                            in model: AppModel) {
+        guard model.canSelectModel, descriptor != model.installDescriptor else { return }
+        selectModel(descriptor, in: model,
+                    openingConversation: model.history.selection)
+        if model.canLoadModel {
+            model.loadModel()
+        }
     }
 
     /// Whether a text model is installed on the phone, judged the same way the
