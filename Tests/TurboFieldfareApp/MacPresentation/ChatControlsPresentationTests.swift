@@ -63,10 +63,38 @@ import Testing
             canRun: true)) == .busy)
     }
 
-    /// The download screen is on show, and it has its own button.
-    @Test func aModelNotInstalledLeavesSendGreyed() {
+    /// Downloads live in Settings, so with nothing to load the button says
+    /// where to get a model rather than sitting greyed out.
+    @Test func aModelNotInstalledPointsToSettings() {
         #expect(Controls.composerAction(.init(requiresInstallation: true))
-            == .send(enabled: false))
+            == .noModel)
+        // A reply still running stops first, whatever is on disk.
+        #expect(Controls.composerAction(.init(
+            isRunning: true, canCancel: true, requiresInstallation: true))
+            == .stop(enabled: true))
+    }
+
+    @Test func withoutTheModelTheTopSaysWhatIsMissing() {
+        func label(_ presentation: AppPresentationState, anyInstalled: Bool = false,
+                   started: Bool = false, fraction: Double? = nil) -> String {
+            Controls.notInstalledLabel(presentation, modelName: "Gemma 4",
+                                       isAnyModelInstalled: anyInstalled,
+                                       isDownloadStarted: started,
+                                       downloadFraction: fraction)
+        }
+        let required = AppPresentationState(label: "Model required",
+                                            primaryAction: .install)
+        #expect(label(required) == "No model installed")
+        #expect(label(required, anyInstalled: true) == "Gemma 4 not downloaded")
+        // A storage shortfall matters to a download, which nobody has asked for.
+        #expect(label(AppPresentationState(label: "Not enough storage",
+                                           severity: .warning)) == "No model installed")
+        #expect(label(AppPresentationState(label: "Downloading model",
+                                           severity: .active, showsActivity: true),
+                      started: true, fraction: 0.426) == "Downloading Gemma 4 \u{00B7} 42%")
+        #expect(label(AppPresentationState(label: "Download paused",
+                                           severity: .warning, primaryAction: .install),
+                      started: true) == "Gemma 4 \u{00B7} Download paused")
     }
 
     // MARK: - The top of the chat

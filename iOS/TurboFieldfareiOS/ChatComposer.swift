@@ -5,7 +5,7 @@ import TurboFieldfareAppPresentation
 
 /// The message box: the text, and under it a row with photos, the model, the
 /// reasoning toggle, and the one control that moves forward: Send or Stop,
-/// or Load or Download when there is no model to send to yet.
+/// or Load when there is no model in memory yet.
 ///
 /// This is the surface Liquid Glass belongs on: a floating card over the
 /// scrolling conversation, which shows through it, as against decorating the
@@ -15,14 +15,17 @@ import TurboFieldfareAppPresentation
 /// the primary colour, white on dark and black on light, and nothing is tinted.
 struct ChatComposer: View {
     @Bindable var model: AppModel
+    /// Opens Settings on its Models tab, where models are downloaded and
+    /// deleted.
+    let openModels: () -> Void
 
     @FocusState private var isFocused: Bool
     @State private var pickedPhotos: [PhotosPickerItem] = []
     /// The model picked in the menu, by key. Picking only chooses: nothing
-    /// loads or unloads until the button that then reads Load or Download is
-    /// pressed, so the top of the chat keeps naming what is in memory.
+    /// loads or unloads until the button that then reads Load is pressed, so
+    /// the top of the chat keeps naming what is in memory.
     @State private var pickedKey: String?
-    @State private var isAddingModel = false
+    @State private var isExplainingNoModel = false
 
     /// The size of every round control in the bottom row.
     private static let control: CGFloat = 38
@@ -67,12 +70,11 @@ struct ChatComposer: View {
         .onChange(of: model.installDescriptor.key) { _, _ in
             pickedKey = nil
         }
-        // An added model is picked as if chosen in the menu: the button then
-        // reads Download.
-        .sheet(isPresented: $isAddingModel) {
-            AddModelView(model: model) { descriptor in
-                pickedKey = descriptor == model.installDescriptor ? nil : descriptor.key
-            }
+        .alert(noModelTitle, isPresented: $isExplainingNoModel) {
+            Button("Open Settings", action: openModels)
+            Button("Dismiss", role: .cancel) {}
+        } message: {
+            Text(noModelMessage)
         }
     }
 
@@ -81,7 +83,11 @@ struct ChatComposer: View {
             if model.isImageInputAvailable {
                 photoButton
             }
-            modelMenu
+            // Nothing to pick with no model on the phone. The top of the chat
+            // says so, and the button says where to get one.
+            if !downloadedModels.isEmpty {
+                modelMenu
+            }
             thinkingButton
             Spacer(minLength: 0)
             actionButton
@@ -90,10 +96,16 @@ struct ChatComposer: View {
 
     // MARK: - Model and reasoning
 
+    /// The models on the phone, in the order Settings lists them. Only these
+    /// are offered: downloading and deleting are Settings' business.
+    private var downloadedModels: [AppModelInstallDescriptor] {
+        model.availableModels.filter { ChatSession.isInstalled($0, current: model) }
+    }
+
     /// The picked model, when it is not the one the app is on.
     private var pickedModel: AppModelInstallDescriptor? {
         guard let pickedKey,
-              let descriptor = model.availableModels.first(where: { $0.key == pickedKey }),
+              let descriptor = downloadedModels.first(where: { $0.key == pickedKey }),
               descriptor != model.installDescriptor else { return nil }
         return descriptor
     }
@@ -105,15 +117,14 @@ struct ChatComposer: View {
 
     /// The model the next message goes to, and the others it could.
     ///
-    /// Picking one only chooses it. The button beside the box then reads Load
-    /// (or Download, for one not on the phone), and pressing that releases
-    /// the model in memory before loading the new one, so two are never in
-    /// memory together. The chat on screen stays: any chat continues with any
+    /// Picking one only chooses it. The button beside the box then reads
+    /// Load, and pressing that releases the model in memory before loading
+    /// the new one, so two are never in memory together. The chat on screen stays: any chat continues with any
     /// model that shares its tokenizer, and each answer names its model.
     private var modelMenu: some View {
         Menu {
             Section("Model") {
-                ForEach(model.availableModels, id: \.key) { descriptor in
+                ForEach(downloadedModels, id: \.key) { descriptor in
                     Button {
                         pickedKey = descriptor == model.installDescriptor
                             ? nil : descriptor.key
@@ -130,8 +141,8 @@ struct ChatComposer: View {
                 }
             }
             Section {
-                Button("Add Model…", systemImage: "plus") {
-                    isAddingModel = true
+                Button("Manage Models…", systemImage: "square.stack.3d.up") {
+                    openModels()
                 }
             }
         } label: {
@@ -141,7 +152,7 @@ struct ChatComposer: View {
                 // at the pill's old size, so a wider name spilled past its
                 // edges and was cut until the animation ended.
                 ZStack {
-                    ForEach(model.availableModels, id: \.key) { descriptor in
+                    ForEach(downloadedModels, id: \.key) { descriptor in
                         Text(descriptor.shortName).hidden()
                     }
                     Text(shortModelName)
@@ -176,9 +187,6 @@ struct ChatComposer: View {
         var parts: [String] = []
         if descriptor.isCommunity {
             parts.append("Community")
-        }
-        if !ChatSession.isInstalled(descriptor, current: model) {
-            parts.append("Download " + MetricFormat.storage(descriptor.approximateDownloadBytes))
         }
         if !descriptor.supportsImages {
             parts.append("Text only")
@@ -347,7 +355,27 @@ struct ChatComposer: View {
                 .frame(width: Self.control, height: Self.control)
                 .background(Self.controlFill, in: .circle)
                 .accessibilityLabel("Working")
+        case .noModel:
+            // Enabled on purpose: a greyed Load would not say why.
+            labelButton("Load", enabled: true) { isExplainingNoModel = true }
         }
+    }
+
+    private var noModelTitle: String {
+        model.isInstallingModel
+            ? "\(model.installDescriptor.shortName) is downloading" : "No model to load"
+    }
+
+    private var noModelMessage: String {
+        if model.isInstallingModel {
+            return "You can chat once it finishes. Its progress is in Settings, "
+                + "under Models."
+        }
+        return downloadedModels.isEmpty
+            ? "Download a model in Settings, under Models. Your chats stay "
+                + "readable without one."
+            : "Pick a model in the menu below the message box, or download "
+                + "\(model.installDescriptor.shortName) in Settings, under Models."
     }
 
     /// A word in the send button's place: the same height and the same solid

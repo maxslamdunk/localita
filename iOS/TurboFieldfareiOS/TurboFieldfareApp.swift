@@ -60,6 +60,11 @@ struct TurboFieldfareiOSApp: App {
                     TurnMemoryLog.shared.end(images: model.outputImageAttachments.count)
                 }
             }
+            .onChange(of: model.loadState) { _, state in
+                guard !Self.isBenchmarkRun else { return }
+                TurnMemoryLog.shared.modelState(
+                    state, key: model.installDescriptor.key, path: model.modelPathText)
+            }
             .onReceive(NotificationCenter.default.publisher(
                 for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
                 // Logged, not acted on. Stopping the turn frees nothing, since
@@ -247,7 +252,11 @@ struct HarnessView: View {
     }
 }
 
-/// Memory around each chat turn, appended to `Documents/app-memory.log`.
+/// Memory around each chat turn and each model load and unload, appended to
+/// `Documents/app-memory.log`.
+///
+/// It is also where the chat app's diagnostics live: the model's path and the
+/// app's footprint used to be rows in Settings, and are read from here now.
 ///
 /// The harness cannot send an image, so the chat app is the instrument for
 /// what image input costs, and it runs the exact configuration a user gets.
@@ -287,6 +296,21 @@ final class TurnMemoryLog {
         let seconds = started.map { (ContinuousClock.now - $0).components.seconds } ?? 0
         write("turn-end images=\(images) seconds=\(seconds) turn-max=\(turnMax) "
               + Mem.line() + " thermal=\(DeviceState.thermal())")
+    }
+
+    /// One line when a load finishes or an unload completes, so the resting
+    /// footprint of each model sits beside the turns that follow.
+    func modelState(_ state: AppModelLoadState, key: String, path: String) {
+        switch state {
+        case .ready(_, let loadSeconds):
+            write("model-ready model=\(key) load-seconds="
+                  + String(format: "%.1f", loadSeconds) + " path=\(path) "
+                  + Mem.line() + " thermal=\(DeviceState.thermal())")
+        case .notLoaded:
+            write("model-unloaded model=\(key) " + Mem.line())
+        default:
+            return
+        }
     }
 
     private func write(_ line: String) {

@@ -149,8 +149,25 @@ struct CommunityModelsTests {
     }
 
     @MainActor
-    @Test func theCurrentModelAndThePackItBorrowsCannotBeDeleted() throws {
+    @Test func theCurrentModelCannotBeDeleted() throws {
         let parent = try temporaryParent("blocked")
+        defer { try? FileManager.default.removeItem(at: parent) }
+        _ = try install(.default, in: parent)
+        let superGemma = try install(.supergemma4, in: parent)
+        let model = AppModel(modelDirectory: superGemma,
+                             client: MockLifecycleInferenceClient(),
+                             installer: MockModelInstallerClient(descriptor: .supergemma4))
+
+        #expect(model.deletionBlocker(for: .supergemma4) != nil)
+        try model.deleteModel(.supergemma4)
+        #expect(FileManager.default.fileExists(atPath: superGemma.path))
+    }
+
+    /// SuperGemma 4 reads Gemma 4's image pack. With SuperGemma 4 out of
+    /// memory, Gemma 4 can still be deleted, and the pack goes with it.
+    @MainActor
+    @Test func thePackHostCanBeDeletedWhileTheBorrowerIsUnloaded() throws {
+        let parent = try temporaryParent("host")
         defer { try? FileManager.default.removeItem(at: parent) }
         let gemma = try install(.default, in: parent)
         let superGemma = try install(.supergemma4, in: parent)
@@ -158,9 +175,17 @@ struct CommunityModelsTests {
                              client: MockLifecycleInferenceClient(),
                              installer: MockModelInstallerClient(descriptor: .supergemma4))
 
-        #expect(model.deletionBlocker(for: .supergemma4) != nil)
-        #expect(model.deletionBlocker(for: .default)?.contains("image support") == true)
+        #expect(model.hostsCurrentImagePack(.default))
+        // In memory, SuperGemma 4 may be reading the pack.
+        model.loadState = .ready(modelDirectory: superGemma, loadSeconds: 1)
+        #expect(model.deletionBlocker(for: .default) != nil)
         try model.deleteModel(.default)
         #expect(FileManager.default.fileExists(atPath: gemma.path))
+
+        model.loadState = .notLoaded
+        #expect(model.deletionBlocker(for: .default) == nil)
+        try model.deleteModel(.default)
+        #expect(!FileManager.default.fileExists(atPath: gemma.path))
+        #expect(FileManager.default.fileExists(atPath: superGemma.path))
     }
 }

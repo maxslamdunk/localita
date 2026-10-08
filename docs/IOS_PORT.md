@@ -302,8 +302,9 @@ Steps:
    - borrows Gemma 4's image pack;
    - is listed in `community-models.json` beside the model folders.
 
-   Settings lists every model on the phone with Delete. The model in use
-   cannot be deleted, and neither can the model whose image pack it borrows.
+   Settings lists every model on the phone with Delete. (Superseded below:
+   since 2026-10-08 any model can be deleted, and Add Model lives in
+   Settings.)
 
    - **The check, on real repositories (Mac CLI `--check-source`):**
      - Passed: an abliterated Gemma 4, an uncensored re-tune, Orion,
@@ -321,6 +322,30 @@ Steps:
      It pins a layout; the revision pins the weights. The installer used to
      record the matched pinned model as the manifest's `modelID`. It now
      records the repository actually downloaded.
+   ✅ **Models are managed in Settings since 2026-10-08, and the chat stays
+   a chat without one.** The full-screen download page is gone. Decided with
+   the user:
+   - **Settings → Models** lists every model the app knows, with Download,
+     its progress and Cancel, or Delete, plus Add Model. It asks about mobile
+     data before a download, as the page did.
+   - **The chat's model menu lists only downloaded models**, with Manage
+     Models… opening that tab. With none downloaded, the menu pill is hidden.
+   - **With no model, stored chats still read.** The top of the chat says "No
+     model installed", an empty chat shows a short page with Open Settings,
+     and Load explains where to get a model instead of sitting greyed out.
+   - **Any model can be deleted.** If it is in memory, it unloads first. If
+     it is the model the app is on, the app first moves to the next
+     downloaded model in the menu, or, with none left, to the no-model state.
+     Deleting Gemma 4 takes SuperGemma 4's image support with it, and the
+     confirmation says so; `AppModel` only refuses it while SuperGemma 4 is
+     in memory.
+   - **A download switches the app to that model.** `AppModel` has one
+     installer, bound to the selected model, so Download on another model
+     selects it (unloading the one in memory) and downloads it. One download
+     runs at a time. A separate installer, so that chatting could continue
+     during a download, was weighed and not built: it is a larger change to
+     shared code, and a 14.6 GB write would compete with expert reads.
+
 3. **Port the runtime — started 2026-09-16, app target building and running on
    the device.** 16-slot expert cache untouched, no optimization.
    - **The runtime needed no porting to compile.** `TurboFieldfare` (85 files,
