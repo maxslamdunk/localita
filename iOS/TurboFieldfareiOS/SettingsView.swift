@@ -37,6 +37,8 @@ struct SettingsView: View {
     /// Models when the way here was about getting a model.
     @Binding var page: Page
     @State private var isAddingModel = false
+    /// The model whose info sheet is open.
+    @State private var infoModel: AppModelInstallDescriptor?
     /// A download waiting on the answer to "use mobile data?".
     @State private var pendingDownload: AppModelInstallDescriptor?
     @State private var isConfirmingVisionRemoval = false
@@ -98,6 +100,10 @@ struct SettingsView: View {
             // An added model joins the list below on its own; there is
             // nothing to pick here.
             AddModelView(model: model) { _ in }
+        }
+        .sheet(isPresented: Binding(get: { infoModel != nil },
+                                    set: { if !$0 { infoModel = nil } })) {
+            if let infoModel { info(infoModel) }
         }
         .onChange(of: model.loadState) { _, state in
             guard state == .notLoaded, let step = afterUnload else { return }
@@ -458,7 +464,8 @@ struct SettingsView: View {
     // MARK: - Models
 
     /// Every model the app knows, downloaded or not, with what can be done to
-    /// it: Download, its progress and Cancel, or Delete. This is the one place
+    /// it: download, its progress and cancel, delete, and an info sheet
+    /// (`ModelInfoView`). This is the one place
     /// models are downloaded and deleted; the chat's menu only picks among the
     /// downloaded ones.
     ///
@@ -505,40 +512,74 @@ struct SettingsView: View {
         descriptor == model.installDescriptor && model.isInstallingModel
     }
 
+    /// Icons rather than words on the right, as the App Store does it: the
+    /// info button, then download, or the progress ring that cancels it.
+    /// Delete is a swipe here and a button in the info sheet.
     private func modelRow(_ descriptor: AppModelInstallDescriptor) -> some View {
         let state = stored(descriptor)
         return VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .center, spacing: 16) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(descriptor.displayName)
                     Text(detail(descriptor, state))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-                Spacer(minLength: 8)
+                Spacer(minLength: 0)
+                Button {
+                    infoModel = descriptor
+                } label: {
+                    Image(systemName: "info.circle")
+                }
+                .accessibilityLabel("About \(descriptor.shortName)")
                 if isDownloading(descriptor) {
-                    Button("Cancel") { BackgroundDownload.cancel(model) }
-                        .disabled(!model.canCancelInstall)
-                } else {
-                    if state != .installed {
-                        Button(state == .partial ? "Resume" : "Download") {
-                            requestDownload(descriptor)
-                        }
-                        .disabled(!canDownload(descriptor))
+                    Button { BackgroundDownload.cancel(model) } label: {
+                        DownloadRing(fraction: model.installProgressFraction)
                     }
-                    if state != .none {
-                        Button("Delete", role: .destructive) {
-                            pendingDeletion = descriptor
-                        }
-                        .disabled(!canDelete(descriptor))
+                    .disabled(!model.canCancelInstall)
+                    .accessibilityLabel("Stop download")
+                } else if state != .installed {
+                    Button { requestDownload(descriptor) } label: {
+                        Image(systemName: "arrow.down.circle")
                     }
+                    .disabled(!canDownload(descriptor))
+                    .accessibilityLabel(state == .partial ? "Resume download" : "Download")
                 }
             }
+            .font(.title2)
             .buttonStyle(.borderless)
             if descriptor == model.installDescriptor, state != .installed {
                 downloadStatus
             }
         }
+        .swipeActions(edge: .trailing) {
+            if state != .none {
+                // Tinted rather than `.destructive`, which would animate the
+                // row away before the confirmation is answered.
+                Button("Delete") { pendingDeletion = descriptor }
+                    .tint(.red)
+                    .disabled(!canDelete(descriptor))
+            }
+        }
+    }
+
+    private func info(_ descriptor: AppModelInstallDescriptor) -> some View {
+        let state = stored(descriptor)
+        let storedLabel = switch state {
+        case .installed: "Downloaded"
+        case .partial: "Part-downloaded"
+        case .none: "Not downloaded"
+        }
+        return ModelInfoView(
+            descriptor: descriptor,
+            storedLabel: storedLabel,
+            deletion: state == .none ? nil : .init(
+                isEnabled: canDelete(descriptor),
+                message: deletionMessage(descriptor),
+                perform: {
+                    infoModel = nil
+                    start(.deleteModel(descriptor))
+                }))
     }
 
     private func detail(_ descriptor: AppModelInstallDescriptor, _ state: Stored) -> String {
@@ -559,11 +600,10 @@ struct SettingsView: View {
     @ViewBuilder
     private var downloadStatus: some View {
         if model.isInstallingModel {
+            // The row's ring shows the fraction; this is the words for it.
             if let fraction = model.installProgressFraction,
                let downloaded = model.installDownloadedBytes,
                let total = model.installTotalBytes {
-                ProgressView(value: fraction)
-                    .accessibilityLabel("Model download")
                 HStack {
                     Text("\(MetricFormat.storage(downloaded)) of "
                          + MetricFormat.storage(total))
@@ -799,5 +839,31 @@ struct SettingsView: View {
         }
         .navigationTitle("Benchmark harness")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// A download's progress as a ring around a stop square, the App Store's
+/// sign for "downloading, tap to stop". A spinner until the size is known.
+private struct DownloadRing: View {
+    let fraction: Double?
+
+    var body: some View {
+        ZStack {
+            if let fraction {
+                Circle()
+                    .stroke(.tint.opacity(0.25), lineWidth: 2.5)
+                Circle()
+                    .trim(from: 0, to: fraction)
+                    .stroke(.tint, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.default, value: fraction)
+            } else {
+                ProgressView()
+            }
+            Image(systemName: "stop.fill")
+                .font(.system(size: 8))
+                .foregroundStyle(.tint)
+        }
+        .frame(width: 24, height: 24)
     }
 }
