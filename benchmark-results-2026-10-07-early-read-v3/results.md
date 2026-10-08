@@ -74,8 +74,60 @@ second read's hits against its wasted reads at the rate router ×2 implied
 
 **Decision rules on this Mac:** all three pass.
 
+## An M1 MacBook Pro, 8 GB (fork issue #7)
+
+macOS 27.0.1, Swift 6.4, `43da4c2`, posted 2026-10-08 12:10. All 48 runs
+finished, none flagged. **Noise: median 0.9%** (largest 3.0%). No ranges were
+predicted for this Mac, only that router beats off and fitted's median over
+router is above 0; both hold.
+
+| | short | medium | long |
+| --- | ---: | ---: | ---: |
+| router vs off | **+14.1%** | **+12.9%** | **+11.4%** |
+| fitted vs router | **+3.8%** | **+2.3%** | **+2.4%** |
+| fitted ×2 vs fitted | **+9.8%** | **+12.6%** | **+12.6%** |
+
+Every step won all 12 of its pairs. Counters and the three output SHAs exactly
+as on our M1. It is much faster than our M1 Air at the same counters (off
+6.112 / 5.611 / 5.193 tok/s against 3.652 / 3.302 / 3.036), so its time per
+read or GPU time is lower, not its bytes; the cause was not measured.
+
+**Decision rules on this Mac:** all three pass.
+
+## The M3 MacBook Air, 16 GB (fork issues #6 and #8)
+
+macOS 26.7.1, Swift 6.4, `43da4c2`. Issue #6 (07:13) was posted with Results
+empty; #8 (17:06) is the same run with Results pasted (same token counts and
+SHAs). All 48 runs finished. **Noise: median 0.8%**, largest 7.2%. Seven runs
+are flagged, all in the long case.
+
+| | short | medium | long |
+| --- | ---: | ---: | ---: |
+| router vs off | **+29.1%** (4 of 4) | **+16.2%** (4 of 4) | **+1.0%** (3 of 4) |
+| fitted vs router | **+1.3%** (3 of 4) | **+1.7%** (4 of 4) | **−3.3%** (1 of 4) |
+| fitted ×2 vs fitted | **+12.3%** (4 of 4) | **+23.8%** (4 of 4) | **+65.8%** (4 of 4) |
+
+Mean tok/s, long case: off 6.262, router 6.430, fitted 6.505, fitted ×2
+10.445, which is faster than its medium case (10.134).
+
+**Controls:** one output per case across 16 runs, different text from the M1
+family (another GPU family, as the predictions allowed). `needed/tok` 78.23 /
+84.30 / 91.28 follow from that text. Fitted precision 0.833–0.864, so the
+fitted guess loaded.
+
+**Decision rules on this Mac:** the report is usable (noise median 0.8%, no
+warning). Rule 1 passes, narrowly in the long case. Rule 2 passes as written:
+the median of all 12 pairs is +1.3%. Per case, though, fitted lost 3 of 4
+long pairs to router. Rule 3 passes.
+
+**Not explained:** in the long case one early read gains little over off
+(+1.0%), while two gain +66% over one. The flagged long runs at one read
+split into a slow group (6.05–6.13 tok/s) and a fast one (6.71–7.08). The
+per-run footers in the friend's `benchmark-results.zip`, not posted, would
+show which phase moves.
+
 ## Decisions so far
 
-With our M1 and the M1 Pro, every rule passes on every Mac: router beats off,
-fitted beats router, and fitted ×2 beats fitted in every pair of every case.
-The decisions are final once the remaining friends' reports are in.
+On all four Macs (our M1, the M1 Pro, the M1 MacBook Pro and the M3), every
+rule passes: router beats off, fitted's median beats router, and fitted ×2
+beats fitted in every pair of every case. One more friend's run is pending.
