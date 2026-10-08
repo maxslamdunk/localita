@@ -120,11 +120,32 @@ warning). Rule 1 passes, narrowly in the long case. Rule 2 passes as written:
 the median of all 12 pairs is +1.3%. Per case, though, fitted lost 3 of 4
 long pairs to router. Rule 3 passes.
 
-**Not explained:** in the long case one early read gains little over off
-(+1.0%), while two gain +66% over one. The flagged long runs at one read
-split into a slow group (6.05–6.13 tok/s) and a fast one (6.71–7.08). The
-per-run footers in the friend's `benchmark-results.zip`, not posted, would
-show which phase moves.
+**The long case, from the friend's `benchmark-results.zip`** (attached to #8
+later; read, then deleted here). In the long case one early read gains little
+over off, while two gain +66% over one:
+
+| long, per run | off | router | fitted | fitted ×2 |
+| --- | --- | --- | --- | --- |
+| tok/s | 6.249, 6.223, 6.275, 6.300 | 6.335, 6.047, 6.317, **7.022** | 6.128, **7.075**, 6.103, **6.713** | 10.171, 10.130, 10.364, 11.113 |
+| ms per token, the steady runs | 159–161 | 158–165 | 163–164 | 90–99 |
+
+- Off is steady, fitted ×2 nearly so. The irregular runs are the three bold ones,
+  all at one read. Both fitted runs that directly follow a fitted ×2 run (6
+  and 14) are fast; the two that follow a router run are not. Router run 15
+  is fast and router run 7 is not, so no simple rule covers all three.
+- The two fitted-vs-router pairs without a fast run give −3.3% and −3.4%. So
+  on this Mac, in the long case, one read gains about nothing and the fitted
+  guess does not beat the router.
+- Ruled out at every run's start: power (AC throughout), thermal (no warning
+  in any of the 48 runs), memory (83–84% free) and other processes (none
+  above 8.4% CPU, the same few in fast and slow runs). The friend's Mac is a
+  fanless MacBook Air, and conditions are recorded only at each run's start.
+- Medium, by contrast: off 145 ms per token, fitted 122, fitted ×2 99. There
+  each read saves about 23 ms. In the long case one read saves nothing and
+  two save about 62 together.
+- **Not explained.** The upstream CLI prints no phase timings, so these
+  files hold only tok/s and the early-read counters. Explaining it needs a
+  phase-timed run on this Mac.
 
 ## Decisions so far
 
