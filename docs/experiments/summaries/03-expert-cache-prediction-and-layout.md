@@ -205,8 +205,15 @@ capacity and memory cost.
   - Two reads per layer beat one on the M1 by +7.7 / +13.4 / +14.9%
     (`benchmark-results-2026-10-05-mac-upstream-early-read/results-two-reads.md`).
     The cause is unseparated: a longer idle window per layer (the M1's GPU is
-    slower), or the drive's gain from a second request in flight. The iPhone
-    has never run two.
+    slower), or the drive's gain from a second request in flight.
+  - **On the iPhone two reads are slower than one: −25.9 / −14.6 / −20.7%
+    tok/s**, with identical output, second-read precision 0.39 / 0.45 /
+    0.49 and bytes/token +57 / +51 / +47 MB. Each wrong second guess cost one
+    serial read (1.7–2.0 ms of `io`), and right ones saved almost nothing:
+    the first read already fills the phone's idle window. Short and long also
+    had a slower GPU in both ×2 runs (head +23 / +30%), unattributed
+    (`benchmark-results-2026-10-08-ios-early-read-x2/results.md`). One read
+    stays the default.
   - Three and four were slower than two on the M1: −5.0 / −4.2 / −2.6% and
     −21.7 / −17.6 / −11.9%, with identical output. Storage then ran at
     1.68–1.78 GB/s, this Mac's random-read ceiling, so each extra wasted read

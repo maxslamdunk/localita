@@ -24,9 +24,16 @@ run() {  # case label [extra launch args]
     local case=$1 label=$2; shift 2
     case " ${SKIP:-} " in *" $label "*) say "skip $label"; return 0;; esac
     say "launch $label ($case)"
-    xcrun devicectl device process launch --device $D --terminate-existing $BID \
-        --autorun --case $case --label $label --slots 24 --max-new 1024 --max-context 4096 "$@" \
-        >/dev/null 2>"$S/launch.err" || { say "FAIL launch $label: $(tail -2 $S/launch.err)"; exit 1; }
+    # A launch can fail on a dropped devicectl connection (NWError 54,
+    # 2026-10-08); retry before giving up.
+    local attempt
+    for attempt in 1 2 3; do
+        xcrun devicectl device process launch --device $D --terminate-existing $BID \
+            --autorun --case $case --label $label --slots 24 --max-new 1024 --max-context 4096 "$@" \
+            >/dev/null 2>"$S/launch.err" && break
+        [ $attempt -lt 3 ] || { say "FAIL launch $label: $(tail -2 $S/launch.err)"; exit 1; }
+        say "launch $label failed (attempt $attempt): $(grep -m1 -o 'NWError[^)]*)\|error[^.]*' $S/launch.err)"; sleep 20
+    done
     local t0=$(date +%s) file="" misses=0
     while true; do
         sleep 20

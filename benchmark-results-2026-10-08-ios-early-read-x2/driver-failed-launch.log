@@ -1,0 +1,5 @@
+22:35:22 cooldown 60s
+22:36:22 launch short-A1 (short-explanation)
+22:36:23 FAIL launch short-A1:                    The operation couldn’t be completed. (Network.NWError error 54 - Connection reset by peer)
+                   NSDescription = Connection reset by peer
+exit=1
