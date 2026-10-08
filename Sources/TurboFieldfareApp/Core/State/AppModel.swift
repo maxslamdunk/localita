@@ -498,16 +498,29 @@ public final class AppModel {
     }
 
     /// Why a model's files can't be deleted now, or nil when they can.
+    ///
+    /// The model the app is on is never deleted from under it: the phone
+    /// switches to another model first. A model whose folder holds the image
+    /// pack the current one borrows can go, which takes that model's image
+    /// support with it, but not while the current model is in memory and may
+    /// be reading the pack.
     public func deletionBlocker(for descriptor: AppModelInstallDescriptor) -> String? {
         if descriptor == installDescriptor {
             return "In use. Switch to another model first."
         }
-        // A model using Gemma 4's image pack reads it from Gemma 4's folder.
-        if AppVisionPackHost.textModelDirectory(for: modelDirectoryURL).lastPathComponent
-            == descriptor.directoryName {
-            return "\(installDescriptor.shortName) uses its image support."
+        if hostsCurrentImagePack(descriptor),
+           loadState.isReady || loadState.isLoading {
+            return "\(installDescriptor.shortName) reads its image support. Unload it first."
         }
         return nil
+    }
+
+    /// Whether the current model reads its image pack from this model's
+    /// folder, as SuperGemma 4 reads Gemma 4's.
+    public func hostsCurrentImagePack(_ descriptor: AppModelInstallDescriptor) -> Bool {
+        descriptor != installDescriptor
+            && AppVisionPackHost.textModelDirectory(for: modelDirectoryURL).lastPathComponent
+                == descriptor.directoryName
     }
 
     /// Deletes a model other than the current one: its folder, any download
@@ -515,9 +528,11 @@ public final class AppModel {
     /// list; a pinned one stays in it, to be downloaded again.
     public func deleteModel(_ descriptor: AppModelInstallDescriptor) throws {
         guard deletionBlocker(for: descriptor) == nil else { return }
+        let hostedImagePack = hostsCurrentImagePack(descriptor)
         try AppModelRemoval.removeTextModel(
             at: modelDirectoryURL.deletingLastPathComponent()
                 .appendingPathComponent(descriptor.directoryName, isDirectory: true))
+        if hostedImagePack { refreshVisionInstallReadiness() }
         guard descriptor.isCommunity else { return }
         let records = communityRecords.filter { $0.repoID != descriptor.repoID }
         if settingsPersistenceEnabled {

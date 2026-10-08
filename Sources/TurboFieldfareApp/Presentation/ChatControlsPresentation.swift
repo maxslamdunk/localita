@@ -3,7 +3,11 @@ import TurboFieldfareAppCore
 
 /// The phone's chat controls, split by one rule: the top of the chat says what
 /// is in memory and offers only what frees it (Unload, or Cancel during a
-/// load), and the composer's button moves forward (Download, Load, Send, Stop).
+/// load), and the composer's button moves forward (Load, Send, Stop).
+///
+/// Downloading and deleting models happen in Settings. With no model on the
+/// phone, the chat stays a chat: stored conversations still read, the top says
+/// there is no model, and the composer's button says where to get one.
 ///
 /// Picking a model in the composer only chooses it. Nothing loads, unloads or
 /// downloads until the composer's button is pressed, so the top of the chat
@@ -30,6 +34,9 @@ public enum ChatControlsPresentation {
         /// A load, an unload or an image-support change is running. The top
         /// of the chat shows which, and offers Cancel where it can.
         case busy
+        /// The model the app is on is not on the phone, so there is nothing to
+        /// load. Pressing the button says where models are downloaded.
+        case noModel
     }
 
     public struct ComposerInput: Equatable, Sendable {
@@ -79,8 +86,7 @@ public enum ChatControlsPresentation {
         case .notInstalled: return .download(enabled: input.canSelectModel)
         case nil: break
         }
-        // The download screen is on show, with its own button.
-        if input.requiresInstallation { return .send(enabled: false) }
+        if input.requiresInstallation { return .noModel }
         if input.isVisionFilesystemMutationInProgress { return .busy }
         switch input.loadState {
         case .loading, .cancelling, .unloading:
@@ -125,5 +131,30 @@ public enum ChatControlsPresentation {
         case .cancelling, .unloading, .failed:
             return presentation.label
         }
+    }
+
+    /// The top of the chat's text while the model the app is on is not on the
+    /// phone: downloading, paused, waiting, or never asked for.
+    ///
+    /// Until a download has been asked for, the chat says only what is
+    /// missing: "No model installed", or, with other models on the phone,
+    /// which one. The shared labels before that ("Model required", "Not
+    /// enough storage") are about a download nobody started, and Settings
+    /// shows them where Download is. Once one has been started, its state
+    /// ("Download paused", "Installation failed") is kept, with the model's
+    /// name.
+    public static func notInstalledLabel(_ presentation: AppPresentationState,
+                                         modelName: String,
+                                         isAnyModelInstalled: Bool,
+                                         isDownloadStarted: Bool,
+                                         downloadFraction: Double?) -> String {
+        if let downloadFraction {
+            let percent = Int((min(max(downloadFraction, 0), 1) * 100).rounded(.down))
+            return "Downloading \(modelName) \u{00B7} \(percent)%"
+        }
+        guard isDownloadStarted else {
+            return isAnyModelInstalled ? "\(modelName) not downloaded" : "No model installed"
+        }
+        return "\(modelName) \u{00B7} \(presentation.label)"
     }
 }

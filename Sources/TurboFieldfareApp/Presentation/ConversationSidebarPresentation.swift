@@ -114,8 +114,9 @@ public enum ConversationStateNotice {
                                currentContext: Int) -> Content? {
         switch state {
         case .continuable, .cannotReplay(reason: .noModelInstalled):
-            // With no model installed, the download screen says what to do,
-            // and the chat is as continuable as any other once there is one.
+            // With no model installed, the app says what to do elsewhere (the
+            // Mac's install screen, the phone's status and Settings), and the
+            // chat is as continuable as any other once there is one.
             return nil
         case .needsContext(let required):
             let label = ConversationRowPresentation.contextLabel(required)

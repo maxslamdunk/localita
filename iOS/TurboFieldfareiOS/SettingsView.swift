@@ -28,18 +28,24 @@ import TurboFieldfareAppPresentation
 /// killed (2026-09-24). Memory labels are relative to that default.
 struct SettingsView: View {
     @Bindable var model: AppModel
+    let network: DownloadNetwork
     @Environment(\.dismiss) private var dismiss
     @State private var isConfirmingReset = false
     @State private var pendingDeletion: AppModelInstallDescriptor?
     @State private var deletionError: String?
-    @State private var page = Page.generation
+    /// The tab on screen. Owned by the chat screen, which opens Settings on
+    /// Models when the way here was about getting a model.
+    @Binding var page: Page
     @State private var isAddingModel = false
+    /// A download waiting on the answer to "use mobile data?".
+    @State private var pendingDownload: AppModelInstallDescriptor?
     @State private var isConfirmingVisionRemoval = false
     @State private var isShowingHarness = false
     /// The step waiting for the unload `start(_:)` began.
     @State private var afterUnload: UnloadedStep?
 
-    private enum Page: Hashable { case generation, models }
+    enum Page: Hashable { case generation, models }
+
 
     /// Context sizes this phone may offer. See the type comment.
     static let contextOptions: [AppContextLengthOption] = [.fourK, .eightK]
@@ -68,9 +74,10 @@ struct SettingsView: View {
                 }
                 Tab("Models", systemImage: "square.stack.3d.up", value: Page.models) {
                     Form {
-                        storedModelsSection
-                        // A text-only model has no image pack to download.
-                        if model.installDescriptor.supportsImages {
+                        modelsSection
+                        // A text-only model has no image pack to download, and
+                        // a pack is for a model that is on the phone.
+                        if model.installDescriptor.supportsImages, model.isModelInstalled {
                             imageSection
                         }
                         harnessSection
@@ -117,14 +124,25 @@ struct SettingsView: View {
             titleVisibility: .visible,
             presenting: pendingDeletion
         ) { descriptor in
-            Button("Delete", role: .destructive) { delete(descriptor) }
+            Button("Delete", role: .destructive) { start(.deleteModel(descriptor)) }
             Button("Cancel", role: .cancel) {}
         } message: { descriptor in
-            Text(descriptor.isCommunity
-                 ? "Its download is removed and it leaves the model menu. "
-                   + "Chats are kept."
-                 : "Its download is removed. It stays in the model menu, to "
-                   + "download again. Chats are kept.")
+            Text(deletionMessage(descriptor))
+        }
+        .confirmationDialog(
+            "Download \(pendingDownload.map { MetricFormat.storage($0.approximateDownloadBytes) } ?? "the model") over mobile data?",
+            isPresented: Binding(get: { pendingDownload != nil },
+                                 set: { if !$0 { pendingDownload = nil } }),
+            titleVisibility: .visible,
+            presenting: pendingDownload
+        ) { descriptor in
+            Button("Use Mobile Data") { download(descriptor, allowingMobileData: true) }
+            Button("Wait for Wi-Fi") { download(descriptor, allowingMobileData: false) }
+            Button("Not Now", role: .cancel) {}
+        } message: { descriptor in
+            Text("This iPhone is not on Wi-Fi. \(descriptor.shortName) is "
+                 + "\(MetricFormat.storage(descriptor.approximateDownloadBytes)), which "
+                 + "can use up most data plans.")
         }
     }
 
@@ -437,15 +455,20 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Models on this iPhone
+    // MARK: - Models
 
-    /// Every model with files on the phone, and every added one, each with
-    /// Delete. A model is about 14 GB, and this is the only way to get the
-    /// space back short of deleting the app.
-    private var storedModelsSection: some View {
+    /// Every model the app knows, downloaded or not, with what can be done to
+    /// it: Download, its progress and Cancel, or Delete. This is the one place
+    /// models are downloaded and deleted; the chat's menu only picks among the
+    /// downloaded ones.
+    ///
+    /// A download runs for the model the app is on (`AppModel` has one
+    /// installer), so Download on another model switches the app to it first,
+    /// unloading the one in memory. One download runs at a time.
+    private var modelsSection: some View {
         Section {
-            ForEach(storedModels, id: \.key) { descriptor in
-                storedModelRow(descriptor)
+            ForEach(model.availableModels, id: \.key) { descriptor in
+                modelRow(descriptor)
             }
             if let deletionError {
                 Text(deletionError)
@@ -454,11 +477,215 @@ struct SettingsView: View {
             }
             Button("Add Model…", systemImage: "plus") { isAddingModel = true }
         } header: {
-            Text("Models on this iPhone")
+            Text("Models")
         } footer: {
-            Text("Community models are added from a Hugging Face link: they "
-                 + "run like Gemma 4 but are not tested here. Pick one in the "
-                 + "model menu under the message box to download it.")
+            Text("A download keeps going if you leave the app or lock the iPhone, "
+                 + "with its progress on the Lock Screen. If iOS pauses it, opening "
+                 + "the app continues from where it stopped. Community models are "
+                 + "added from a Hugging Face link: they run like Gemma 4 but are "
+                 + "not tested here.")
+        }
+    }
+
+    private enum Stored { case installed, partial, none }
+
+    private func stored(_ descriptor: AppModelInstallDescriptor) -> Stored {
+        if ChatSession.isInstalled(descriptor, current: model) { return .installed }
+        let folder = ModelLocation.directory(named: descriptor.directoryName).path
+        let fm = FileManager.default
+        if fm.fileExists(atPath: folder + ".partial")
+            || fm.fileExists(atPath: folder + ".resume.json")
+            || fm.fileExists(atPath: folder) {
+            return .partial
+        }
+        return .none
+    }
+
+    private func isDownloading(_ descriptor: AppModelInstallDescriptor) -> Bool {
+        descriptor == model.installDescriptor && model.isInstallingModel
+    }
+
+    private func modelRow(_ descriptor: AppModelInstallDescriptor) -> some View {
+        let state = stored(descriptor)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(descriptor.displayName)
+                    Text(detail(descriptor, state))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 8)
+                if isDownloading(descriptor) {
+                    Button("Cancel") { BackgroundDownload.cancel(model) }
+                        .disabled(!model.canCancelInstall)
+                } else {
+                    if state != .installed {
+                        Button(state == .partial ? "Resume" : "Download") {
+                            requestDownload(descriptor)
+                        }
+                        .disabled(!canDownload(descriptor))
+                    }
+                    if state != .none {
+                        Button("Delete", role: .destructive) {
+                            pendingDeletion = descriptor
+                        }
+                        .disabled(!canDelete(descriptor))
+                    }
+                }
+            }
+            .buttonStyle(.borderless)
+            if descriptor == model.installDescriptor, state != .installed {
+                downloadStatus
+            }
+        }
+    }
+
+    private func detail(_ descriptor: AppModelInstallDescriptor, _ state: Stored) -> String {
+        var parts: [String] = []
+        if descriptor.isCommunity { parts.append("Community") }
+        switch state {
+        case .installed: parts.append(MetricFormat.storage(descriptor.installedBytes))
+        case .partial: parts.append("Part-downloaded")
+        case .none:
+            parts.append(MetricFormat.storage(descriptor.approximateDownloadBytes) + " download")
+        }
+        if !descriptor.supportsImages { parts.append("Text only") }
+        return parts.joined(separator: " · ")
+    }
+
+    /// Progress and anything in the download's way, for the model the app is
+    /// on. Only that one has an installer to ask.
+    @ViewBuilder
+    private var downloadStatus: some View {
+        if model.isInstallingModel {
+            if let fraction = model.installProgressFraction,
+               let downloaded = model.installDownloadedBytes,
+               let total = model.installTotalBytes {
+                ProgressView(value: fraction)
+                    .accessibilityLabel("Model download")
+                HStack {
+                    Text("\(MetricFormat.storage(downloaded)) of "
+                         + MetricFormat.storage(total))
+                    Spacer()
+                    Text(model.installETAText ?? MetricFormat.percent(fraction * 100))
+                }
+                .font(.footnote.monospacedDigit())
+                .foregroundStyle(.secondary)
+            } else {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text(model.presentation.label)
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            }
+            if let waiting = network.waitingReason {
+                Label(waiting, systemImage: "wifi.exclamationmark")
+                    .font(.footnote)
+                    .foregroundStyle(.orange)
+            }
+        } else if let note = downloadNote {
+            Text(note.text)
+                .font(.footnote)
+                .foregroundStyle(note.color)
+        }
+    }
+
+    private var downloadNote: (text: String, color: Color)? {
+        if case .failed(let message) = model.installState { return (message, .red) }
+        if case .recoverable(let message) = model.installState { return (message, .orange) }
+        if case .insufficientSpace(let requirement) = model.installReadiness {
+            return ("Free \(MetricFormat.storage(requirement.shortfallBytes)) more storage "
+                    + "to download it.", .orange)
+        }
+        if case .failed(let message) = model.installReadiness { return (message, .red) }
+        if case .cancelled = model.installState { return ("Download paused.", .secondary) }
+        // The probe's reason is the only account of a model that is present
+        // but unusable.
+        if case .partial(let reason) = model.installationStatus,
+           !model.hasPartialModelDownload {
+            return (reason, .orange)
+        }
+        return nil
+    }
+
+    /// One download at a time, and not while a reply or a load is running.
+    private func canDownload(_ descriptor: AppModelInstallDescriptor) -> Bool {
+        guard !model.isInstallingModel, !model.isRunning, !model.loadState.isLoading,
+              model.canSelectModel else { return false }
+        if descriptor == model.installDescriptor { return model.canInstallModel }
+        return !model.loadState.isReady || model.canUnloadModel
+    }
+
+    private func canDelete(_ descriptor: AppModelInstallDescriptor) -> Bool {
+        guard !isDownloading(descriptor), !model.isRunning, !model.loadState.isLoading,
+              model.canSelectModel else { return false }
+        return !(model.loadState.isReady && needsUnload(.deleteModel(descriptor)))
+            || model.canUnloadModel
+    }
+
+    /// Asks about mobile data first: a model is about 14.6 GB.
+    private func requestDownload(_ descriptor: AppModelInstallDescriptor) {
+        if network.isExpensive && !network.allowsMobileData {
+            pendingDownload = descriptor
+        } else {
+            download(descriptor, allowingMobileData: network.allowsMobileData)
+        }
+    }
+
+    private func download(_ descriptor: AppModelInstallDescriptor, allowingMobileData: Bool) {
+        start(.download(descriptor, allowingMobileData: allowingMobileData))
+    }
+
+    /// The models on the phone after this one in the list, wrapping round:
+    /// where the app goes when the model it is on is deleted.
+    private func nextDownloaded(after descriptor: AppModelInstallDescriptor)
+        -> AppModelInstallDescriptor? {
+        let list = model.availableModels
+        guard let index = list.firstIndex(of: descriptor) else { return nil }
+        return (list[(index + 1)...] + list[..<index])
+            .first { ChatSession.isInstalled($0, current: model) }
+    }
+
+    /// Downloaded models that read their image pack from this one's folder.
+    private func imageBorrowers(of descriptor: AppModelInstallDescriptor)
+        -> [AppModelInstallDescriptor] {
+        model.availableModels.filter { other in
+            other != descriptor && ChatSession.isInstalled(other, current: model)
+                && AppVisionPackHost.textModelDirectory(
+                    for: ModelLocation.directory(named: other.directoryName))
+                    .lastPathComponent == descriptor.directoryName
+        }
+    }
+
+    private func deletionMessage(_ descriptor: AppModelInstallDescriptor) -> String {
+        var lines = [descriptor.isCommunity
+                     ? "Its download is removed and it leaves the list."
+                     : "Its download is removed. It stays in the list, to download again."]
+        let borrowers = imageBorrowers(of: descriptor)
+        if !borrowers.isEmpty {
+            lines.append(borrowers.map(\.shortName).joined(separator: " and ")
+                         + " loses image support too.")
+        }
+        if descriptor == model.installDescriptor {
+            if let next = nextDownloaded(after: descriptor) {
+                lines.append("Chats continue with \(next.shortName).")
+            } else {
+                lines.append("No model will be left on this iPhone.")
+            }
+        }
+        lines.append("Chats are kept.")
+        return lines.joined(separator: " ")
+    }
+
+    private func delete(_ descriptor: AppModelInstallDescriptor) {
+        do {
+            try model.deleteModel(descriptor)
+            BackgroundDownload.forget(folder: descriptor.directoryName)
+            deletionError = nil
+        } catch {
+            deletionError = "\(descriptor.shortName) could not be deleted: \(error)"
         }
     }
 
@@ -490,13 +717,31 @@ struct SettingsView: View {
 
     /// Pack activation, discard and removal rename files the loaded runtime
     /// maps (`canBeginVisionCompanionOperation`), and the harness loads a
-    /// second copy of the model. Each unloads the chat model first.
-    private enum UnloadedStep { case activateVision, discardVision, removeVision, openHarness }
+    /// second copy of the model. A download switches the app to another
+    /// model, and `installModel` refuses while one is unloading. Deleting the
+    /// model in memory, or the one whose image pack it reads, removes files
+    /// it maps. Each unloads the chat model first.
+    private enum UnloadedStep {
+        case activateVision, discardVision, removeVision, openHarness
+        case download(AppModelInstallDescriptor, allowingMobileData: Bool)
+        case deleteModel(AppModelInstallDescriptor)
+    }
+
+    private func needsUnload(_ step: UnloadedStep) -> Bool {
+        switch step {
+        case .deleteModel(let descriptor):
+            descriptor == model.installDescriptor || model.hostsCurrentImagePack(descriptor)
+        case .download(let descriptor, _):
+            descriptor != model.installDescriptor
+        case .activateVision, .discardVision, .removeVision, .openHarness:
+            true
+        }
+    }
 
     /// Runs the step now, or unloads and runs it when `loadState` reaches
     /// `.notLoaded`.
     private func start(_ step: UnloadedStep) {
-        guard model.loadState.isReady else { return run(step) }
+        guard model.loadState.isReady, needsUnload(step) else { return run(step) }
         guard model.canUnloadModel else { return }
         afterUnload = step
         model.unloadModel()
@@ -508,6 +753,30 @@ struct SettingsView: View {
         case .discardVision: model.discardVisionPackDownload()
         case .removeVision: model.removeVisionPack()
         case .openHarness: isShowingHarness = true
+        case .download(let descriptor, let allowingMobileData):
+            // The chat on screen stays on screen across the switch.
+            ChatSession.selectModel(descriptor, in: model,
+                                    openingConversation: model.history.selection)
+            guard model.installDescriptor == descriptor else { return }
+            BackgroundDownload.start(model, network: network,
+                                     allowingMobileData: allowingMobileData)
+        case .deleteModel(let descriptor):
+            if descriptor == model.installDescriptor {
+                // Never delete the folder the app points at: move to the next
+                // model on the phone, or, with none left, to another listed one,
+                // which leaves the chat showing that there is no model.
+                guard let next = nextDownloaded(after: descriptor)
+                        ?? model.availableModels.first(where: { $0 != descriptor })
+                else { return }
+                ChatSession.selectModel(next, in: model,
+                                        openingConversation: model.history.selection)
+                guard model.installDescriptor == next else {
+                    deletionError = "\(descriptor.shortName) could not be deleted: "
+                        + "the app could not switch away from it."
+                    return
+                }
+            }
+            delete(descriptor)
         }
     }
 
@@ -517,64 +786,6 @@ struct SettingsView: View {
         model.canBeginVisionCompanionOperation
             || (model.canUnloadModel && !model.isRunning && !model.isInstallingModel
                 && !model.isVisionCompanionOperationInProgress)
-    }
-
-    private enum Stored { case installed, partial, none }
-
-    private var storedModels: [AppModelInstallDescriptor] {
-        model.availableModels.filter { $0.isCommunity || stored($0) != .none }
-    }
-
-    private func stored(_ descriptor: AppModelInstallDescriptor) -> Stored {
-        if ChatSession.isInstalled(descriptor, current: model) { return .installed }
-        let folder = ModelLocation.directory(named: descriptor.directoryName).path
-        let fm = FileManager.default
-        if fm.fileExists(atPath: folder + ".partial")
-            || fm.fileExists(atPath: folder + ".resume.json")
-            || fm.fileExists(atPath: folder) {
-            return .partial
-        }
-        return .none
-    }
-
-    private func storedModelRow(_ descriptor: AppModelInstallDescriptor) -> some View {
-        let blocker = model.deletionBlocker(for: descriptor)
-        var detail: [String] = []
-        if descriptor.isCommunity { detail.append("Community") }
-        switch stored(descriptor) {
-        case .installed: detail.append(MetricFormat.storage(descriptor.installedBytes))
-        case .partial: detail.append("Part-downloaded")
-        case .none: detail.append("Not downloaded")
-        }
-        return HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(descriptor.displayName)
-                Text(detail.joined(separator: " · "))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                if let blocker {
-                    Text(blocker)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer(minLength: 8)
-            Button("Delete", role: .destructive) {
-                pendingDeletion = descriptor
-            }
-            .buttonStyle(.borderless)
-            .disabled(blocker != nil)
-        }
-    }
-
-    private func delete(_ descriptor: AppModelInstallDescriptor) {
-        do {
-            try model.deleteModel(descriptor)
-            BackgroundDownload.forget(folder: descriptor.directoryName)
-            deletionError = nil
-        } catch {
-            deletionError = "\(descriptor.shortName) could not be deleted: \(error)"
-        }
     }
 
     private var harness: some View {

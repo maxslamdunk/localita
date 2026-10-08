@@ -19,6 +19,9 @@ struct ChatView: View {
     @State private var blocks = StreamingBlocks()
     @State private var thinkingBlocks = StreamingBlocks(.reasoning)
     @State private var isShowingSettings = false
+    /// The tab Settings opens on: Models when the way there was about getting
+    /// a model, Generation from the chat list's gear.
+    @State private var settingsPage = SettingsView.Page.generation
     @State private var isShowingChats = false
     @State private var seamThumb = SeamThumb()
     @State private var thermalState = ProcessInfo.processInfo.thermalState
@@ -43,7 +46,7 @@ struct ChatView: View {
                         close: { isShowingChats = false },
                         // The panel stays open under the sheet, so closing
                         // Settings goes back to the chats it was opened from.
-                        openSettings: { isShowingSettings = true },
+                        openSettings: { openSettings(.generation) },
                         seamThumb: seamThumb)
         }
         .onReceive(NotificationCenter.default.publisher(
@@ -51,14 +54,21 @@ struct ChatView: View {
             thermalState = ProcessInfo.processInfo.thermalState
         }
         .sheet(isPresented: $isShowingSettings) {
-            SettingsView(model: model)
+            SettingsView(model: model, network: network, page: $settingsPage)
         }
+    }
+
+    private func openSettings(_ page: SettingsView.Page) {
+        settingsPage = page
+        isShowingSettings = true
     }
 
     private var chat: some View {
         Group {
-            if model.requiresModelInstallation {
-                ModelDownloadView(model: model, network: network)
+            // Without the model, a stored chat still reads; only an empty one
+            // has nothing to show, and gets the way to a model instead.
+            if model.requiresModelInstallation && isTranscriptEmpty {
+                NoModelView(model: model) { openSettings(.models) }
             } else {
                 ChatTranscriptView(model: model,
                                    blocks: blocks,
@@ -98,7 +108,7 @@ struct ChatView: View {
             // not being shown. Typing without a model is harmless: `canRun`
             // already gates the send button, so the worst case is a composed
             // message waiting for a load.
-            ChatComposer(model: model)
+            ChatComposer(model: model) { openSettings(.models) }
         }
     }
 
@@ -150,10 +160,27 @@ struct ChatView: View {
     /// Reload belong to the composer (`ChatControlsPresentation`).
     private var statusPresentation: AppPresentationState {
         var presentation = model.presentation
-        presentation.label = ChatControlsPresentation.statusLabel(
-            presentation, loadState: model.loadState,
-            modelName: model.installDescriptor.shortName)
+        let name = model.installDescriptor.shortName
+        if model.requiresModelInstallation {
+            presentation.label = ChatControlsPresentation.notInstalledLabel(
+                presentation, modelName: name,
+                isAnyModelInstalled: model.availableModels.contains {
+                    ChatSession.isInstalled($0, current: model)
+                },
+                isDownloadStarted: model.installState != .idle
+                    || model.hasPartialModelDownload,
+                downloadFraction: model.isInstallingModel
+                    ? model.installProgressFraction : nil)
+        } else {
+            presentation.label = ChatControlsPresentation.statusLabel(
+                presentation, loadState: model.loadState, modelName: name)
+        }
         return presentation
+    }
+
+    private var isTranscriptEmpty: Bool {
+        model.transcriptHistory.isEmpty
+            && !(model.showsLiveTurn && model.hasOutputTranscript)
     }
 
     private var statusBar: some View {
@@ -197,9 +224,9 @@ struct ChatView: View {
             }
 
             // Only what frees memory: Unload, or Cancel while a load runs,
-            // which takes long enough to be worth abandoning. Install belongs
-            // to the download screen, which asks about mobile data before it
-            // starts a 14.6 GB download, and Load to the composer.
+            // which takes long enough to be worth abandoning. Downloads belong
+            // to Settings, which asks about mobile data before it starts a
+            // 14.6 GB download, and Load to the composer.
             if let action = ChatControlsPresentation.statusAction(presentation) {
                 Button(actionLabel(action)) { model.perform(action) }
                     .buttonStyle(.glass)
@@ -334,6 +361,58 @@ struct ChatView: View {
                     in: .rect(cornerRadius: 12))
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
+    }
+}
+
+/// An empty chat with no model on the phone: where to get one, and a way
+/// there. A chat with turns in it shows them instead, model or not.
+private struct NoModelView: View {
+    let model: AppModel
+    let openModels: () -> Void
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "square.stack.3d.up")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            Text(title)
+                .font(.title3.bold())
+            Text(message)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button("Open Settings", action: openModels)
+                .buttonStyle(.glass)
+                .controlSize(.large)
+        }
+        .padding(32)
+        .frame(maxWidth: 480)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var name: String { model.installDescriptor.shortName }
+
+    /// Another model is on the phone while this one is not: a download the
+    /// user started from Settings, running or paused.
+    private var hasOtherModel: Bool {
+        model.availableModels.contains { ChatSession.isInstalled($0, current: model) }
+    }
+
+    private var title: String {
+        if model.isInstallingModel { return "\(name) is downloading" }
+        return hasOtherModel ? "\(name) is not downloaded" : "No model on this iPhone"
+    }
+
+    private var message: String {
+        if model.isInstallingModel {
+            return "You can chat once it finishes. Its progress is in Settings, "
+                + "under Models."
+        }
+        return hasOtherModel
+            ? "Pick another model in the menu below the message box, or finish "
+                + "this download in Settings, under Models."
+            : "Download a model in Settings, under Models. It runs on this "
+                + "iPhone, offline."
     }
 }
 
