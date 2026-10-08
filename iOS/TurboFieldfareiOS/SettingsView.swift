@@ -5,8 +5,11 @@ import TurboFieldfareAppPresentation
 /// Sampling, memory and model controls, as a sheet with two tabs.
 ///
 /// **Generation** holds what shapes replies: memory, then sampling, then a
-/// reset for both. **Models** holds what is on the phone: the loaded model,
-/// every stored one, image support and the harness. The tab bar is the
+/// reset for both. **Models** holds what is on the phone: every stored model,
+/// image support and the harness. There is no Load or Unload here: the chat
+/// screen has both, and the steps below that need the model out of memory
+/// unload it themselves. The model's path and the app's footprint are logged
+/// to `Documents/app-memory.log` (`TurnMemoryLog`) instead of shown. The tab bar is the
 /// system's; a paged `TabView` was tried first and lost the forms' scroll
 /// edge effect under the title bar.
 ///
@@ -31,6 +34,10 @@ struct SettingsView: View {
     @State private var deletionError: String?
     @State private var page = Page.generation
     @State private var isAddingModel = false
+    @State private var isConfirmingVisionRemoval = false
+    @State private var isShowingHarness = false
+    /// The step waiting for the unload `start(_:)` began.
+    @State private var afterUnload: UnloadedStep?
 
     private enum Page: Hashable { case generation, models }
 
@@ -61,7 +68,6 @@ struct SettingsView: View {
                 }
                 Tab("Models", systemImage: "square.stack.3d.up", value: Page.models) {
                     Form {
-                        modelSection
                         storedModelsSection
                         // A text-only model has no image pack to download.
                         if model.installDescriptor.supportsImages {
@@ -74,6 +80,7 @@ struct SettingsView: View {
             // Both forms are short enough that the thumb only adds noise.
             .scrollIndicators(.never)
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(isPresented: $isShowingHarness) { harness }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
@@ -85,11 +92,18 @@ struct SettingsView: View {
             // nothing to pick here.
             AddModelView(model: model) { _ in }
         }
+        .onChange(of: model.loadState) { _, state in
+            guard state == .notLoaded, let step = afterUnload else { return }
+            afterUnload = nil
+            run(step)
+        }
+        // Asked here rather than through `requestVisionPackRemoval`, which
+        // refuses while the model is loaded: the unload comes after the yes.
         .confirmationDialog("Remove image support?",
-                            isPresented: $model.isConfirmingVisionPackRemoval,
+                            isPresented: $isConfirmingVisionRemoval,
                             titleVisibility: .visible) {
             Button("Remove Image Support", role: .destructive) {
-                model.removeVisionPack()
+                start(.removeVision)
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -282,20 +296,20 @@ struct SettingsView: View {
                 .accessibilityIdentifier(.visionCancel)
         } else if case .readyToActivate = model.visionInstallState {
             if model.isVisionRuntimeSupported {
-                Button("Activate", action: model.activateVisionPack)
-                    .disabled(!model.canActivateVisionPack)
+                Button("Activate") { start(.activateVision) }
+                    .disabled(!canStartUnloaded)
                     .accessibilityIdentifier(.visionActivate)
             }
             Button("Discard Download", role: .destructive) {
-                model.discardVisionPackDownload()
+                start(.discardVision)
             }
-            .disabled(!model.canDiscardVisionPackDownload)
+            .disabled(!(model.hasPartialVisionPackDownload && canStartUnloaded))
             .accessibilityIdentifier(.visionDiscard)
         } else if model.isVisionPackInstalled {
             Button("Remove Image Support", role: .destructive) {
-                model.requestVisionPackRemoval()
+                isConfirmingVisionRemoval = true
             }
-            .disabled(!model.canRemoveVisionPack)
+            .disabled(!(model.hasVisionPackDirectory && canStartUnloaded))
             .accessibilityIdentifier(.visionRemove)
         } else {
             if model.isVisionRuntimeSupported {
@@ -305,16 +319,16 @@ struct SettingsView: View {
             }
             if model.hasPartialVisionPackDownload {
                 Button("Discard Download", role: .destructive) {
-                    model.discardVisionPackDownload()
+                    start(.discardVision)
                 }
-                .disabled(!model.canDiscardVisionPackDownload)
+                .disabled(!(model.hasPartialVisionPackDownload && canStartUnloaded))
                 .accessibilityIdentifier(.visionDiscard)
             }
             if model.hasVisionPackDirectory {
                 Button("Remove", role: .destructive) {
-                    model.requestVisionPackRemoval()
+                    isConfirmingVisionRemoval = true
                 }
-                .disabled(!model.canRemoveVisionPack)
+                .disabled(!(model.hasVisionPackDirectory && canStartUnloaded))
                 .accessibilityIdentifier(.visionRemove)
             }
         }
@@ -368,13 +382,12 @@ struct SettingsView: View {
             return ("Model actions wait until this finishes. Your message, "
                     + "images and chat are kept.", .secondary)
         }
-        if !model.isVisionPackInstalled && model.loadState.isReady {
-            return ("Unload the model above before downloading image support.",
-                    .secondary)
-        }
-        if model.isVisionPackInstalled && model.loadState.isReady {
-            return ("Unload the model above before removing image support.",
-                    .secondary)
+        // Downloading runs beside a loaded model; only the steps after it
+        // need the model out of memory.
+        if model.loadState.isReady, !model.isInstallingVisionPack,
+           model.hasVisionPackDirectory || model.hasPartialVisionPackDownload {
+            return ("Activating, discarding or removing unloads the model "
+                    + "first. Load it again from the chat.", .secondary)
         }
         return nil
     }
@@ -424,32 +437,6 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Model
-
-    private var modelSection: some View {
-        Section("Current Model") {
-            LabeledContent("Model", value: model.installDescriptor.displayName)
-            LabeledContent("Status", value: model.presentation.label)
-            if let bytes = model.currentProcessMemoryBytes {
-                LabeledContent("App memory",
-                               value: ByteCountFormatter.string(
-                                   fromByteCount: Int64(bytes), countStyle: .memory))
-            }
-            if model.canUnloadModel {
-                Button("Unload Model", role: .destructive) {
-                    model.perform(.unload)
-                }
-            } else if model.isModelInstalled, !model.loadState.isReady,
-                      !model.loadState.isLoading {
-                Button("Load Model") { model.perform(.load) }
-            }
-            Text(model.modelPathText)
-                .font(.caption2.monospaced())
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
-        }
-    }
-
     // MARK: - Models on this iPhone
 
     /// Every model with files on the phone, and every added one, each with
@@ -479,19 +466,57 @@ struct SettingsView: View {
 
     private var harnessSection: some View {
         Section {
-            NavigationLink("Benchmark harness") {
-                harness
+            // A button styled as a link, because opening it may first have to
+            // unload the chat model.
+            Button { start(.openHarness) } label: {
+                HStack {
+                    Text("Benchmark harness").foregroundStyle(.primary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
             }
-            // The harness loads its own copy of the model. Two copies
-            // cannot fit: one alone holds the phone in compressor churn.
-            .disabled(model.loadState.isReady || model.loadState.isLoading)
+            .disabled(model.loadState.isLoading
+                      || (model.loadState.isReady && !model.canUnloadModel))
         } footer: {
-            Text(model.loadState.isReady || model.loadState.isLoading
-                 ? "Unload the model above to run the benchmark. It "
-                   + "loads its own copy, and two do not fit."
-                 : "The measurement instrument behind the device rows "
-                   + "in MEASUREMENTS.md. Not part of chatting.")
+            Text("The measurement instrument behind the device rows in "
+                 + "MEASUREMENTS.md. Opening it unloads the chat model: it loads "
+                 + "its own copy, and two do not fit.")
         }
+    }
+
+    // MARK: - Steps that need the model unloaded
+
+    /// Pack activation, discard and removal rename files the loaded runtime
+    /// maps (`canBeginVisionCompanionOperation`), and the harness loads a
+    /// second copy of the model. Each unloads the chat model first.
+    private enum UnloadedStep { case activateVision, discardVision, removeVision, openHarness }
+
+    /// Runs the step now, or unloads and runs it when `loadState` reaches
+    /// `.notLoaded`.
+    private func start(_ step: UnloadedStep) {
+        guard model.loadState.isReady else { return run(step) }
+        guard model.canUnloadModel else { return }
+        afterUnload = step
+        model.unloadModel()
+    }
+
+    private func run(_ step: UnloadedStep) {
+        switch step {
+        case .activateVision: model.activateVisionPack()
+        case .discardVision: model.discardVisionPackDownload()
+        case .removeVision: model.removeVisionPack()
+        case .openHarness: isShowingHarness = true
+        }
+    }
+
+    /// The pack gate, counting the unload `start(_:)` does first: what
+    /// `canBeginVisionCompanionOperation` asks, less "not loaded".
+    private var canStartUnloaded: Bool {
+        model.canBeginVisionCompanionOperation
+            || (model.canUnloadModel && !model.isRunning && !model.isInstallingModel
+                && !model.isVisionCompanionOperationInProgress)
     }
 
     private enum Stored { case installed, partial, none }
