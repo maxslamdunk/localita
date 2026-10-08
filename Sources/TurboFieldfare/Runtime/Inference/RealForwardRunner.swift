@@ -223,6 +223,10 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
     public var earlyExpertReadDescription: String {
         earlyExpertReads?.guessDescription ?? "off"
     }
+    /// Early reads per layer, or 0 when the early read is off.
+    public var earlyExpertReadsPerLayer: Int {
+        earlyExpertReads?.readsPerLayer ?? 0
+    }
     private let sharedExpertProjections: [LayerSharedExpertProjections]
 
     public let maxContext: Int
@@ -1739,15 +1743,16 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                 experts[i] = min(Int(idxPtr[i]), cfg.numExperts - 1)
             }
 
-            var earlyGuess: (streamer: PreadExpertStreamer, expert: Int)?
-            if let earlyLayer {
+            var earlyGuess: (streamer: PreadExpertStreamer, experts: [Int])?
+            if let earlyLayer, let early = earlyExpertReads {
                 let streamer = try model.routedExpertStreamer(layer: earlyLayer)
                 let scores = nextLayerScores.contents().bindMemory(to: Float.self,
                                                                    capacity: cfg.numExperts)
-                if let expert = NextLayerExpertPrefetcher.choose(
+                let experts = NextLayerExpertPrefetcher.choose(
                     scores: scores, count: cfg.numExperts,
-                    resident: streamer.residentExperts()) {
-                    earlyGuess = (streamer, expert)
+                    resident: streamer.residentExperts(), limit: early.readsPerLayer)
+                if !experts.isEmpty {
+                    earlyGuess = (streamer, experts)
                 }
             }
 
@@ -1758,10 +1763,10 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             let plannedFetch = canPlanPhase1HitSplit
                 ? try model.planRoutedExperts(layer: L, experts: experts)
                 : nil
-            // Before any of the plan's buffers are bound: adopting swaps one.
-            var adoptedEarlyMiss: Int?
+            // Before any of the plan's buffers are bound: adopting swaps them.
+            var adoptedEarlyMisses: Set<Int> = []
             if let early = earlyExpertReads, let plannedFetch {
-                adoptedEarlyMiss = early.adopt(into: plannedFetch,
+                adoptedEarlyMisses = early.adopt(into: plannedFetch,
                                                streamer: try model.routedExpertStreamer(layer: L))
             }
             var phase1HitCB: MTLCommandBuffer?
@@ -1909,11 +1914,11 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             // Routed-expert pread — overlaps the shared MLP GPU work above.
             let tIoStart = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
             let blobs: [TensorView]
-            if let plannedFetch, let early = earlyExpertReads, let adoptedEarlyMiss {
+            if let plannedFetch, let early = earlyExpertReads, !adoptedEarlyMisses.isEmpty {
                 blobs = try await model.fetchRoutedExperts(
                     plan: plannedFetch,
-                    skippingMisses: [adoptedEarlyMiss],
-                    beforeAdmitting: { try early.waitForPending() })
+                    skippingMisses: adoptedEarlyMisses,
+                    beforeAdmitting: { try early.waitForAdopted() })
             } else if let plannedFetch {
                 blobs = try await model.fetchRoutedExperts(plan: plannedFetch)
             } else {
@@ -1922,7 +1927,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             // This layer's reads are done, so storage is idle until the next
             // layer's: start the next layer's early read now.
             if let early = earlyExpertReads, let layer = earlyLayer, let earlyGuess {
-                try early.issue(layer: layer, expert: earlyGuess.expert,
+                try early.issue(layer: layer, experts: earlyGuess.experts,
                                 streamer: earlyGuess.streamer)
             }
             let layerIo = clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - tIoStart

@@ -1,18 +1,19 @@
 import Foundation
 import Metal
 
-/// Decode control: read one of the next layer's routed experts while storage
-/// would otherwise sit idle. On by default (`RuntimeConfiguration.earlyExpertRead`,
-/// since 2026-10-03); the environment variable
-/// `TURBO_FIELDFARE_EARLY_EXPERT_READ` overrides it with `next-layer` or `off`.
+/// Decode control: read the next layer's likeliest routed experts while
+/// storage would otherwise sit idle. On by default
+/// (`RuntimeConfiguration.earlyExpertRead`, since 2026-10-03); the environment
+/// variable `TURBO_FIELDFARE_EARLY_EXPERT_READ` overrides it with `next-layer`
+/// or `off`.
 ///
 /// Per layer L < last: cb1(L) also scores layer L+1's experts over L's router
-/// input. After L's own reads finish, the best-scoring expert that L+1's cache
-/// does not hold is read into a staging buffer outside every slot. If L+1's
-/// plan then misses that expert, the staging buffer is swapped into the slot
-/// the plan assigned to it and its read is skipped; otherwise the read is
-/// simply wasted. The cache plans exactly as it would without this, so hit rate
-/// and generated text are unchanged; only where one miss's bytes come from
+/// input. After L's own reads finish, the best-scoring experts that L+1's cache
+/// does not hold are read, best first, into staging buffers outside every
+/// slot. Each one L+1's plan then misses has its staging buffer swapped into
+/// the slot the plan assigned to it and its read skipped; the rest are simply
+/// wasted. The cache plans exactly as it would without this, so hit rate and
+/// generated text are unchanged; only where some misses' bytes come from
 /// differs. See
 /// `benchmark-results-2026-10-02-ios-next-layer-prefetch/predictions.md`.
 ///
@@ -22,8 +23,15 @@ import Metal
 /// path, or with `router` to force the router. Measured on the iPhone 17: the
 /// fitted guess is used 0.68–0.75 of the time against the router's 0.55–0.61
 /// (`benchmark-results-2026-10-03-ios-fitted-guess/results.md`).
+///
+/// One read per layer by default: on the iPhone 17 the storage idle time per
+/// layer was about one read long. `TURBO_FIELDFARE_EARLY_EXPERT_READS` (1–8)
+/// sets more; each costs one more 3.36 MB staging buffer. On the M1 two beat
+/// one by +11.5 to +14.8% (`benchmark-results-2026-10-07-early-read-v3/`).
 final class NextLayerExpertPrefetcher: @unchecked Sendable {
     static let environmentKey = "TURBO_FIELDFARE_EARLY_EXPERT_READ"
+    static let readsEnvironmentKey = "TURBO_FIELDFARE_EARLY_EXPERT_READS"
+    static let maxReadsPerLayer = 8
 
     /// Written by the read before `done` is left, read only after waiting.
     private final class Outcome: @unchecked Sendable {
@@ -31,26 +39,33 @@ final class NextLayerExpertPrefetcher: @unchecked Sendable {
     }
 
     private struct Pending {
-        let layer: Int
         let expert: Int
+        let staging: Int
         let done: DispatchGroup
         let outcome: Outcome
-        var adopted: Bool
+        var adopted = false
     }
 
-    private let staging: ExpertStagingBuffer
+    private let staging: [ExpertStagingBuffer]
     /// The fitted guess, or nil to score with the next layer's own router.
     let guessWeights: NextLayerGuessWeights?
     private let queue = DispatchQueue(label: "turbo-fieldfare.early-expert-read",
                                       qos: .userInitiated)
-    private var pending: Pending?
+    private var pendingLayer: Int?
+    private var pending: [Pending] = []
+
+    /// Early reads per layer.
+    var readsPerLayer: Int { staging.count }
 
     init?(environment: [String: String] = ProcessInfo.processInfo.environment,
           enabledByDefault: Bool,
           model: Model, config: ArchConfig, device: MTLDevice) throws {
         guard Self.isEnabled(environment: environment, enabledByDefault: enabledByDefault)
         else { return nil }
-        staging = try model.routedExpertStreamer(layer: 0).makeStagingBuffer()
+        let streamer = try model.routedExpertStreamer(layer: 0)
+        staging = try (0..<Self.readsPerLayer(environment: environment)).map { _ in
+            try streamer.makeStagingBuffer()
+        }
         switch environment[NextLayerGuessWeights.environmentKey] {
         case "router":
             guessWeights = nil
@@ -65,6 +80,12 @@ final class NextLayerExpertPrefetcher: @unchecked Sendable {
         }
     }
 
+    deinit {
+        // A read may still be filling a staging buffer, which is freed with
+        // this object.
+        for read in pending { read.done.wait() }
+    }
+
     /// `TURBO_FIELDFARE_EARLY_EXPERT_READ=next-layer` or `off` wins; anything
     /// else, including unset, leaves the configuration's default.
     static func isEnabled(environment: [String: String], enabledByDefault: Bool) -> Bool {
@@ -75,17 +96,32 @@ final class NextLayerExpertPrefetcher: @unchecked Sendable {
         }
     }
 
+    /// `TURBO_FIELDFARE_EARLY_EXPERT_READS` when it is a whole number from 1
+    /// to `maxReadsPerLayer`, otherwise 1.
+    static func readsPerLayer(environment: [String: String]) -> Int {
+        guard let value = environment[readsEnvironmentKey].flatMap({ Int($0) }),
+              (1...maxReadsPerLayer).contains(value)
+        else { return 1 }
+        return value
+    }
+
     /// Which guess scores the next layer, for logs: `router`, or the fitted
     /// file's name and SHA-256.
     var guessDescription: String {
         guessWeights.map { "\($0.name)@\($0.sha256)" } ?? "router"
     }
 
-    /// The highest-scoring expert not in `resident`; ties go to the lower ID.
-    static func choose(scores: UnsafePointer<Float>, count: Int, resident: Set<Int>) -> Int? {
-        var best: Int?
+    /// Up to `limit` highest-scoring experts not in `resident`, best first;
+    /// ties go to the lower ID.
+    static func choose(scores: UnsafePointer<Float>, count: Int,
+                       resident: Set<Int>, limit: Int = 1) -> [Int] {
+        var best: [Int] = []
         for expert in 0..<count where !resident.contains(expert) {
-            if best == nil || scores[expert] > scores[best!] { best = expert }
+            let position = best.firstIndex { scores[expert] > scores[$0] } ?? best.count
+            if position < limit {
+                best.insert(expert, at: position)
+                if best.count > limit { best.removeLast() }
+            }
         }
         return best
     }
@@ -94,50 +130,69 @@ final class NextLayerExpertPrefetcher: @unchecked Sendable {
     /// crosses a forward. Prefill may change the cache in between.
     func beginForward() throws {
         try waitForPending()
-        pending = nil
+        pending = []
+        pendingLayer = nil
     }
 
-    /// Starts reading `expert` of `layer` into the staging buffer. Waits first
-    /// for the previous early read, which the staging buffer may still hold.
-    func issue(layer: Int, expert: Int, streamer: PreadExpertStreamer) throws {
+    /// Starts reading `experts` of `layer`, in order, one into each staging
+    /// buffer. Waits first for the previous early reads, whose buffers may
+    /// still be filling.
+    func issue(layer: Int, experts: [Int], streamer: PreadExpertStreamer) throws {
+        precondition(experts.count <= staging.count, "more early reads than staging buffers")
         try waitForPending()
-        let done = DispatchGroup()
-        let outcome = Outcome()
-        // Captured now: an adoption swaps `staging.pointer`, but this read's
-        // destination must stay the memory it started into.
-        nonisolated(unsafe) let destination = staging.pointer
-        done.enter()
-        queue.async {
-            do {
-                try streamer.readEarly(expert: expert, into: destination)
-            } catch {
-                outcome.error = error
+        pending = []
+        pendingLayer = layer
+        for (index, expert) in experts.enumerated() {
+            let done = DispatchGroup()
+            let outcome = Outcome()
+            // Captured now: an adoption swaps `staging[index].pointer`, but this
+            // read's destination must stay the memory it started into.
+            nonisolated(unsafe) let destination = staging[index].pointer
+            done.enter()
+            queue.async {
+                do {
+                    try streamer.readEarly(expert: expert, into: destination)
+                } catch {
+                    outcome.error = error
+                }
+                done.leave()
             }
-            done.leave()
+            pending.append(Pending(expert: expert, staging: index, done: done, outcome: outcome))
         }
-        pending = Pending(layer: layer, expert: expert, done: done,
-                          outcome: outcome, adopted: false)
     }
 
-    /// If `plan` misses the pending expert, swaps the staging buffer into that
-    /// miss's slot and returns the miss's index, which the plan's execution
-    /// must skip and wait for with `waitForPending`. Call before the plan's
-    /// buffers are bound.
-    func adopt(into plan: RoutedExpertFetchPlan, streamer: PreadExpertStreamer) -> Int? {
-        guard var current = pending, current.layer == plan.layer, !current.adopted,
-              let index = plan.misses.first(where: { plan.experts[$0] == current.expert })
-        else { return nil }
-        streamer.adoptStagedExpert(staging, plan: plan.cachePlan, index: index)
-        current.adopted = true
-        pending = current
-        return index
+    /// For each pending expert `plan` misses, swaps its staging buffer into
+    /// that miss's slot. Returns those misses' indices, which the plan's
+    /// execution must skip and wait for with `waitForAdopted`. Call before the
+    /// plan's buffers are bound.
+    func adopt(into plan: RoutedExpertFetchPlan, streamer: PreadExpertStreamer) -> Set<Int> {
+        guard pendingLayer == plan.layer else { return [] }
+        var adopted: Set<Int> = []
+        for i in pending.indices where !pending[i].adopted {
+            guard let index = plan.misses.first(where: { plan.experts[$0] == pending[i].expert })
+            else { continue }
+            streamer.adoptStagedExpert(staging[pending[i].staging], plan: plan.cachePlan,
+                                       index: index)
+            pending[i].adopted = true
+            adopted.insert(index)
+        }
+        return adopted
     }
 
-    /// Blocks until the pending early read, if any, has finished, and rethrows
-    /// its error.
+    /// Blocks until every adopted early read has finished, and rethrows the
+    /// first error. A wasted read still in flight is not waited for.
+    func waitForAdopted() throws {
+        try wait(for: pending.filter(\.adopted))
+    }
+
+    /// Blocks until every pending early read has finished, and rethrows the
+    /// first error.
     func waitForPending() throws {
-        guard let current = pending else { return }
-        current.done.wait()
-        if let error = current.outcome.error { throw error }
+        try wait(for: pending)
+    }
+
+    private func wait(for reads: [Pending]) throws {
+        for read in reads { read.done.wait() }
+        if let error = reads.lazy.compactMap({ $0.outcome.error }).first { throw error }
     }
 }

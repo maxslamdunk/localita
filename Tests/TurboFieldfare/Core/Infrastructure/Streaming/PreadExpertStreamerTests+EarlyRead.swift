@@ -77,11 +77,34 @@ extension PreadExpertStreamerTests {
     let scores: [Float] = [0.5, 2.0, 1.5, 3.0]
     scores.withUnsafeBufferPointer { p in
       #expect(NextLayerExpertPrefetcher.choose(
-        scores: p.baseAddress!, count: 4, resident: [3]) == 1)
+        scores: p.baseAddress!, count: 4, resident: [3]) == [1])
       #expect(NextLayerExpertPrefetcher.choose(
-        scores: p.baseAddress!, count: 4, resident: []) == 3)
+        scores: p.baseAddress!, count: 4, resident: []) == [3])
       #expect(NextLayerExpertPrefetcher.choose(
-        scores: p.baseAddress!, count: 4, resident: [0, 1, 2, 3]) == nil)
+        scores: p.baseAddress!, count: 4, resident: [0, 1, 2, 3]) == [])
     }
+  }
+
+  @Test func earlyGuessesAreBestNonResidentExpertsBestFirst() {
+    let scores: [Float] = [0.5, 2.0, 1.5, 3.0, 2.0]
+    scores.withUnsafeBufferPointer { p in
+      #expect(NextLayerExpertPrefetcher.choose(
+        scores: p.baseAddress!, count: 5, resident: [], limit: 2) == [3, 1])
+      // Ties go to the lower ID.
+      #expect(NextLayerExpertPrefetcher.choose(
+        scores: p.baseAddress!, count: 5, resident: [3], limit: 2) == [1, 4])
+      #expect(NextLayerExpertPrefetcher.choose(
+        scores: p.baseAddress!, count: 5, resident: [1, 3, 4], limit: 3) == [2, 0])
+    }
+  }
+
+  @Test func earlyReadsPerLayerComesFromTheEnvironment() {
+    let key = NextLayerExpertPrefetcher.readsEnvironmentKey
+    #expect(NextLayerExpertPrefetcher.readsPerLayer(environment: [:]) == 1)
+    #expect(NextLayerExpertPrefetcher.readsPerLayer(environment: [key: "2"]) == 2)
+    #expect(NextLayerExpertPrefetcher.readsPerLayer(environment: [key: "8"]) == 8)
+    #expect(NextLayerExpertPrefetcher.readsPerLayer(environment: [key: "0"]) == 1)
+    #expect(NextLayerExpertPrefetcher.readsPerLayer(environment: [key: "9"]) == 1)
+    #expect(NextLayerExpertPrefetcher.readsPerLayer(environment: [key: "two"]) == 1)
   }
 }

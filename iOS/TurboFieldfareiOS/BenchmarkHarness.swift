@@ -314,6 +314,9 @@ struct HarnessSettings {
     /// <file>` uses a guess file in `Documents`. The log records which guess
     /// ran, from the runner itself. See `NextLayerGuessWeights`.
     static let earlyExpertGuessEnvironmentKey = "TURBO_FIELDFARE_EARLY_EXPERT_GUESS"
+    /// `--early-expert-reads <n>` reads the `n` likeliest experts per layer
+    /// early instead of one (1–8). The log records the count the runner used.
+    static let earlyExpertReadsEnvironmentKey = "TURBO_FIELDFARE_EARLY_EXPERT_READS"
 
     static func fromLaunchArguments() -> HarnessSettings {
         var settings = HarnessSettings()
@@ -362,6 +365,9 @@ struct HarnessSettings {
                 : FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                     .appendingPathComponent(v).path
             setenv(earlyExpertGuessEnvironmentKey, guess, 1)
+        }
+        if let v = value("--early-expert-reads") {
+            setenv(earlyExpertReadsEnvironmentKey, v, 1)
         }
         return settings
     }
@@ -635,6 +641,7 @@ final class Harness: ObservableObject {
             + "prefill=\(runtime.prefillPolicy.rawValue) "
             + "earlyExpertRead=\(runner.earlyExpertReadDescription == "off" ? "off" : "next-layer") "
             + "earlyExpertGuess=\(runner.earlyExpertReadDescription) "
+            + "earlyExpertReads=\(runner.earlyExpertReadsPerLayer) "
             + "expertReadNoCache="
             + "\(PreadExpertStreamer.readsBypassFileCache(environment: ProcessInfo.processInfo.environment)) "
             + "expertCacheAging="
