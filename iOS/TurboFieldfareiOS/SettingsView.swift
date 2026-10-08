@@ -2,7 +2,13 @@ import SwiftUI
 import TurboFieldfareAppCore
 import TurboFieldfareAppPresentation
 
-/// Sampling, memory and model controls, as a sheet.
+/// Sampling, memory and model controls, as a sheet with two tabs.
+///
+/// **Generation** holds what shapes replies: memory, then sampling, then a
+/// reset for both. **Models** holds what is on the phone: the loaded model,
+/// every stored one, image support and the harness. The tab bar is the
+/// system's; a paged `TabView` was tried first and lost the forms' scroll
+/// edge effect under the title bar.
 ///
 /// The Mac's `InspectorView` is the reference for the bindings. The option
 /// lists are the phone's own, because the phone measured differently. It
@@ -23,6 +29,10 @@ struct SettingsView: View {
     @State private var isConfirmingReset = false
     @State private var pendingDeletion: AppModelInstallDescriptor?
     @State private var deletionError: String?
+    @State private var page = Page.generation
+    @State private var isAddingModel = false
+
+    private enum Page: Hashable { case generation, models }
 
     /// Context sizes this phone may offer. See the type comment.
     static let contextOptions: [AppContextLengthOption] = [.fourK, .eightK]
@@ -37,66 +47,70 @@ struct SettingsView: View {
     ]
 
     var body: some View {
+        // One stack around both tabs, not one per tab: with a bar per tab,
+        // the scroll edge effect under it blinked off on every switch. The
+        // tab bar names the page, so the title bar carries only Done.
         NavigationStack {
-            Form {
-                generationSection
-                memorySection
-                // A text-only model has no image pack to download.
-                if model.installDescriptor.supportsImages {
-                    imageSection
-                }
-                resetSection
-                modelSection
-                storedModelsSection
-                Section {
-                    NavigationLink("Benchmark harness") {
-                        harness
+            TabView(selection: $page) {
+                Tab("Generation", systemImage: "slider.horizontal.3", value: Page.generation) {
+                    Form {
+                        memorySection
+                        generationSection
+                        resetSection
                     }
-                    // The harness loads its own copy of the model. Two copies
-                    // cannot fit: one alone holds the phone in compressor churn.
-                    .disabled(model.loadState.isReady || model.loadState.isLoading)
-                } footer: {
-                    Text(model.loadState.isReady || model.loadState.isLoading
-                         ? "Unload the model above to run the benchmark. It "
-                           + "loads its own copy, and two do not fit."
-                         : "The measurement instrument behind the device rows "
-                           + "in MEASUREMENTS.md. Not part of chatting.")
+                }
+                Tab("Models", systemImage: "square.stack.3d.up", value: Page.models) {
+                    Form {
+                        modelSection
+                        storedModelsSection
+                        // A text-only model has no image pack to download.
+                        if model.installDescriptor.supportsImages {
+                            imageSection
+                        }
+                        harnessSection
+                    }
                 }
             }
-            .navigationTitle("Settings")
+            // Both forms are short enough that the thumb only adds noise.
+            .scrollIndicators(.never)
             .navigationBarTitleDisplayMode(.inline)
-            .confirmationDialog("Remove image support?",
-                                isPresented: $model.isConfirmingVisionPackRemoval,
-                                titleVisibility: .visible) {
-                Button("Remove Image Support", role: .destructive) {
-                    model.removeVisionPack()
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Text chats keep working. Getting images back means "
-                     + "downloading the pack again.")
-            }
-            .confirmationDialog(
-                "Delete \(pendingDeletion?.shortName ?? "model")?",
-                isPresented: Binding(get: { pendingDeletion != nil },
-                                     set: { if !$0 { pendingDeletion = nil } }),
-                titleVisibility: .visible,
-                presenting: pendingDeletion
-            ) { descriptor in
-                Button("Delete", role: .destructive) { delete(descriptor) }
-                Button("Cancel", role: .cancel) {}
-            } message: { descriptor in
-                Text(descriptor.isCommunity
-                     ? "Its download is removed and it leaves the model menu. "
-                       + "Chats are kept."
-                     : "Its download is removed. It stays in the model menu, to "
-                       + "download again. Chats are kept.")
-            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                 }
             }
+        }
+        .sheet(isPresented: $isAddingModel) {
+            // An added model joins the list below on its own; there is
+            // nothing to pick here.
+            AddModelView(model: model) { _ in }
+        }
+        .confirmationDialog("Remove image support?",
+                            isPresented: $model.isConfirmingVisionPackRemoval,
+                            titleVisibility: .visible) {
+            Button("Remove Image Support", role: .destructive) {
+                model.removeVisionPack()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Text chats keep working. Getting images back means "
+                 + "downloading the pack again.")
+        }
+        .confirmationDialog(
+            "Delete \(pendingDeletion?.shortName ?? "model")?",
+            isPresented: Binding(get: { pendingDeletion != nil },
+                                 set: { if !$0 { pendingDeletion = nil } }),
+            titleVisibility: .visible,
+            presenting: pendingDeletion
+        ) { descriptor in
+            Button("Delete", role: .destructive) { delete(descriptor) }
+            Button("Cancel", role: .cancel) {}
+        } message: { descriptor in
+            Text(descriptor.isCommunity
+                 ? "Its download is removed and it leaves the model menu. "
+                   + "Chats are kept."
+                 : "Its download is removed. It stays in the model menu, to "
+                   + "download again. Chats are kept.")
         }
     }
 
@@ -153,7 +167,7 @@ struct SettingsView: View {
                 }
             }
         } header: {
-            Text("Generation")
+            Text("Sampling")
         } footer: {
             Text("These apply to the next message.")
         }
@@ -355,11 +369,11 @@ struct SettingsView: View {
                     + "images and chat are kept.", .secondary)
         }
         if !model.isVisionPackInstalled && model.loadState.isReady {
-            return ("Unload the model below before downloading image support.",
+            return ("Unload the model above before downloading image support.",
                     .secondary)
         }
         if model.isVisionPackInstalled && model.loadState.isReady {
-            return ("Unload the model below before removing image support.",
+            return ("Unload the model above before removing image support.",
                     .secondary)
         }
         return nil
@@ -413,7 +427,7 @@ struct SettingsView: View {
     // MARK: - Model
 
     private var modelSection: some View {
-        Section("Model") {
+        Section("Current Model") {
             LabeledContent("Model", value: model.installDescriptor.displayName)
             LabeledContent("Status", value: model.presentation.label)
             if let bytes = model.currentProcessMemoryBytes {
@@ -451,12 +465,32 @@ struct SettingsView: View {
                     .font(.footnote)
                     .foregroundStyle(.red)
             }
+            Button("Add Model…", systemImage: "plus") { isAddingModel = true }
         } header: {
             Text("Models on this iPhone")
         } footer: {
-            Text("Add more from the model menu under the message box. "
-                 + "Community models were added from a Hugging Face link: they "
-                 + "run like Gemma 4 but are not tested here.")
+            Text("Community models are added from a Hugging Face link: they "
+                 + "run like Gemma 4 but are not tested here. Pick one in the "
+                 + "model menu under the message box to download it.")
+        }
+    }
+
+    // MARK: - Harness
+
+    private var harnessSection: some View {
+        Section {
+            NavigationLink("Benchmark harness") {
+                harness
+            }
+            // The harness loads its own copy of the model. Two copies
+            // cannot fit: one alone holds the phone in compressor churn.
+            .disabled(model.loadState.isReady || model.loadState.isLoading)
+        } footer: {
+            Text(model.loadState.isReady || model.loadState.isLoading
+                 ? "Unload the model above to run the benchmark. It "
+                   + "loads its own copy, and two do not fit."
+                 : "The measurement instrument behind the device rows "
+                   + "in MEASUREMENTS.md. Not part of chatting.")
         }
     }
 
@@ -517,8 +551,6 @@ struct SettingsView: View {
             deletionError = "\(descriptor.shortName) could not be deleted: \(error)"
         }
     }
-
-    // MARK: - Harness
 
     private var harness: some View {
         VStack(alignment: .leading, spacing: 8) {
