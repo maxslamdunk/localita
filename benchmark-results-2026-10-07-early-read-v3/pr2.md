@@ -1,6 +1,6 @@
 ## Summary
 
-Builds on #PR1; please review that one first. This PR makes the early read
+Builds on #187; please review that one first. This PR makes the early read
 guess better and read more:
 
 1. **A fitted guess.** The early read scores layer L+1's experts as
@@ -28,11 +28,11 @@ separate PR, so the file can be refitted or fitted for another model.
 
 ## Validation
 
-- Same checks as #PR1. New tests: the loader reproduces the CPU reference
+- Same checks as #187. New tests: the loader reproduces the CPU reference
   through the router GEMV, rejects bad headers and sizes, and finds the
   shipped file by snapshot hash with a matching SHA-256; the read-count
   default.
-- Real model: the same runs on the same five Macs as #PR1.
+- Real model: the same runs on the same five Macs as #187.
 
 ## Memory and performance
 
