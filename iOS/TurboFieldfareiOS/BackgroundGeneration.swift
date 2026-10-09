@@ -72,6 +72,11 @@ final class BackgroundGeneration: NSObject {
 
     func scenePhaseChanged(_ phase: ScenePhase) {
         isForeground = phase != .background
+        if phase != .background, isPiPActive {
+            // Coming back, from the icon or the switcher: park first, so the
+            // window leaves upward instead of into the corner.
+            parkSourceLayer()
+        }
         if phase == .active {
             // Back in the app: the reply is on screen, so the window goes.
             controller?.stopPictureInPicture()
@@ -217,8 +222,9 @@ final class BackgroundGeneration: NSObject {
         let answer = model.outputText
         let isThought = answer.isEmpty && !model.thinkingText.isEmpty
         let text = isThought ? model.thinkingText : answer
-        // The tail is all that can show; drawing more only costs time.
-        return FrameContent(status: status, body: String(text.suffix(900)), isThought: isThought)
+        // The tail is all that can show. It is cut generously, so a code
+        // fence opened a few lines up is still seen as one.
+        return FrameContent(status: status, body: String(text.suffix(3000)), isThought: isThought)
     }
 
     private static let frameSize = CGSize(width: 480, height: 360)
@@ -265,13 +271,8 @@ final class BackgroundGeneration: NSObject {
         let top: CGFloat = 44
         let bodyRect = CGRect(x: margin, y: top, width: frameSize.width - 2 * margin,
                               height: frameSize.height - top - 12)
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.lineBreakMode = .byWordWrapping
-        let text = NSAttributedString(string: content.body, attributes: [
-            .font: UIFont.systemFont(ofSize: 22),
-            .foregroundColor: UIColor(white: content.isThought ? 0.6 : 0.95, alpha: 1),
-            .paragraphStyle: paragraph,
-        ])
+        let text = WindowMarkdown.styled(
+            content.body, color: UIColor(white: content.isThought ? 0.6 : 0.95, alpha: 1))
         let needed = text.boundingRect(
             with: CGSize(width: bodyRect.width, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil).height
@@ -310,8 +311,35 @@ final class BackgroundGeneration: NSObject {
         renderer.enqueue(sample)
     }
 
+    /// Where the source layer sits. Leaving PiP animates the window into this
+    /// rectangle, so it decides what coming back looks like.
+    ///
+    /// It starts as a small patch in the top-left corner, which is known to let
+    /// the window open (2026-10-09). Just before the window goes it becomes a
+    /// dot above the top edge, so the window shoots up off the screen. Filling
+    /// the screen instead made the window grow to full size first, which looked
+    /// worse; the corner made it fly into the corner.
+    private(set) var sourceFrame = BackgroundGeneration.openingFrame
+    private static let openingFrame = CGRect(x: 0, y: 0, width: 32, height: 24)
+
+    private func parkSourceLayer() {
+        let width = layer.superlayer?.bounds.width ?? UIScreen.main.bounds.width
+        setSourceFrame(CGRect(x: width / 2 - 1, y: -120, width: 2, height: 1.5))
+    }
+
+    private func setSourceFrame(_ frame: CGRect) {
+        guard sourceFrame != frame else { return }
+        sourceFrame = frame
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        layer.frame = frame
+        CATransaction.commit()
+    }
+
     private func pipChanged(active: Bool, event: String) {
         isPiPActive = active
+        // Gone again: back where the next window opens from.
+        if !active { setSourceFrame(Self.openingFrame) }
         TurnMemoryLog.shared.note(event)
         updateAvailability()
         if active {
@@ -321,25 +349,21 @@ final class BackgroundGeneration: NSObject {
         }
     }
 
-    /// Hosts `layer` in the window. PiP can start only from a layer that is in
-    /// the view hierarchy and showing frames; this one sits behind the chat's
-    /// opaque background, so it is never seen.
+    /// Hosts `layer` in the window, at `sourceFrame`. PiP can start only from
+    /// a layer that is in the view hierarchy and showing frames; this one sits
+    /// behind the chat's opaque background, so it is never seen.
     struct SourceView: UIViewRepresentable {
         func makeUIView(context: Context) -> UIView {
-            let view = LayerHost()
+            let view = UIView()
             view.isUserInteractionEnabled = false
-            view.layer.addSublayer(BackgroundGeneration.shared.layer)
+            view.clipsToBounds = false
+            let background = BackgroundGeneration.shared
+            view.layer.addSublayer(background.layer)
+            background.layer.frame = background.sourceFrame
             return view
         }
 
         func updateUIView(_ uiView: UIView, context: Context) {}
-
-        private final class LayerHost: UIView {
-            override func layoutSubviews() {
-                super.layoutSubviews()
-                layer.sublayers?.forEach { $0.frame = bounds }
-            }
-        }
     }
 }
 
@@ -366,6 +390,9 @@ extension BackgroundGeneration: AVPictureInPictureControllerDelegate,
         _ controller: AVPictureInPictureController,
         restoreUserInterfaceForPictureInPictureStopWithCompletionHandler
         completionHandler: @escaping (Bool) -> Void) {
+        // The full-screen button: park before the system animates the window
+        // back into the layer.
+        MainActor.assumeIsolated { parkSourceLayer() }
         completionHandler(true)
     }
 
@@ -387,4 +414,90 @@ extension BackgroundGeneration: AVPictureInPictureControllerDelegate,
 
     nonisolated func pictureInPictureController(_ controller: AVPictureInPictureController,
                                                 skipByInterval skipInterval: CMTime) async {}
+}
+
+/// The reply's Markdown, lightly styled for a window a few centimetres wide:
+/// emphasis, inline code and links through Foundation's inline parser,
+/// headings as bold lines, list markers as bullets, code fences hidden and
+/// their contents in a monospaced face. Tables and math stay as written; the
+/// chat renders them properly.
+enum WindowMarkdown {
+    static let size: CGFloat = 22
+
+    static func styled(_ markdown: String, color: UIColor) -> NSAttributedString {
+        let out = NSMutableAttributedString()
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = .byWordWrapping
+        paragraph.paragraphSpacing = 4
+        let base: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: size),
+            .foregroundColor: color,
+            .paragraphStyle: paragraph,
+        ]
+        var inFence = false
+        for raw in markdown.split(separator: "\n", omittingEmptySubsequences: false) {
+            let line = String(raw)
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("```") {
+                inFence.toggle()
+                continue
+            }
+            if !out.string.isEmpty { out.append(NSAttributedString(string: "\n", attributes: base)) }
+            if inFence {
+                var code = base
+                code[.font] = UIFont.monospacedSystemFont(ofSize: size - 3, weight: .regular)
+                code[.foregroundColor] = color.withAlphaComponent(0.75)
+                out.append(NSAttributedString(string: line, attributes: code))
+                continue
+            }
+            var attributes = base
+            var body = line
+            if let heading = trimmed.range(of: #"^#{1,6}\s+"#, options: .regularExpression) {
+                body = String(trimmed[heading.upperBound...])
+                attributes[.font] = UIFont.systemFont(ofSize: size + 1, weight: .bold)
+            } else if let bullet = line.range(of: #"^\s*[-*+]\s+"#, options: .regularExpression) {
+                let indent = String(repeating: "  ", count: line.prefix { $0 == " " }.count / 2)
+                body = indent + "• " + line[bullet.upperBound...]
+            } else if let quote = trimmed.range(of: #"^>\s?"#, options: .regularExpression) {
+                body = String(trimmed[quote.upperBound...])
+                attributes[.foregroundColor] = color.withAlphaComponent(0.7)
+            } else if trimmed.range(of: #"^([-*_])\1{2,}$"#, options: .regularExpression) != nil {
+                body = ""
+            }
+            out.append(inline(body, attributes: attributes))
+        }
+        return out
+    }
+
+    /// Emphasis, code and links. A line the parser refuses, or one still
+    /// mid-stream with an unclosed marker, is shown as written.
+    private static func inline(_ line: String,
+                               attributes: [NSAttributedString.Key: Any]) -> NSAttributedString {
+        guard let parsed = try? AttributedString(
+            markdown: line,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) else {
+            return NSAttributedString(string: line, attributes: attributes)
+        }
+        let baseFont = attributes[.font] as? UIFont ?? UIFont.systemFont(ofSize: size)
+        let out = NSMutableAttributedString()
+        for run in parsed.runs {
+            var runAttributes = attributes
+            let intent = run.inlinePresentationIntent ?? []
+            var traits = baseFont.fontDescriptor.symbolicTraits
+            if intent.contains(.stronglyEmphasized) { traits.insert(.traitBold) }
+            if intent.contains(.emphasized) { traits.insert(.traitItalic) }
+            if intent.contains(.code) {
+                runAttributes[.font] = UIFont.monospacedSystemFont(ofSize: baseFont.pointSize - 2,
+                                                                  weight: .regular)
+            } else if let descriptor = baseFont.fontDescriptor.withSymbolicTraits(traits) {
+                runAttributes[.font] = UIFont(descriptor: descriptor, size: baseFont.pointSize)
+            }
+            if intent.contains(.strikethrough) {
+                runAttributes[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
+            }
+            out.append(NSAttributedString(string: String(parsed[run.range].characters),
+                                          attributes: runAttributes))
+        }
+        return out
+    }
 }

@@ -93,10 +93,11 @@ struct ChatView: View {
         .background(Color(uiColor: .systemBackground))
         // Behind the opaque background, so never seen: the layer the
         // background-generation window takes its picture from has to be in the
-        // window for the window to open.
-        .background(alignment: .topLeading) {
+        // window for the window to open. The host fills the chat, and
+        // `BackgroundGeneration` places the layer inside it: where the layer
+        // is when the window closes is where the window flies to.
+        .background {
             BackgroundGeneration.SourceView()
-                .frame(width: 32, height: 24)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
