@@ -51,7 +51,10 @@ every case), rule 2 (fitted's median over router above 0) and rule 3 (fitted
 ×2 beats fitted in ≥ 3 of 4 pairs every case) all pass. The rules apply across
 every Mac, so the decisions wait for the friends' reports.
 
-## The M1 Pro, 16 GB (fork issue #4)
+## An M1 MacBook Pro, 16 GB (fork issue #4)
+
+The predictions call this Mac "the M1 Pro"; its report says MacBook Pro
+with an Apple M1 chip, so it is a plain M1.
 
 macOS 27.0.1, Swift 6.4, `43da4c2`, posted 2026-10-07 09:04. All 48 runs
 finished; one run flagged (short run 1, off, +3.6%).
@@ -149,6 +152,6 @@ over off, while two gain +66% over one:
 
 ## Decisions so far
 
-On all four Macs (our M1, the M1 Pro, the M1 MacBook Pro and the M3), every
+On all four Macs (our M1 Air, the two M1 MacBook Pros and the M3), every
 rule passes: router beats off, fitted's median beats router, and fitted ×2
 beats fitted in every pair of every case. One more friend's run is pending.
