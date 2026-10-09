@@ -3,13 +3,17 @@
 Builds on #PR1; please review that one first. This PR makes the early read
 guess better and read more:
 
-1. **A fitted guess.** The early read scores the next layer's experts with
-   that layer's router. A per-layer ridge correction to the router, fitted
-   offline, guesses right more often: precision 0.69–0.72 → 0.83–0.87. This PR
-   ships it for gemma4 (`NextLayerGuess/`, 11.1 MB, mapped read-only, in the
-   router's own 8-bit format so the same GEMV kernel runs it) and makes
-   `--early-expert-read fitted` the default. A model with no fitted file falls
-   back to `router`. The `[early-read …]` line names the guess that ran.
+1. **A fitted guess.** The early read scores layer L+1's experts as
+   `x_L · W_{L+1}ᵀ`: layer L's router input times layer L+1's router. The
+   fitted guess adds a per-layer correction, `x_L · (W_{L+1} + B_{L+1})ᵀ`.
+   Only `B` is fitted (ridge regression on routing traces); `W` is the
+   model's own router, unchanged. Precision rises from 0.69–0.72 to
+   0.83–0.87. This PR ships `W + B` for gemma4, pre-added and quantized to the
+   router's 8-bit format so the existing router kernel runs it unchanged
+   (`NextLayerGuess/`, 11.1 MB, mapped read-only). So the file includes the
+   router weights (Gemma 4 is Apache 2.0). `--early-expert-read fitted` is the
+   new default; a model with no fitted file falls back to `router`. The
+   `[early-read …]` line names the guess that ran.
 2. **Two reads per layer.** With the fitted guess, a second early read per
    layer paid off on every Mac tested. `TURBO_FIELDFARE_EARLY_EXPERT_READS=1`
    restores one.
