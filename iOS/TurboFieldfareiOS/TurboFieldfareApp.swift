@@ -24,6 +24,8 @@ struct TurboFieldfareiOSApp: App {
             Group {
                 if Self.isBenchmarkRun {
                     HarnessView()
+                } else if BackgroundProbe.isRequested {
+                    BackgroundProbeView()
                 } else {
                     ChatView(model: model, network: network)
                         .task {
@@ -43,7 +45,7 @@ struct TurboFieldfareiOSApp: App {
             // `initial` so a launch counts as a return: a download that iOS
             // stopped, or that died with the app, resumes when it opens.
             .onChange(of: scenePhase, initial: true) { _, phase in
-                guard !Self.isBenchmarkRun else { return }
+                guard !Self.isBenchmarkRun, !BackgroundProbe.isRequested else { return }
                 Suspension.handle(phase, model: model, network: network)
             }
             // The installer creates the folders as it goes, so the backup mark

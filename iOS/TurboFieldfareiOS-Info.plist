@@ -9,6 +9,13 @@
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>io.github.maxslamdunk.TurboFieldfareiOS.download.*</string>
+		<string>io.github.maxslamdunk.TurboFieldfareiOS.probe.*</string>
+	</array>
+	<!-- BackgroundProbe: Picture in Picture needs this mode. It does not keep
+	     the app running by itself; only playing audio or PiP would. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
 	</array>
 </dict>
 </plist>
