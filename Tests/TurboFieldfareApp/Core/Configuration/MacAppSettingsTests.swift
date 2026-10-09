@@ -108,7 +108,7 @@ import TurboFieldfare
         #expect(settings.newlineShortcut == .return)
         #expect(settings.showPromptExamples)
         #expect(settings.visionResidencyPolicy == .onDemand)
-        #expect(settings.backgroundGeneration)
+        #expect(!settings.backgroundGeneration)
     }
 
     /// Additive, like every field around it: a settings file written before the
@@ -393,13 +393,13 @@ import TurboFieldfare
             at: modelDirectory,
             withIntermediateDirectories: true)
         let model = AppModel(modelDirectory: modelDirectory, settingsPersistenceEnabled: true)
-        #expect(model.backgroundGeneration)
+        #expect(!model.backgroundGeneration)
 
-        model.setBackgroundGeneration(false)
+        model.setBackgroundGeneration(true)
 
-        #expect(!MacAppSettingsFileStore.loadOrCreate(forModelDirectory: modelDirectory)
+        #expect(MacAppSettingsFileStore.loadOrCreate(forModelDirectory: modelDirectory)
             .backgroundGeneration)
-        #expect(!AppModel(modelDirectory: modelDirectory, settingsPersistenceEnabled: true)
+        #expect(AppModel(modelDirectory: modelDirectory, settingsPersistenceEnabled: true)
             .backgroundGeneration)
     }
 

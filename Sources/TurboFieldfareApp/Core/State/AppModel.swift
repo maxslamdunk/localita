@@ -101,8 +101,8 @@ public final class AppModel {
     /// default, because loading takes minutes and holds gigabytes.
     public private(set) var loadModelOnLaunch: Bool = false
     /// iOS: keep a reply generating in Picture in Picture after leaving the
-    /// app, and pause it on a lock instead of stopping it. On by default.
-    public private(set) var backgroundGeneration: Bool = true
+    /// app, and pause it on a lock instead of stopping it. Off by default.
+    public private(set) var backgroundGeneration: Bool = false
     /// The turn is paused because the system refused its GPU work (iOS: in
     /// the background without Picture in Picture, or locked). It resumes on
     /// its own once the GPU is allowed again; Stop ends it, keeping the reply.

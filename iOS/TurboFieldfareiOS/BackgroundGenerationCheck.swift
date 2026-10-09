@@ -8,8 +8,9 @@ import TurboFieldfareAppCore
 ///
 /// Test-only, like `--model-switch-check`. It does not leave the app by
 /// itself: whoever runs it does that, by hand or by launching another app with
-/// `devicectl`, and comes back the same way. It leaves the phone as it found
-/// it, with the chat it wrote deleted.
+/// `devicectl`, and comes back the same way. It turns the setting on for the
+/// run, since it is off by default, and leaves the phone as it found it: the
+/// setting restored and the chat it wrote deleted.
 @MainActor
 enum BackgroundGenerationCheck {
     static let isRequested = ProcessInfo.processInfo.arguments.contains("--background-generation-check")
@@ -38,6 +39,10 @@ enum BackgroundGenerationCheck {
             return emit("abort", "load failed: \(model.loadState)")
         }
         emit("loaded", state())
+
+        let settingWasOn = model.backgroundGeneration
+        model.setBackgroundGeneration(true)
+        defer { model.setBackgroundGeneration(settingWasOn) }
 
         model.newChat()
         model.promptText = prompt

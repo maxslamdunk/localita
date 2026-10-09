@@ -285,12 +285,15 @@ Steps:
    the download at a checkpoint, and returning resumes it. The image-support
    download still works that way.
 
-   🚧 **A reply keeps generating in the background since 2026-10-09**
-   (`BackgroundGeneration`; built, not yet run on the phone). The probes in
+   ✅ **A reply can keep generating in the background since 2026-10-09**
+   (`BackgroundGeneration`, opt-in; tried by hand on the phone, no
+   scripted run). The probes in
    `validation-results-2026-10-09-ios-background-probes/` found one way for a
    backgrounded app to use the GPU: showing Picture in Picture. So when the
    user leaves mid-reply, the reply moves to a small window that shows its
-   last lines and offers only close and return-to-app controls. Locking the
+   last lines, with Markdown styled, and offers only close and return-to-app
+   controls (`controlsStyle` 1; 2, with no controls at all, was tried and
+   dropped). Locking the
    phone refuses GPU work even then. The decode loop now catches that refusal
    (`GPUWorkNotPermitted`, Metal's code 7) and asks a `GPURefusalHandler`
    what to do. The app's handler waits in `GPUWorkGate` and runs the same
@@ -302,8 +305,11 @@ Steps:
      reply.
    - **Leaving without a window** (it failed to open, and the phone is not
      locked): stops the turn and saves it, as before.
-   - **The setting** "Keep generating in background" defaults to on. Off
-     restores the old stop-on-leave behavior.
+   - **The setting** "Keep generating in background" is off by default,
+     which keeps the old stop-on-leave behavior.
+   - **Returning** through the app icon closes the window cleanly. Its
+     full-screen button still grows the window to full screen before it
+     goes, which was judged acceptable.
 
    Known risk: a paused turn lives only in memory, and iOS kills a frozen
    3 GB app after a few minutes (probe run 2). The window uses the private
