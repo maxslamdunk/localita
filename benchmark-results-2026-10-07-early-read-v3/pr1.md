@@ -20,7 +20,7 @@ runs, the CLI prints one more line after the footer:
 - `swift build -c release`, `Scripts/test.sh`, the SwiftUI macro and Markdown
   link checks. New tests: an adopted early read skips its read and leaves the
   cache consistent; guess selection; the flag on CLI and server; the footer.
-- Real model, on four Macs: the `docs/COMMUNITY_BENCHMARKS.md` prompts and
+- Real model, on five Macs: the `docs/COMMUNITY_BENCHMARKS.md` prompts and
   settings, each case run 16 times in the order off, router, fitted, fitted ×2,
   fitted ×2, fitted, router, off (twice). Each comparison is between adjacent
   runs. `fitted` and ×2 are the follow-up PR. Generated text was identical
@@ -40,6 +40,7 @@ case.
 | M1 MacBook Pro, 8 GB ([report](https://github.com/maxslamdunk/turbo-fieldfare/issues/7)) | +14.1% | +12.9% | +11.4% | 12 of 12 |
 | M1 MacBook Pro, 16 GB ([report](https://github.com/maxslamdunk/turbo-fieldfare/issues/4)) | +30.8% | +30.2% | +26.6% | 12 of 12 |
 | M3 MacBook Air, 16 GB ([report](https://github.com/maxslamdunk/turbo-fieldfare/issues/8)) | +29.1% | +16.2% | +1.0% | 11 of 12 |
+| M4 MacBook Air, 16 GB ([report](https://github.com/maxslamdunk/turbo-fieldfare/issues/9)) | +12.5% | +9.8% | +9.9% | 12 of 12 |
 
 Each report has every run, the noise between identical runs, and the
 early-read counters.

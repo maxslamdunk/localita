@@ -32,7 +32,7 @@ separate PR, so the file can be refitted or fitted for another model.
   through the router GEMV, rejects bad headers and sizes, and finds the
   shipped file by snapshot hash with a matching SHA-256; the read-count
   default.
-- Real model: the same runs on the same four Macs as #PR1.
+- Real model: the same runs on the same five Macs as #PR1.
 
 ## Memory and performance
 
@@ -47,15 +47,17 @@ Decode tok/s, short / medium / long. The steps are the median change over the
 | M1 MacBook Pro, 8 GB ([report](https://github.com/maxslamdunk/turbo-fieldfare/issues/7)) | +3.8 / +2.3 / +2.4% | +9.8 / +12.6 / +12.6% | **+29 / +31 / +29%** |
 | M1 MacBook Pro, 16 GB ([report](https://github.com/maxslamdunk/turbo-fieldfare/issues/4)) | +0.9 / +1.6 / +1.9% | +4.9 / +2.4 / +3.6% | **+37 / +36 / +33%** |
 | M3 MacBook Air, 16 GB ([report](https://github.com/maxslamdunk/turbo-fieldfare/issues/8)) | +1.3 / +1.7 / −3.3% | +12.3 / +23.8 / +65.8% | **+46 / +46 / +67%** |
+| M4 MacBook Air, 16 GB ([report](https://github.com/maxslamdunk/turbo-fieldfare/issues/9)) | +0.4 / −0.3 / +0.9% | +8.7 / +9.8 / +11.2% | **+23 / +21 / +23%** |
 
-Two reads beat one in all 48 pairs. Generated text was identical across every
+Two reads beat one in all 60 pairs. Generated text was identical across every
 run of each case on every Mac.
 
 ## Remaining limitations
 
-- On the M3's long case, the fitted guess lost to the router at one read (1 of
-  4 pairs). At two reads, the default, that case gained the most. I couldn't
-  find a cause in the run conditions.
+- At one read, the fitted guess gained little on the 16 GB Macs, and nothing
+  on the M4 (median −0.05%, faster in 5 of 12 pairs) or in the M3's long case
+  (−3.3%). With two reads, the default, every case on every Mac was faster
+  than with one.
 - Fitted on English prompts. The gain held on the Russian, Chinese and Spanish
   prompts above; other languages are untested.
 
