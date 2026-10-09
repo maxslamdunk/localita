@@ -48,7 +48,6 @@ run of each case on every Mac.
 
 ## Remaining limitations
 
-- Fitted for one model; others fall back to the router guess.
 - On the M3's long case, the fitted guess lost to the router at one read (1 of
   4 pairs). At two reads, the default, that case gained the most. I couldn't
   find a cause in the run conditions.
