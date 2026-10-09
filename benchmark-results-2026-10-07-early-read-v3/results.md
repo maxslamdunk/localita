@@ -168,7 +168,7 @@ precision 0.833–0.864).
 **Missed: fitted vs router.** The prediction for every other Mac was that
 fitted's median over router is above 0. On this Mac the median of its 12
 pairs is −0.05% (5 of 12 faster), so **rule 2 fails here**, and by the rule
-PR 2 names this Mac. The fitted guess still loads 4.2–4.3 more experts per
+PR 2 names this Mac. The fitted guess still loads 4.1–4.3 more experts per
 token early than the router does, as on every Mac; here those hits buy no
 time. Rules 1 and 3 pass.
 
