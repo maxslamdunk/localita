@@ -150,8 +150,34 @@ over off, while two gain +66% over one:
   files hold only tok/s and the early-read counters. Explaining it needs a
   phase-timed run on this Mac.
 
+## The M4 MacBook Air, 16 GB (fork issue #9)
+
+macOS 26.5, Swift 6.3.3, `43da4c2`, posted 2026-10-09 06:51 by the M3's
+owner. All 48 runs finished, none flagged. **Noise: median 1.5%** (largest
+3.1%), so the report is usable.
+
+| | short | medium | long |
+| --- | ---: | ---: | ---: |
+| router vs off | **+12.5%** (4 of 4) | **+9.8%** (4 of 4) | **+9.9%** (4 of 4) |
+| fitted vs router | **+0.4%** (3 of 4) | **−0.3%** (0 of 4) | **+0.9%** (2 of 4) |
+| fitted ×2 vs fitted | **+8.7%** (4 of 4) | **+9.8%** (4 of 4) | **+11.2%** (4 of 4) |
+
+Output SHAs and counters exactly as on the M3 (one output per case; fitted
+precision 0.833–0.864).
+
+**Missed: fitted vs router.** The prediction for every other Mac was that
+fitted's median over router is above 0. On this Mac the median of its 12
+pairs is −0.05% (5 of 12 faster), so **rule 2 fails here**, and by the rule
+PR 2 names this Mac. The fitted guess still loads 4.2–4.3 more experts per
+token early than the router does, as on every Mac; here those hits buy no
+time. Rules 1 and 3 pass.
+
 ## Decisions so far
 
-On all four Macs (our M1 Air, the two M1 MacBook Pros and the M3), every
-rule passes: router beats off, fitted's median beats router, and fitted ×2
-beats fitted in every pair of every case. One more friend's run is pending.
+Five Macs: our M1 Air, the two M1 MacBook Pros, the M3 and the M4.
+
+- **Rule 1 passes on all five:** PR 1 claims the speedup.
+- **Rule 2 passes on four and fails on the M4** (median −0.05%): PR 2 claims
+  fitted beats router and names the M4.
+- **Rule 3 passes on all five:** fitted ×2 beat fitted in all 60 pairs, so the
+  Mac default becomes two reads (PR 2). The iPhone stays at one.
