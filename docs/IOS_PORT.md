@@ -285,6 +285,31 @@ Steps:
    the download at a checkpoint, and returning resumes it. The image-support
    download still works that way.
 
+   🚧 **A reply keeps generating in the background since 2026-10-09**
+   (`BackgroundGeneration`; built, not yet run on the phone). The probes in
+   `validation-results-2026-10-09-ios-background-probes/` found one way for a
+   backgrounded app to use the GPU: showing Picture in Picture. So when the
+   user leaves mid-reply, the reply moves to a small window that shows its
+   last lines and offers only close and return-to-app controls. Locking the
+   phone refuses GPU work even then. The decode loop now catches that refusal
+   (`GPUWorkNotPermitted`, Metal's code 7) and asks a `GPURefusalHandler`
+   what to do. The app's handler waits in `GPUWorkGate` and runs the same
+   token again when the GPU is back. That is safe because the KV advances
+   only after a whole forward succeeds. A prefill refusal resumes after the
+   chunks that committed.
+   - **Lock:** the reply pauses, and unlocking resumes it.
+   - **Closing the window:** suspends the app, and coming back resumes the
+     reply.
+   - **Leaving without a window** (it failed to open, and the phone is not
+     locked): stops the turn and saves it, as before.
+   - **The setting** "Keep generating in background" defaults to on. Off
+     restores the old stop-on-leave behavior.
+
+   Known risk: a paused turn lives only in memory, and iOS kills a frozen
+   3 GB app after a few minutes (probe run 2). The window uses the private
+   `controlsStyle` key and has no video, which App Review would refuse. The
+   app is side-loaded.
+
    ✅ **Community models from a pasted link since 2026-10-07.** Add Model in
    the composer's model menu takes a Hugging Face link or `owner/name`.
    `RemoteModelInspector` reads only the config, the index and each shard's

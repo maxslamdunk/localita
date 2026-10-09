@@ -57,13 +57,53 @@ func metalCommandBufferFailureDetail(label: String?,
     return parts.joined(separator: " ")
 }
 
+/// The system refused this process's GPU work: on iOS, an app in the
+/// background that is not showing Picture in Picture, or any app once the
+/// phone locks (`MTLCommandBufferError.notPermitted`, code 7). Nothing is
+/// wrong with the work itself, so the same work succeeds once the app may use
+/// the GPU again; `runRawCompletion` can wait and retry the token
+/// (`GPURefusalHandler`).
+public struct GPUWorkNotPermitted: Error, CustomStringConvertible, Sendable {
+    public let detail: String
+
+    public init(detail: String) {
+        self.detail = detail
+    }
+
+    public var description: String { "GPU work not permitted: \(detail)" }
+}
+
+/// Whether a command buffer's error is the system refusing GPU work, as
+/// opposed to the work failing.
+func isGPUWorkRefusal(_ error: (any Error)?) -> Bool {
+    guard let nsError = error as NSError? else { return false }
+    return nsError.domain == MTLCommandBufferErrorDomain
+        && nsError.code == MTLCommandBufferError.Code.notPermitted.rawValue
+}
+
 func checkCommandBufferError(_ commandBuffer: MTLCommandBuffer) throws {
     guard let detail = metalCommandBufferFailureDetail(label: commandBuffer.label,
                                                        status: commandBuffer.status,
                                                        error: commandBuffer.error) else {
         return
     }
+    if isGPUWorkRefusal(commandBuffer.error) {
+        throw GPUWorkNotPermitted(detail: detail)
+    }
     throw MetalError.commandBufferFailed(detail)
+}
+
+/// Waits until every command buffer already committed to `queue` has finished.
+///
+/// The queue runs its buffers in commit order, so an empty buffer committed
+/// now completes after all of them. Used after a refused forward, whose
+/// earlier buffers may still be running against the slots and scratch a retry
+/// is about to reuse.
+func drainCommandQueue(_ queue: MTLCommandQueue) {
+    guard let commandBuffer = queue.makeCommandBuffer() else { return }
+    commandBuffer.label = "drain"
+    commandBuffer.commit()
+    commandBuffer.waitUntilCompleted()
 }
 
 public struct MetalFunctionConstant: Hashable, Sendable {

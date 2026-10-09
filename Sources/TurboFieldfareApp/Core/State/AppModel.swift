@@ -100,6 +100,13 @@ public final class AppModel {
     /// Whether launching the app should load the model straight away. Off by
     /// default, because loading takes minutes and holds gigabytes.
     public private(set) var loadModelOnLaunch: Bool = false
+    /// iOS: keep a reply generating in Picture in Picture after leaving the
+    /// app, and pause it on a lock instead of stopping it. On by default.
+    public private(set) var backgroundGeneration: Bool = true
+    /// The turn is paused because the system refused its GPU work (iOS: in
+    /// the background without Picture in Picture, or locked). It resumes on
+    /// its own once the GPU is allowed again; Stop ends it, keeping the reply.
+    public private(set) var isWaitingForGPU = false
     public var diagnostics: AppDiagnostics?
     public var error: AppInferenceError?
     public var installState: AppModelInstallState = .idle
@@ -299,6 +306,7 @@ public final class AppModel {
         self.isSidebarVisible = settings.sidebarVisible
         self.isInspectorVisible = settings.inspectorVisible
         self.loadModelOnLaunch = settings.loadModelOnLaunch
+        self.backgroundGeneration = settings.backgroundGeneration
         self.installationStatus = AppModelInstallationProbe.status(
             at: directory, descriptor: installer.descriptor)
         self.visionInstallationStatus = AppVisionPackInstallationProbe.status(at: directory)
@@ -347,6 +355,7 @@ public final class AppModel {
         refreshInstallReadiness()
         refreshVisionInstallReadiness()
         activateConversationStore()
+        observeGPUWorkGate()
     }
 
     /// What the Context picker may offer on this Mac.
@@ -1223,6 +1232,26 @@ public final class AppModel {
         guard loadModelOnLaunch != enabled else { return }
         loadModelOnLaunch = enabled
         persistSettings()
+    }
+
+    public func setBackgroundGeneration(_ enabled: Bool) {
+        guard backgroundGeneration != enabled else { return }
+        backgroundGeneration = enabled
+        persistSettings()
+    }
+
+    /// Where the platform layer says whether the GPU may be used, for a
+    /// client whose turns pause on a refusal. Nil for one that cannot.
+    public var gpuWorkGate: GPUWorkGate? {
+        (client as? any AppGPUWorkGating)?.gpuWorkGate
+    }
+
+    /// Mirrors the gate's waiting flag onto the main actor.
+    private func observeGPUWorkGate() {
+        guard let gate = gpuWorkGate else { return }
+        gate.observeWaiting { [weak self] in
+            Task { @MainActor in self?.isWaitingForGPU = gate.isWaiting }
+        }
     }
 
     /// Starts the launch load if it is switched on and the model can be loaded.
@@ -2295,6 +2324,7 @@ public final class AppModel {
         isSidebarVisible = settings.sidebarVisible
         isInspectorVisible = settings.inspectorVisible
         loadModelOnLaunch = settings.loadModelOnLaunch
+        backgroundGeneration = settings.backgroundGeneration
     }
 
     func persistSettings() {
@@ -2315,7 +2345,8 @@ public final class AppModel {
             inspectorVisible: isInspectorVisible,
             visionResidencyPolicy: runtimeOptions.visionResidencyPolicy,
             rdadvisePolicy: runtimeOptions.rdadvisePolicy,
-            loadModelOnLaunch: loadModelOnLaunch)
+            loadModelOnLaunch: loadModelOnLaunch,
+            backgroundGeneration: backgroundGeneration)
         let modelDirectory = URL(fileURLWithPath: modelPathText, isDirectory: true)
         do {
             try MacAppSettingsFileStore.save(settings, forModelDirectory: modelDirectory)

@@ -34,6 +34,10 @@ struct MacAppSettings: Codable, Equatable, Sendable {
     var visionResidencyPolicy: VisionResidencyPolicy = .onDemand
     var rdadvisePolicy: AppRDAdvicePolicy = .off
     var loadModelOnLaunch: Bool = false
+    /// iOS only: whether a reply keeps generating after the user leaves the
+    /// app, in a Picture in Picture window, and pauses on a lock rather than
+    /// stopping. The Mac ignores it.
+    var backgroundGeneration: Bool = true
 
     private enum CodingKeys: String, CodingKey {
         case version
@@ -53,6 +57,7 @@ struct MacAppSettings: Codable, Equatable, Sendable {
         case visionResidencyPolicy
         case rdadvisePolicy
         case loadModelOnLaunch
+        case backgroundGeneration
     }
 
     init(version: Int = currentVersion,
@@ -71,7 +76,8 @@ struct MacAppSettings: Codable, Equatable, Sendable {
          inspectorVisible: Bool = true,
          visionResidencyPolicy: VisionResidencyPolicy = .onDemand,
          rdadvisePolicy: AppRDAdvicePolicy = .off,
-         loadModelOnLaunch: Bool = false) {
+         loadModelOnLaunch: Bool = false,
+         backgroundGeneration: Bool = true) {
         self.version = version
         self.contextTokens = contextTokens
         self.expertCacheSlots = expertCacheSlots
@@ -89,6 +95,7 @@ struct MacAppSettings: Codable, Equatable, Sendable {
         self.visionResidencyPolicy = visionResidencyPolicy
         self.rdadvisePolicy = rdadvisePolicy
         self.loadModelOnLaunch = loadModelOnLaunch
+        self.backgroundGeneration = backgroundGeneration
     }
 
     init(from decoder: Decoder) throws {
@@ -138,6 +145,9 @@ struct MacAppSettings: Codable, Equatable, Sendable {
         loadModelOnLaunch = try container.decodeIfPresent(
             Bool.self,
             forKey: .loadModelOnLaunch) ?? false
+        backgroundGeneration = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .backgroundGeneration) ?? true
     }
 
     func isValid() -> Bool {

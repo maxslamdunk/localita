@@ -108,6 +108,7 @@ import TurboFieldfare
         #expect(settings.newlineShortcut == .return)
         #expect(settings.showPromptExamples)
         #expect(settings.visionResidencyPolicy == .onDemand)
+        #expect(settings.backgroundGeneration)
     }
 
     /// Additive, like every field around it: a settings file written before the
@@ -371,6 +372,35 @@ import TurboFieldfare
             from: JSONEncoder().encode(initial))
 
         #expect(decoded == initial)
+    }
+
+    @Test(arguments: [true, false])
+    func backgroundGenerationRoundTrips(_ enabled: Bool) throws {
+        let initial = MacAppSettings(backgroundGeneration: enabled)
+        let decoded = try JSONDecoder().decode(
+            MacAppSettings.self,
+            from: JSONEncoder().encode(initial))
+
+        #expect(decoded == initial)
+    }
+
+    @MainActor
+    @Test func backgroundGenerationIsSavedWhenSwitched() throws {
+        let root = try makeTemporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let modelDirectory = root.appendingPathComponent("gemma4.gturbo", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: modelDirectory,
+            withIntermediateDirectories: true)
+        let model = AppModel(modelDirectory: modelDirectory, settingsPersistenceEnabled: true)
+        #expect(model.backgroundGeneration)
+
+        model.setBackgroundGeneration(false)
+
+        #expect(!MacAppSettingsFileStore.loadOrCreate(forModelDirectory: modelDirectory)
+            .backgroundGeneration)
+        #expect(!AppModel(modelDirectory: modelDirectory, settingsPersistenceEnabled: true)
+            .backgroundGeneration)
     }
 
     @Test func invalidNewlineShortcutIsReplacedWithDefaults() throws {

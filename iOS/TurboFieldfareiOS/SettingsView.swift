@@ -71,6 +71,7 @@ struct SettingsView: View {
                     Form {
                         memorySection
                         generationSection
+                        backgroundSection
                         resetSection
                     }
                 }
@@ -210,6 +211,31 @@ struct SettingsView: View {
             Text("These apply to the next message.")
         }
         .disabled(model.isRunning)
+    }
+
+    // MARK: - Background
+
+    /// Through the setter, so the choice is saved with the other settings.
+    private var backgroundBinding: Binding<Bool> {
+        Binding { model.backgroundGeneration } set: { model.setBackgroundGeneration($0) }
+    }
+
+    /// iOS lets a backgrounded app use the GPU only while it shows Picture in
+    /// Picture, and no app once the phone locks (2026-10-09 probes). So a
+    /// reply carries on in a small window, and a lock pauses it.
+    private var backgroundSection: some View {
+        Section {
+            described("When you leave the app mid-reply, the reply keeps "
+                      + "generating in a small floating window that shows its "
+                      + "text. Locking the phone, or closing the window, pauses "
+                      + "it; it picks up again when you unlock or come back. "
+                      + "Off stops the reply when you leave, keeping what it "
+                      + "wrote.") {
+                Toggle("Keep generating in background", isOn: backgroundBinding)
+            }
+        } header: {
+            Text("Background")
+        }
     }
 
     // MARK: - Memory

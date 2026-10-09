@@ -31,6 +31,8 @@ struct TurboFieldfareiOSApp: App {
                         .task {
                             if ModelSwitchCheck.isRequested {
                                 await ModelSwitchCheck.run(model)
+                            } else if BackgroundGenerationCheck.isRequested {
+                                await BackgroundGenerationCheck.run(model)
                             }
                         }
                 }
@@ -46,7 +48,17 @@ struct TurboFieldfareiOSApp: App {
             // stopped, or that died with the app, resumes when it opens.
             .onChange(of: scenePhase, initial: true) { _, phase in
                 guard !Self.isBenchmarkRun, !BackgroundProbe.isRequested else { return }
+                BackgroundGeneration.shared.attach(model)
+                BackgroundGeneration.shared.scenePhaseChanged(phase)
                 Suspension.handle(phase, model: model, network: network)
+            }
+            .onChange(of: model.backgroundGeneration) { _, _ in
+                guard !Self.isBenchmarkRun, !BackgroundProbe.isRequested else { return }
+                BackgroundGeneration.shared.update()
+            }
+            .onChange(of: model.isWaitingForGPU) { _, waiting in
+                guard !Self.isBenchmarkRun, !BackgroundProbe.isRequested else { return }
+                TurnMemoryLog.shared.note(waiting ? "turn-paused" : "turn-resumed")
             }
             // The installer creates the folders as it goes, so the backup mark
             // is applied at launch and again whenever a download starts or ends.
@@ -56,6 +68,7 @@ struct TurboFieldfareiOSApp: App {
             }
             .onChange(of: model.isTurnInFlight) { _, inFlight in
                 guard !Self.isBenchmarkRun else { return }
+                if !BackgroundProbe.isRequested { BackgroundGeneration.shared.update() }
                 if inFlight {
                     TurnMemoryLog.shared.begin()
                 } else {
@@ -94,9 +107,11 @@ struct TurboFieldfareiOSApp: App {
 
 /// What leaving the app does to a turn in flight.
 ///
-/// The model stays loaded, because reloading takes minutes. The turn is ended
-/// and kept, because iOS may end the process at any point after this, and a
-/// kept turn reopens from disk while a half-streamed one is simply lost.
+/// The model stays loaded, because reloading takes minutes. With background
+/// generation on (the default), the reply carries on in a Picture in Picture
+/// window, or waits out a lock (`BackgroundGeneration`). Otherwise the turn is
+/// ended and kept, because iOS may end the process at any point after this,
+/// and a kept turn reopens from disk while a half-streamed one is simply lost.
 @MainActor
 enum Suspension {
     static let log = Logger(subsystem: "TurboFieldfare", category: "lifecycle")
@@ -104,15 +119,23 @@ enum Suspension {
     static func handle(_ phase: ScenePhase, model: AppModel, network: DownloadNetwork) {
         switch phase {
         case .inactive:
-            // Stop here, before the app is backgrounded. A backgrounded app may
-            // not submit GPU work, and decode submits some for every token,
-            // so a stop requested at `.background` could land after the next
-            // token's encode had already failed. The cost: pulling down
+            // With background generation on, nothing stops here: an inactive
+            // app still has the GPU, and a refused token now waits and retries
+            // rather than failing the turn.
+            //
+            // Off, stop here, before the app is backgrounded. A backgrounded
+            // app may not submit GPU work, and decode submits some for every
+            // token, so a stop requested at `.background` could land after the
+            // next token's encode had already failed. The cost: pulling down
             // Control Center or taking a call also stops the reply.
-            if model.canCancel { model.cancel() }
+            if !model.backgroundGeneration, model.canCancel { model.cancel() }
         case .background:
             pauseDownloads(model, network: network)
-            flush(model, network: network)
+            if model.backgroundGeneration && model.isTurnInFlight {
+                continueOrStop(model, network: network)
+            } else {
+                flush(model, network: network)
+            }
         case .active:
             resumeDownloads(model, network: network)
             BackgroundDownload.resumeIfWanted(model, network: network)
@@ -163,6 +186,38 @@ enum Suspension {
                 model.installVisionPack()
                 log.info("image support download resumed")
             }
+        }
+    }
+
+    /// Lets the turn carry on if the window opened or the phone was locked,
+    /// and otherwise stops and saves it as before.
+    ///
+    /// The window opens as the app leaves, and the lock notification can land
+    /// after the scene change, so both get a short grace period. Without
+    /// either, nothing will let the turn run again before iOS suspends the
+    /// app, and a suspended 3 GB app is soon killed (2026-10-09, run 2): a
+    /// stopped turn is kept, a frozen one would be lost.
+    private static func continueOrStop(_ model: AppModel, network: DownloadNetwork) {
+        let app = UIApplication.shared
+        let task = BackgroundTask()
+        task.id = app.beginBackgroundTask(withName: "Keep generating") {
+            task.end()
+        }
+        Task {
+            let deadline = ContinuousClock.now + .milliseconds(1500)
+            while !BackgroundGeneration.shared.continuesInBackground
+                    && ContinuousClock.now < deadline {
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            // Back already, or the turn ended in the meantime: nothing to do.
+            let leftWithoutWindow = !BackgroundGeneration.shared.continuesInBackground
+                && !BackgroundGeneration.shared.isForeground
+            if leftWithoutWindow && model.isTurnInFlight {
+                log.info("no picture-in-picture window and not locked; stopping the turn")
+                TurnMemoryLog.shared.note("background-without-window stopping-turn")
+                flush(model, network: network)
+            }
+            task.end()
         }
     }
 
@@ -313,6 +368,12 @@ final class TurnMemoryLog {
         default:
             return
         }
+    }
+
+    /// One line for a background-generation event: the window, the lock, the
+    /// GPU gate, a pause.
+    func note(_ event: String) {
+        write("background " + event + " " + Mem.line())
     }
 
     private func write(_ line: String) {

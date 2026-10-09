@@ -58,8 +58,10 @@ final class GenerationTaskRegistry: Sendable {
 /// template) behind the `AppInferenceClient` event stream, with an explicit
 /// load lifecycle so the resident weights stay warm across generations.
 public final class RealInferenceClient: AppModelLifecycleClient, AppInferenceStopping,
-    @unchecked Sendable {
+    AppGPUWorkGating, @unchecked Sendable {
     private let session: RealInferenceSession
+    /// Where a conversation turn waits when the system refuses its GPU work.
+    public let gpuWorkGate: GPUWorkGate
     /// Bytes of image tower held mapped, readable without awaiting the session.
     public var currentVisionTowerBytes: UInt64? {
         session.towerBytes.withLock { $0 }
@@ -68,9 +70,11 @@ public final class RealInferenceClient: AppModelLifecycleClient, AppInferenceSto
     private let memorySampler: AppMemorySampler
     private let generationTasks = GenerationTaskRegistry()
 
-    public init(memorySampler: AppMemorySampler = AppMemorySampler()) {
+    public init(memorySampler: AppMemorySampler = AppMemorySampler(),
+                gpuWorkGate: GPUWorkGate = GPUWorkGate()) {
         self.memorySampler = memorySampler
-        self.session = RealInferenceSession()
+        self.gpuWorkGate = gpuWorkGate
+        self.session = RealInferenceSession(gpuWorkGate: gpuWorkGate)
     }
 
     public func ensureLoaded(modelDirectory: URL,
@@ -285,6 +289,13 @@ actor RealInferenceSession {
     /// boundaries to stop at, and half a prefilled prompt is not a turn worth
     /// keeping — so a stop there has to cancel and let the conversation rewind.
     nonisolated let decodeBegan = Mutex<Bool>(false)
+    /// Where a conversation turn waits out a refused GPU. Only conversation
+    /// turns pause; the one-shot path keeps failing on a refusal, as it did.
+    nonisolated let gpuWorkGate: GPUWorkGate
+
+    init(gpuWorkGate: GPUWorkGate = GPUWorkGate()) {
+        self.gpuWorkGate = gpuWorkGate
+    }
 
     private var visionRuntime: VisionRuntime? {
         didSet { publishTowerBytes() }
@@ -728,6 +739,7 @@ actor RealInferenceSession {
                 prefillConfig: prefillConfig,
                 checkCancellation: { try Task.checkCancellation() },
                 shouldStop: stopFlagReader(),
+                onGPURefused: gpuWorkGate.refusalHandler(shouldStop: stopFlagReader()),
                 onProgress: report)
             progress.promptTokenCount = turn.promptTokens
             // The conversation's own count. `promptTokens + completionTokens`
@@ -780,6 +792,8 @@ actor RealInferenceSession {
         // still hashing its images.
         stopRequested.withLock { $0 = false }
         decodeBegan.withLock { $0 = false }
+        // However the run ends, nothing is waiting for the GPU any more.
+        defer { gpuWorkGate.endWaiting() }
         var prefillConfig = request.runtimeOptions.prefillConfig
         // Image spans only run under chunked prefill, and the app's prefill
         // toggle can select `.off`. Coerce rather than fail after the encodes:
@@ -822,7 +836,10 @@ actor RealInferenceSession {
             let channelStartID = tokenizer.channelStartID
             let channelEndID = tokenizer.channelEndID
 
+            let gpuWorkGate = self.gpuWorkGate
             let report: @Sendable (RawDecodeProgress) -> Void = { event in
+                // Anything reported means the GPU took the work again.
+                gpuWorkGate.endWaiting()
                 switch event {
                 case .prefill(let done, let total):
                     if done == total {

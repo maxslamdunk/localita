@@ -11,8 +11,10 @@
 		<string>io.github.maxslamdunk.TurboFieldfareiOS.download.*</string>
 		<string>io.github.maxslamdunk.TurboFieldfareiOS.probe.*</string>
 	</array>
-	<!-- BackgroundProbe: Picture in Picture needs this mode. It does not keep
-	     the app running by itself; only playing audio or PiP would. -->
+	<!-- Picture in Picture needs this mode: BackgroundGeneration keeps a reply
+	     generating in a PiP window, and BackgroundProbe measured why that
+	     works. It does not keep the app running by itself; only playing audio
+	     or PiP would. -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

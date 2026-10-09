@@ -290,6 +290,22 @@ extension GenerationConfig {
 
 }
 
+/// What the decode loop does after the system refused a token's GPU work.
+public enum GPURefusalDecision: Sendable, Equatable {
+    /// Run the same token again at the same position. The KV moves only once a
+    /// forward has finished, so a refused forward left it where it was.
+    case retry
+    /// End the turn at this token boundary, as `shouldStop` would: the refused
+    /// token becomes the uncommitted boundary and the KV keeps everything
+    /// before it.
+    case stop
+}
+
+/// Called when a decode forward or a sample is refused (`GPUWorkNotPermitted`).
+/// It may wait as long as it likes before deciding; throwing (a cancellation,
+/// say) ends the run with that error.
+public typealias GPURefusalHandler = @Sendable (GPUWorkNotPermitted) async throws -> GPURefusalDecision
+
 /// Raw-completion prefill + decode loop shared by the CLI and the Mac app.
 /// Consumes pre-encoded `promptIds` (BOS + verbatim encode upstream — no chat
 /// template). Stop handling, detokenizer flush ordering, and history append
@@ -299,6 +315,10 @@ extension GenerationConfig {
 /// logits buffer is never written; the loop then requires a pure-greedy config
 /// and reads `lastGreedyToken`. Callers with sampling configs must construct
 /// the runner with `forceLogitsHead: true`.
+///
+/// `onGPURefused` covers decode only. Without it a refused token throws
+/// `GPUWorkNotPermitted`, as it always has; prefill refusals always throw, and
+/// `MultimodalConversation` retries those at the turn level.
 public func runRawCompletion(producer: any LogitProducer,
                              tokenizer: GFTokenizer,
                              promptIds: [Int32],
@@ -309,6 +329,7 @@ public func runRawCompletion(producer: any LogitProducer,
                              prefillConfig: PrefillRuntimeConfig = .defaultChunked,
                              start: RawCompletionStart = .reset,
                              shouldStop: () -> Bool = { false },
+                             onGPURefused: GPURefusalHandler? = nil,
                              onProgress: (RawDecodeProgress) -> Void) async throws -> RawDecodeResult {
     try config.validate()
     guard !promptIds.isEmpty else {
@@ -372,23 +393,51 @@ public func runRawCompletion(producer: any LogitProducer,
     var uncommittedBoundaryTokenIDs: [Int32] = []
     var trailingInvisibleTokens = 0
 
+    /// Runs one piece of GPU work, and on a refusal asks `onGPURefused`
+    /// whether to retry it. False means the turn should stop here.
+    func permittedGPUWork(_ work: () async throws -> Void) async throws -> Bool {
+        while true {
+            do {
+                try await work()
+                return true
+            } catch let refusal as GPUWorkNotPermitted {
+                guard let onGPURefused else { throw refusal }
+                // Before anything is reused: the refused forward's earlier
+                // buffers may still be running.
+                drainCommandQueue(context.queue)
+                let decision = try await onGPURefused(refusal)
+                if decision == .stop || shouldStop() { return false }
+            }
+        }
+    }
+
     while true {
         try Task.checkCancellation()
 
-        let tokenID: Int32
-        if generated == 0, let seed = prefillSeed {
-            switch seed {
-            case .greedyToken(let token):
-                tokenID = Int32(bitPattern: token)
-            case .logitsWritten:
-                tokenID = try sampleOnce(scratch: scratch, context: context,
+        var sampled: Int32?
+        let samplePermitted = try await permittedGPUWork {
+            if generated == 0, let seed = prefillSeed {
+                switch seed {
+                case .greedyToken(let token):
+                    sampled = Int32(bitPattern: token)
+                case .logitsWritten:
+                    sampled = try sampleOnce(scratch: scratch, context: context,
+                                             history: history, config: config, position: generated)
+                }
+            } else if fusedGreedy {
+                sampled = Int32(bitPattern: fusedRunner!.lastGreedyToken)
+            } else {
+                sampled = try sampleOnce(scratch: scratch, context: context,
                                          history: history, config: config, position: generated)
             }
-        } else if fusedGreedy {
-            tokenID = Int32(bitPattern: fusedRunner!.lastGreedyToken)
-        } else {
-            tokenID = try sampleOnce(scratch: scratch, context: context,
-                                     history: history, config: config, position: generated)
+        }
+        guard samplePermitted, let tokenID = sampled else {
+            // Stopped before this token was drawn: the previous token is in
+            // the KV and nothing is left outside it.
+            let tail = stopMatcher.push(detok.flush()) + stopMatcher.finish()
+            if !tail.isEmpty { onProgress(.tail(tail)) }
+            reason = .cancelled
+            break
         }
         generated += 1
         uncommittedBoundaryTokenIDs = [tokenID]
@@ -427,7 +476,18 @@ public func runRawCompletion(producer: any LogitProducer,
 
         history.append(tokenID)
         trailingInvisibleTokens = visible.isEmpty ? trailingInvisibleTokens + 1 : 0
-        try await producer.produce(token: tokenID, position: position, into: scratch.logits)
+        let forwardPermitted = try await permittedGPUWork {
+            try await producer.produce(token: tokenID, position: position, into: scratch.logits)
+        }
+        guard forwardPermitted else {
+            // The token was shown but never reached the KV, which is exactly
+            // the boundary a stop leaves.
+            history.removeLast()
+            let tail = stopMatcher.push(detok.flush()) + stopMatcher.finish()
+            if !tail.isEmpty { onProgress(.tail(tail)) }
+            reason = .cancelled
+            break
+        }
         position += 1
         uncommittedBoundaryTokenIDs.removeAll(keepingCapacity: true)
     }

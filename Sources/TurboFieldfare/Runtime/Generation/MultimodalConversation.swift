@@ -456,13 +456,14 @@ public actor MultimodalConversation {
         prefillConfig: PrefillRuntimeConfig = .defaultChunked,
         checkCancellation: @Sendable () throws -> Void = {},
         shouldStop: (@Sendable () -> Bool)? = nil,
+        onGPURefused: GPURefusalHandler? = nil,
         onProgress: (@Sendable (RawDecodeProgress) -> Void)? = nil
     ) async throws -> MultimodalTurnResult {
         try append(parts: parts, images: images)
         return try await generate(
             config: config, prefillConfig: prefillConfig,
             checkCancellation: checkCancellation, shouldStop: shouldStop,
-            onProgress: onProgress)
+            onGPURefused: onGPURefused, onProgress: onProgress)
     }
 
     /// Generates a reply to the staged turn. The turn joins the lineage as soon
@@ -477,11 +478,18 @@ public actor MultimodalConversation {
     /// a different thing from cancelling the task, which throws out of the
     /// decode loop and makes this rewind the whole turn. A Stop button wants
     /// the first; a teardown wants the second.
+    /// `onGPURefused` is asked what to do when the system refuses the turn's
+    /// GPU work (an iPhone app in the background, or a locked phone). In decode
+    /// the refused token is retried in place. In prefill, which has no token to
+    /// keep, the turn is rewound to where it began, exactly as a failure would
+    /// be, and run again from there once the handler says retry; a stop there
+    /// throws `CancellationError`, as a Stop during prefill always has.
     public func generate(
         config: GenerationConfig,
         prefillConfig: PrefillRuntimeConfig = .defaultChunked,
         checkCancellation: @Sendable () throws -> Void = {},
         shouldStop: (@Sendable () -> Bool)? = nil,
+        onGPURefused: GPURefusalHandler? = nil,
         onProgress: (@Sendable (RawDecodeProgress) -> Void)? = nil
     ) async throws -> MultimodalTurnResult {
         guard !closed else { throw MultimodalConversationError.closed }
@@ -544,25 +552,52 @@ public actor MultimodalConversation {
         // `isUsable` still said yes.
         let positionBefore = runner.continuationPosition
         var kvAdvanced = false
-        let result: RawDecodeResult
-        do {
-            result = try await runRawCompletion(
-            producer: runner,
-            tokenizer: tokenizer,
-            promptIds: promptIDs,
-            multimodalInput: try turn.prefillInput?.prepending(boundary),
-            config: generation,
-            context: context,
-            scratch: scratch,
-            prefillConfig: effectivePrefill,
-            start: cached == 0 ? .reset : .resume(cachedPromptTokens: cached),
+        // A failure that moved the KV used to condemn the lineage outright,
+        // but the same rewind the stop-string path uses can usually put the
+        // cursor back at the turn start: a cancellation caught between
+        // prefill chunks or at a token boundary leaves the committed prefix
+        // intact under a rewindable tail. The staged turn stays pending, so
+        // a successful rewind makes the turn retryable. Only a rewind past
+        // the SWA ring slack fails, and only then is the lineage unusable.
+        func restoreAfterFailure(_ generationError: Error) throws {
+            if runner.continuationPosition != positionBefore { kvAdvanced = true }
+            guard kvAdvanced else { return }
+            do {
+                try MultimodalConversationKVRecovery.restoreAfterFailure(
+                    positionBefore: positionBefore,
+                    generationError: generationError,
+                    rewind: runner.rewind(to:),
+                    reset: runner.reset)
+            } catch {
+                lineageBroken = true
+                throw error
+            }
+        }
+        let turnStart: RawCompletionStart = cached == 0 ? .reset : .resume(cachedPromptTokens: cached)
+        var start = turnStart
+        var result: RawDecodeResult?
+        while result == nil {
+            text = ""
+            kvAdvanced = false
+            do {
+                result = try await runRawCompletion(
+                producer: runner,
+                tokenizer: tokenizer,
+                promptIds: promptIDs,
+                multimodalInput: try turn.prefillInput?.prepending(boundary),
+                config: generation,
+                context: context,
+                scratch: scratch,
+                prefillConfig: effectivePrefill,
+                start: start,
                 // Cancellation mid-decode ends the turn at a token boundary
                 // and returns the partial result; throwing here instead would
                 // condemn the lineage for a KV that is perfectly resumable.
                 shouldStop: {
                     if shouldStop?() == true { return true }
                     do { try checkCancellation(); return false } catch { return true }
-                }) { progress in
+                },
+                onGPURefused: onGPURefused) { progress in
                     onProgress?(progress)
                     switch progress {
                     case .token(_, _, let delta):
@@ -577,29 +612,42 @@ public actor MultimodalConversation {
                         kvAdvanced = true
                     }
                 }
-        } catch let generationError {
-            if runner.continuationPosition != positionBefore { kvAdvanced = true }
-            // A failure that moved the KV used to condemn the lineage outright,
-            // but the same rewind the stop-string path uses can usually put the
-            // cursor back at the turn start: a cancellation caught between
-            // prefill chunks or at a token boundary leaves the committed prefix
-            // intact under a rewindable tail. The staged turn stays pending, so
-            // a successful rewind makes the turn retryable. Only a rewind past
-            // the SWA ring slack fails, and only then is the lineage unusable.
-            if kvAdvanced {
+            } catch let generationError {
+                // Decode retries a refused token in place, so a refusal that
+                // reaches here came from prefill.
+                guard let refusal = generationError as? GPUWorkNotPermitted,
+                      let onGPURefused else {
+                    try restoreAfterFailure(generationError)
+                    throw generationError
+                }
+                drainCommandQueue(context.queue)
+                let decision: GPURefusalDecision
                 do {
-                    try MultimodalConversationKVRecovery.restoreAfterFailure(
-                        positionBefore: positionBefore,
-                        generationError: generationError,
-                        rewind: runner.rewind(to:),
-                        reset: runner.reset)
+                    decision = try await onGPURefused(refusal)
+                    try checkCancellation()
                 } catch {
-                    lineageBroken = true
+                    try restoreAfterFailure(generationError)
                     throw error
                 }
+                guard decision == .retry, shouldStop?() != true else {
+                    try restoreAfterFailure(generationError)
+                    throw CancellationError()
+                }
+                // The chunks that committed hold exactly the prompt's first
+                // tokens, so a text turn carries on after them rather than
+                // rewinding, which past the ring slack would fail and lose the
+                // conversation. An image turn's spans are laid out from the
+                // turn start, so it goes back there.
+                let committed = runner.continuationPosition
+                if turn.prefillInput == nil, committed > cached, committed < promptIDs.count {
+                    start = .resume(cachedPromptTokens: committed)
+                } else {
+                    try restoreAfterFailure(generationError)
+                    start = turnStart
+                }
             }
-            throw generationError
         }
+        guard let result else { preconditionFailure("the loop exits only with a result") }
 
         // The KV now holds exactly what the run reported, including the tokens
         // the model generated; keeping the model's own tokens rather than

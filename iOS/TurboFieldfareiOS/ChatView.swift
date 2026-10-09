@@ -91,6 +91,15 @@ struct ChatView: View {
         // for a fade alone. So it is hidden, and `topFade` fades instead.
         .scrollEdgeEffectHidden(true, for: .top)
         .background(Color(uiColor: .systemBackground))
+        // Behind the opaque background, so never seen: the layer the
+        // background-generation window takes its picture from has to be in the
+        // window for the window to open.
+        .background(alignment: .topLeading) {
+            BackgroundGeneration.SourceView()
+                .frame(width: 32, height: 24)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
     }
 
     private var bottomControls: some View {
