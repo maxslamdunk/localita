@@ -10,8 +10,9 @@ guess better and read more:
    model's own router, unchanged. Precision rises from 0.69–0.72 to
    0.83–0.87. This PR ships `W + B` for gemma4, pre-added and quantized to the
    router's 8-bit format so the existing router kernel runs it unchanged
-   (`NextLayerGuess/`, 11.1 MB, mapped read-only). So the file includes the
-   router weights (Gemma 4 is Apache 2.0). `--early-expert-read fitted` is the
+   (`NextLayerGuess/`, 11.1 MB, mapped read-only). The file holds only the
+   sum, so it is derived from the model's router weights but does not contain
+   them (Gemma 4 is Apache 2.0). `--early-expert-read fitted` is the
    new default; a model with no fitted file falls back to `router`. The
    `[early-read …]` line names the guess that ran.
 2. **Two reads per layer.** With the fitted guess, a second early read per
