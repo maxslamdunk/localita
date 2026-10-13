@@ -23,6 +23,12 @@ struct ChatView: View {
     /// a model, Generation from the chat list's gear.
     @State private var settingsPage = SettingsView.Page.generation
     @State private var isShowingChats = false
+    @State private var isShowingWelcome = false
+    /// Set by Settings' "Show Welcome Again": the welcome opens once the
+    /// Settings sheet has gone, since one cannot cover the other mid-dismiss.
+    @State private var showsWelcomeAfterSettings = false
+    /// The welcome's way out when no download can start from it.
+    @State private var opensModelsAfterWelcome = false
     @State private var seamThumb = SeamThumb()
     @State private var thermalState = ProcessInfo.processInfo.thermalState
     /// The status the top bar shows, which trails the model's by up to
@@ -53,8 +59,27 @@ struct ChatView: View {
             for: ProcessInfo.thermalStateDidChangeNotification)) { _ in
             thermalState = ProcessInfo.processInfo.thermalState
         }
-        .sheet(isPresented: $isShowingSettings) {
-            SettingsView(model: model, network: network, page: $settingsPage)
+        .sheet(isPresented: $isShowingSettings, onDismiss: {
+            guard showsWelcomeAfterSettings else { return }
+            showsWelcomeAfterSettings = false
+            isShowingWelcome = true
+        }) {
+            SettingsView(model: model, network: network, page: $settingsPage,
+                         showWelcome: { showsWelcomeAfterSettings = true })
+        }
+        .fullScreenCover(isPresented: $isShowingWelcome, onDismiss: {
+            guard opensModelsAfterWelcome else { return }
+            opensModelsAfterWelcome = false
+            openSettings(.models)
+        }) {
+            WelcomeView(model: model, network: network) { openModels in
+                WelcomeView.markSeen()
+                opensModelsAfterWelcome = openModels
+                isShowingWelcome = false
+            }
+        }
+        .onAppear {
+            if WelcomeView.opensAtLaunch(model) { isShowingWelcome = true }
         }
     }
 

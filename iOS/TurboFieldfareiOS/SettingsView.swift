@@ -36,6 +36,8 @@ struct SettingsView: View {
     /// The tab on screen. Owned by the chat screen, which opens Settings on
     /// Models when the way here was about getting a model.
     @Binding var page: Page
+    /// Asks the chat screen to open the welcome once this sheet has closed.
+    let showWelcome: () -> Void
     @State private var isAddingModel = false
     /// The model whose info sheet is open.
     @State private var infoModel: AppModelInstallDescriptor?
@@ -72,6 +74,7 @@ struct SettingsView: View {
                         memorySection
                         generationSection
                         backgroundSection
+                        welcomeSection
                         resetSection
                     }
                 }
@@ -440,6 +443,19 @@ struct SettingsView: View {
                     + "first. Load it again from the chat.", .secondary)
         }
         return nil
+    }
+
+    // MARK: - Welcome
+
+    private var welcomeSection: some View {
+        Section {
+            Button("Show Welcome Again") {
+                showWelcome()
+                dismiss()
+            }
+        } footer: {
+            Text("What the app is, the download, and what to expect from it.")
+        }
     }
 
     // MARK: - Reset
