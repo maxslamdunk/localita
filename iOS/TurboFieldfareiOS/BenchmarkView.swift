@@ -148,12 +148,17 @@ final class StandardBenchmark: ObservableObject {
                     thermalAtStart: outcome.thermalAtStart,
                     thermalAtEnd: outcome.thermalAtEnd,
                     generatedSHA256: outcome.generatedSHA256,
-                    logFile: result.log.lastPathComponent))
+                    logFile: result.log.lastPathComponent,
+                    footers: [expertIOFooter(stats), phaseTimeFooter(stats),
+                              gpuTimeFooter(stats), readLatencyFooter(stats)],
+                    footprintBytes: outcome.footprintBytes,
+                    peakFootprintBytes: outcome.peakFootprintBytes,
+                    availableMemoryBytes: Int64(outcome.availableMemoryBytes)))
                 try? store.save(report)
             case .failure(let error):
                 report.outcome = stopReason
                     ?? (error is CancellationError ? .cancelled
-                        : .failed(String(describing: error)))
+                        : .failed(BenchmarkRedaction.redact(String(describing: error))))
                 return
             }
         }

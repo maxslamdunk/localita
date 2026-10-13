@@ -4,6 +4,7 @@ import Metal
 import UIKit
 import os
 import TurboFieldfare
+import TurboFieldfareAppCore
 
 // Track A step 3: the smallest thing that can load the real model on the phone
 // and generate from it. No optimization, 16 expert-cache slots, Mac parity —
@@ -383,6 +384,9 @@ struct HarnessSettings {
 /// One fsynced line per event. A run that ends in a jetsam kill leaves no
 /// return value and no console, so the log has to be durable at every step —
 /// the same reason the A1 probe fsynced. The last line written is the evidence.
+///
+/// Container paths are taken out of every line (`BenchmarkRedaction`): they
+/// name the install, and the benchmark's logs are shared as they are.
 final class RunLog {
     private let handle: FileHandle?
     private let started = DispatchTime.now().uptimeNanoseconds
@@ -405,7 +409,8 @@ final class RunLog {
     func write(_ event: String, _ detail: String = "") -> String {
         seq += 1
         let ms = (DispatchTime.now().uptimeNanoseconds - started) / 1_000_000
-        let line = "\(seq), \(ms), \(event), \(Mem.line())\(detail.isEmpty ? "" : ", " + detail)"
+        let line = "\(seq), \(ms), \(event), \(Mem.line())"
+            + (detail.isEmpty ? "" : ", " + BenchmarkRedaction.redact(detail))
         if let handle, let data = (line + "\n").data(using: .utf8) {
             handle.write(data)
             fsync(handle.fileDescriptor)
@@ -447,6 +452,10 @@ struct HarnessCaseOutcome {
     let generatedSHA256: String
     let thermalAtStart: String
     let thermalAtEnd: String
+    /// `Mem` when the case ended, with the model still loaded.
+    let footprintBytes: UInt64
+    let peakFootprintBytes: UInt64
+    let availableMemoryBytes: Int
 }
 
 /// Where a run is, for a screen that shows it.
@@ -718,7 +727,9 @@ final class Harness: ObservableObject {
                 caseID: encoded.caseID, promptSHA256: encoded.promptSHA256,
                 promptTokens: encoded.promptIds.count, stats: stats,
                 generatedSHA256: generatedSHA256, thermalAtStart: thermalAtStart,
-                thermalAtEnd: DeviceState.thermal()))
+                thermalAtEnd: DeviceState.thermal(),
+                footprintBytes: Mem.footprint(), peakFootprintBytes: Mem.peak(),
+                availableMemoryBytes: Mem.available()))
         }
         if let session {
             emit("session-done", "cases=\(session.count)")

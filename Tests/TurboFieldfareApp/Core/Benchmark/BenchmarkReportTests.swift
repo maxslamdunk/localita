@@ -85,6 +85,67 @@ import Testing
         #expect(store.list().isEmpty)
     }
 
+    /// A report written before format 2 still lists, with the new fields nil.
+    @Test func aFormatOneReportStillReads() throws {
+        let store = BenchmarkStore(root: tempRoot())
+        defer { try? FileManager.default.removeItem(at: store.root) }
+        let started = Date(timeIntervalSince1970: 1_800_000_000)
+        let folder = try store.makeRunFolder(started: started)
+        var saved = report(id: folder.lastPathComponent, started: started)
+        saved.cases = [caseResult("short-explanation")]
+        try store.save(saved)
+
+        let url = folder.appendingPathComponent(BenchmarkStore.reportFileName)
+        var root = try #require(
+            JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        #expect(root["format"] as? Int == 2)
+        root["format"] = 1
+        root["submissionID"] = nil
+        try JSONSerialization.data(withJSONObject: root).write(to: url)
+
+        let read = try #require(store.list().first)
+        #expect(read.format == 1)
+        #expect(read.submissionID == nil)
+        #expect(read.cases[0].footers == nil)
+        #expect(read.cases[0].peakFootprintBytes == nil)
+    }
+
+    @Test func eachRunGetsItsOwnSubmissionID() {
+        let started = Date(timeIntervalSince1970: 1_800_000_000)
+        let first = report(id: "a", started: started)
+        let second = report(id: "a", started: started)
+        #expect(first.submissionID != nil)
+        #expect(first.submissionID != second.submissionID)
+    }
+
+    private let home = "/var/mobile/Containers/Data/Application/EBC8224E-FE39-4036-8976-9F126979E37C"
+
+    /// The two path lines a real phone log has (`model-found` and
+    /// `receipt-path-mismatch`), as the harness writes them.
+    @Test func redactionTakesOutTheContainerPaths() {
+        let found = "4, 65, model-found, footprint=1, \(home)/Library/Application Support/"
+            + "TurboFieldfare/gemma4.gturbo"
+        #expect(BenchmarkRedaction.redact(found, home: home)
+            == "4, 65, model-found, footprint=1, ~/Library/Application Support/"
+                + "TurboFieldfare/gemma4.gturbo")
+
+        let stale = "/var/mobile/Containers/Data/Application/65DC2FE3-E4CA-4C5D-BC02-D42C5C039DC6"
+        let mismatch = "receipt names \(stale)/Library/m.gturbo but the model is at "
+            + "/private\(home)/Library/m.gturbo"
+        #expect(BenchmarkRedaction.redact(mismatch, home: home)
+            == "receipt names <other install>/Library/m.gturbo but the model is at "
+                + "~/Library/m.gturbo")
+    }
+
+    @Test func redactionAlsoCoversTheAppBundleAndLeavesOtherTextAlone() {
+        let bundle = "/private/var/containers/Bundle/Application/"
+            + "0A1B2C3D-4E5F-6071-8293-A4B5C6D7E8F9/TurboFieldfareiOS.app/tokenizer.json"
+        #expect(BenchmarkRedaction.redact("no tokenizer at \(bundle)", home: home)
+            == "no tokenizer at <other install>/TurboFieldfareiOS.app/tokenizer.json")
+        let footer = "[expert-io decode bytes/tok=227.02MB hit-rate=73.7%]"
+        #expect(BenchmarkRedaction.redact(footer, home: home) == footer)
+    }
+
     @Test func cooldownWaitsAMinuteThenForTheStartingStateAndNeverPastFive() {
         typealias C = BenchmarkCooldown
         #expect(!C.isDone(elapsed: 30, runStart: .nominal, now: .nominal))

@@ -9,10 +9,13 @@ import Foundation
 /// `running`. The logs hold the full footer lines; this holds what a list of
 /// results shows and what a submission would carry. It holds no chat content:
 /// the prompts are the frozen ones, and the generated text is kept only as a
-/// SHA-256.
+/// SHA-256. Nor does it hold a path: a failure's reason goes through
+/// `BenchmarkRedaction` first.
 public struct BenchmarkReport: Codable, Equatable, Sendable {
     /// Bumped when a field changes meaning, so a reader can tell old reports.
-    public static let currentFormat = 1
+    /// Format 2 added `submissionID` and, per case, the footer lines and the
+    /// memory figures; a format 1 report reads with those nil.
+    public static let currentFormat = 2
 
     public enum Outcome: Codable, Equatable, Sendable {
         /// Still running, or the process ended before the run did.
@@ -101,6 +104,19 @@ public struct BenchmarkReport: Codable, Equatable, Sendable {
         public var generatedSHA256: String
         /// The case's log, relative to the run's folder.
         public var logFile: String
+        /// The runtime's footer lines as the log has them: `[expert-io …]`,
+        /// `[phase-time …]`, `[gpu-time …]` and `[read-latency …]`. They are
+        /// what a phone row in `MEASUREMENTS.md` is read from.
+        public var footers: [String]?
+        /// `phys_footprint` when the case ended, with the model still loaded.
+        public var footprintBytes: UInt64?
+        /// The process's highest footprint so far. The run shares its process
+        /// with the chat and with the cases before it, so this is an upper
+        /// bound on the case's own peak, not the peak itself.
+        public var peakFootprintBytes: UInt64?
+        /// `os_proc_available_memory` when the case ended. With the
+        /// increased-memory-limit entitlement it overstates the real headroom.
+        public var availableMemoryBytes: Int64?
 
         public var tokensPerSecond: Double {
             decodeSeconds > 0 ? Double(newTokens) / decodeSeconds : 0
@@ -111,7 +127,10 @@ public struct BenchmarkReport: Codable, Equatable, Sendable {
                     stopReason: String, decodeMiBPerToken: Double?,
                     decodeCacheHitRate: Double?, cooldownSeconds: Double,
                     thermalAtStart: String, thermalAtEnd: String,
-                    generatedSHA256: String, logFile: String) {
+                    generatedSHA256: String, logFile: String,
+                    footers: [String]? = nil, footprintBytes: UInt64? = nil,
+                    peakFootprintBytes: UInt64? = nil,
+                    availableMemoryBytes: Int64? = nil) {
             self.caseID = caseID
             self.promptSHA256 = promptSHA256
             self.promptTokens = promptTokens
@@ -126,12 +145,19 @@ public struct BenchmarkReport: Codable, Equatable, Sendable {
             self.thermalAtEnd = thermalAtEnd
             self.generatedSHA256 = generatedSHA256
             self.logFile = logFile
+            self.footers = footers
+            self.footprintBytes = footprintBytes
+            self.peakFootprintBytes = peakFootprintBytes
+            self.availableMemoryBytes = availableMemoryBytes
         }
     }
 
     public var format: Int
     /// The run's folder name, which is also its identity in the store.
     public var id: String
+    /// A random UUID made when the run starts, so a result sent twice can be
+    /// told apart from two runs. Nothing about the device goes into it.
+    public var submissionID: String?
     public var started: Date
     public var finished: Date?
     public var outcome: Outcome
@@ -146,6 +172,7 @@ public struct BenchmarkReport: Codable, Equatable, Sendable {
                 settings: RunSettings, plannedCases: [String]) {
         self.format = Self.currentFormat
         self.id = id
+        self.submissionID = UUID().uuidString
         self.started = started
         self.finished = nil
         self.outcome = .running
@@ -272,4 +299,29 @@ public struct BenchmarkStore: Sendable {
     public func delete(_ id: String) throws {
         try FileManager.default.removeItem(at: folder(for: id))
     }
+}
+
+/// Takes the app's container paths out of what a run writes. A path under
+/// `/var/mobile/Containers/Data/Application/<UUID>` names the install, and
+/// logs and failure reasons quote such paths. The app's own home becomes
+/// `~`; another install's container, which a stale receipt can name, becomes
+/// `<other install>`, so a line that compared the two still reads as a
+/// comparison.
+public enum BenchmarkRedaction {
+    public static func redact(_ text: String, home: String = NSHomeDirectory()) -> String {
+        var result = text
+        if home.hasPrefix("/") && home.count > 1 {
+            let trimmed = home.hasSuffix("/") ? String(home.dropLast()) : home
+            if !trimmed.hasPrefix("/private/") {
+                result = result.replacingOccurrences(of: "/private" + trimmed, with: "~")
+            }
+            result = result.replacingOccurrences(of: trimmed, with: "~")
+        }
+        return result.replacing(container, with: "<other install>")
+    }
+
+    private nonisolated(unsafe) static let container = try! Regex(
+        "(?:/private)?/var/(?:mobile/)?[Cc]ontainers/"
+            + "(?:Data/Application|Bundle/Application|Shared/AppGroup)/"
+            + "[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")
 }
