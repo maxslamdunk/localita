@@ -59,6 +59,12 @@
 			path = ../Tests/TurboFieldfare/Core/Runtime/Configuration;
 			sourceTree = "<group>";
 		};
+		FE00AA00BB00CC00DD00EE50 /* BenchmarkPrompts */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = BenchmarkPrompts;
+			path = "../docs/benchmark-prompts/real-generation-v1";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -117,6 +123,7 @@
 				FE00AA00BB00CC00DD00EE14 /* Kernels */,
 				FE00AA00BB00CC00DD00EE15 /* Reference */,
 				FE00AA00BB00CC00DD00EE24 /* Configuration */,
+				FE00AA00BB00CC00DD00EE50 /* BenchmarkPrompts */,
 				FE00AA00BB00CC00DD00EE40 /* VisionResizeParityTests.swift */,
 				FE00AA00BB00CC00DD00EE05 /* Products */,
 			);
@@ -148,6 +155,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				FE00AA00BB00CC00DD00EE02 /* TurboFieldfareiOS */,
+				FE00AA00BB00CC00DD00EE50 /* BenchmarkPrompts */,
 			);
 			name = TurboFieldfareiOS;
 			packageProductDependencies = (
