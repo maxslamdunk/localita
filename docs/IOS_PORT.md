@@ -346,6 +346,18 @@ Steps:
      - The 8-bit shared expert is the one refusal that could be lifted. The
        runtime's manifest check allows it, but it has never been run or
        measured on the phone.
+     - **Lifted 2026-10-13 in the check; not yet run on a real model.**
+       `ReferenceLayout` now accepts a second fingerprint: the reference
+       with the shared expert's 90 packed weights at 8 bits (twice the
+       packed width) and every other text tensor identical, scales and
+       biases included, by a header diff against LM Studio's QAT build.
+       Six repositories give that fingerprint: LM Studio's QAT and non-QAT
+       4-bit builds (about 349k and 157k downloads, the most-used Gemma 4
+       26B MLX builds), mlx-community's QAT, heretic and base 4-bit builds,
+       and a Huihui abliterated build. The runtime already ran both widths
+       (`SharedExpertRuntime`, decode and prefill), and `SharedExpertInt8`
+       is in the device kernel suites. Arithmetic: the shared expert grows
+       from ~287 to ~542 MiB of mmapped resident weights.
    - **Finding: the pinned "source fingerprint" does not identify weights.**
      It is the SHA-256 of `model.safetensors.index.json`, which maps tensor
      names to shard files. Any re-tune sharded the same way shares it: the
