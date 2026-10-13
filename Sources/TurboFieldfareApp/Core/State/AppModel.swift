@@ -1950,8 +1950,13 @@ public final class AppModel {
             imageAttachmentError = nil
             visionAvailabilityAttachmentError = nil
         }
+        // Readiness is the current model's, which may not be the one the user
+        // has installed: Download switches the app to the model it fetches.
         guard isModelInstalled else {
-            visionInstallReadiness = .failed("Install the text model first")
+            let name = installDescriptor.shortName
+            visionInstallReadiness = .failed(isInstallingModel
+                ? "Image support for \(name) is available once it finishes downloading."
+                : "\(name) is not downloaded yet; image support needs it first.")
             return
         }
         guard !isVisionPackInstalled else { return }
