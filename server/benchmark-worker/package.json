@@ -1,0 +1,19 @@
+{
+  "name": "turbo-fieldfare-bench",
+  "private": true,
+  "type": "module",
+  "description": "Receives benchmark results from the TurboFieldfare iOS app.",
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "dev": "wrangler dev",
+    "migrate:local": "wrangler d1 migrations apply turbo-fieldfare-bench --local",
+    "migrate:remote": "wrangler d1 migrations apply turbo-fieldfare-bench --remote",
+    "deploy": "wrangler deploy"
+  },
+  "engines": {
+    "node": ">=23.6"
+  },
+  "devDependencies": {
+    "wrangler": "4.145.0"
+  }
+}

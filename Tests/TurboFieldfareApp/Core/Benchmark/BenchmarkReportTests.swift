@@ -110,6 +110,29 @@ import Testing
         #expect(read.cases[0].peakFootprintBytes == nil)
     }
 
+    /// The results Worker refuses any field it does not know, so the app must
+    /// write exactly the fields of its fixture: decoding that file and
+    /// encoding it again gives the same JSON.
+    @Test func theWorkersFixtureIsWhatTheAppWrites() throws {
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("server/benchmark-worker/test/fixtures/report-format2.json")
+        let data = try Data(contentsOf: url)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let report = try decoder.decode(BenchmarkReport.self, from: data)
+        #expect(report.format == BenchmarkReport.currentFormat)
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let fixture = try JSONSerialization.jsonObject(with: data) as? NSDictionary
+        let written = try JSONSerialization.jsonObject(with: encoder.encode(report))
+            as? NSDictionary
+        #expect(written == fixture)
+    }
+
     @Test func eachRunGetsItsOwnSubmissionID() {
         let started = Date(timeIntervalSince1970: 1_800_000_000)
         let first = report(id: "a", started: started)
