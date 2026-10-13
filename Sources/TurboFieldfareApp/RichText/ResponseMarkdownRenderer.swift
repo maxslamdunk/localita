@@ -995,13 +995,21 @@ public struct ResponseMarkdownRenderer: TranscriptBlockRendering {
             style.firstLineHeadIndent = typography.scaled(4)
             style.headIndent = typography.scaled(20)
             style.tailIndent = typography.scaled(-8)
-            style.tabStops = [NSTextTab(textAlignment: .left, location: typography.scaled(16))]
+            // At the wrap indent, so the first line's text lines up with the
+            // rest. New York has no `│`; the fallback face draws it wide enough
+            // to pass a stop at 16, which on iOS left the tab with no stop.
+            style.tabStops = [NSTextTab(textAlignment: .left, location: typography.scaled(20))]
+            style.defaultTabInterval = typography.scaled(8)
         case .unorderedList(let indent), .orderedList(_, let indent):
             let nesting = CGFloat(indent) * typography.listNestingIndent
             let base = typography.listTextIndent + nesting
             style.firstLineHeadIndent = nesting
             style.headIndent = base
             style.tabStops = [NSTextTab(textAlignment: .left, location: base)]
+            // A marker wider than `base`, such as "123456.", needs a stop past
+            // it. Without one, TextKit 2 on iOS lays the paragraph out but
+            // draws nothing from the tab to the end of the text view.
+            style.defaultTabInterval = typography.scaled(8)
             style.paragraphSpacing = typography.listItemSpacing
         case .thematicBreak:
             style.alignment = .center

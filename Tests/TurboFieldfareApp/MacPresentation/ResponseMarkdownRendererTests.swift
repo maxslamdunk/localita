@@ -102,6 +102,24 @@ import Testing
         #expect(itemStyle.headIndent == 26)
     }
 
+    /// A quote's `│` comes from a fallback face, wide enough to pass a single
+    /// stop at 16, and so can an ordinal like "123456.". On iOS a tab with no
+    /// stop left drew nothing from there to the end of the block: the quote's
+    /// text and every line after it were blank space.
+    @Test func everyTabbedMarkerHasAStopPastIt() throws {
+        let renderer = ResponseMarkdownRenderer().setting(.reading(bodySize: 17))
+        let text = renderer.render("> quoted\n\n123456. wide\n\n- bullet").attributedString
+        let string = text.string as NSString
+        for marker in ["\u{2502}", "123456.", "\u{2022}"] {
+            let location = string.range(of: marker).location
+            let style = try #require(
+                text.attribute(.paragraphStyle, at: location, effectiveRange: nil)
+                    as? NSParagraphStyle)
+            #expect(style.defaultTabInterval > 0, "\(marker)")
+            #expect(style.tabStops.first?.location == style.headIndent, "\(marker)")
+        }
+    }
+
     @Test func blankLineBetweenTightBlocksIsCompactOnly() {
         let source = "#### 1. The Marinade\nIf you have time, place the beef."
         let compact = ResponseMarkdownRenderer().render(source).attributedString.string
