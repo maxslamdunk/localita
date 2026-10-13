@@ -346,7 +346,10 @@ Steps:
      - The 8-bit shared expert is the one refusal that could be lifted. The
        runtime's manifest check allows it, but it has never been run or
        measured on the phone.
-     - **Lifted 2026-10-13 in the check; not yet run on a real model.**
+     - **Lifted 2026-10-13 in the check.** The same day,
+       `lmstudio-community/gemma-4-26B-A4B-it-QAT-MLX-4bit` installed in
+       the app on the iPhone 17 (b3e0034) and chatted normally (checked by
+       hand; speed not measured).
        `ReferenceLayout` now accepts a second fingerprint: the reference
        with the shared expert's 90 packed weights at 8 bits (twice the
        packed width) and every other text tensor identical, scales and
