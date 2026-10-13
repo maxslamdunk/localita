@@ -121,9 +121,14 @@ struct ReferenceLayoutTests {
         let reference = ReferenceLayout.fingerprint(
             arch: s.arch, meta: s.meta, shardHeaders: [s.header])
 
+        // The header's order is a dictionary's, so it changes from run to run;
+        // pick a text tensor, since vision tensors are left out by design.
         var tensors = s.header.tensors
-        let first = tensors[0]
-        tensors[0] = SourceTensor(name: first.name, shardPath: first.shardPath,
+        let index = try #require(tensors.firstIndex {
+            !RepackPlanner.isMultimodalTensorName($0.name)
+        })
+        let first = tensors[index]
+        tensors[index] = SourceTensor(name: first.name, shardPath: first.shardPath,
                                   dtype: first.dtype, shape: first.shape.map { $0 * 2 },
                                   absoluteOffset: first.absoluteOffset,
                                   sizeBytes: first.sizeBytes)
@@ -135,6 +140,7 @@ struct ReferenceLayoutTests {
 
         let quantized = try #require(s.header.tensors.first {
             $0.dtype == .u32 && $0.name.hasSuffix(".weight")
+                && !RepackPlanner.isMultimodalTensorName($0.name)
                 && IndexLoader.quantSpec(forTensor: $0.name, meta: s.meta).bits == 4
         })
         var overrides = s.meta.bitsOverrides
