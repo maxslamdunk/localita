@@ -167,12 +167,12 @@ enum Mem {
     }
 }
 
-/// One case of the frozen `real-generation-v1` set, pushed to the device rather
-/// than copied into the app bundle. Duplicating the prompts into `iOS/` would
-/// create a second copy that can drift from the canonical
-/// `docs/benchmark-prompts/`, and the protocol's whole point is that everyone
-/// generates from the same bytes — so the file is carried over and its SHA-256
-/// is logged, making the run self-verifying against
+/// One case of the frozen `real-generation-v1` set. The app bundles the
+/// canonical files from `docs/benchmark-prompts/` itself (the Xcode project
+/// points at that folder, so there is no second copy to drift), and a file
+/// pushed to `Documents/prompts` with `devicectl` still takes precedence. The
+/// protocol's whole point is that everyone generates from the same bytes, so
+/// the file's SHA-256 is logged, making the run self-verifying against
 /// `docs/COMMUNITY_BENCHMARKS.md`.
 enum PromptCase {
     struct MessageJSON: Decodable {
@@ -188,7 +188,11 @@ enum PromptCase {
     /// Returns the decoded messages and the file's SHA-256, so the log records
     /// which frozen bytes produced the number.
     static func load(_ caseID: String) throws -> (messages: [GFTokenizer.Message], sha256: String) {
-        let url = directory().appendingPathComponent("\(caseID).json")
+        let pushed = directory().appendingPathComponent("\(caseID).json")
+        guard let url = FileManager.default.fileExists(atPath: pushed.path) ? pushed
+                : Bundle.main.url(forResource: caseID, withExtension: "json") else {
+            throw HarnessError.badPromptCase("no \(caseID).json pushed or bundled")
+        }
         let data = try Data(contentsOf: url)
         let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
         let decoded = try JSONDecoder().decode([MessageJSON].self, from: data)
@@ -271,6 +275,9 @@ struct HarnessSettings {
     var topP: Float = 0.95
     var seed: UInt64 = 1
     var label = "run"
+    /// The model to run. Unset means `ModelLocation.directory`, the folder the
+    /// launch arguments or the chat's menu picked.
+    var modelDirectory: URL?
     /// A `real-generation-v1` case id — `short-explanation`, `medium-review` or
     /// `long-synthesis`. When set, the prompt comes from the pushed file and
     /// `prompt` is ignored, which is the only way to produce a row that can sit
@@ -383,12 +390,13 @@ final class RunLog {
 
     let url: URL
 
-    init(label: String) {
+    /// `directory` defaults to `Documents`, where `devicectl` pulls logs from.
+    init(label: String, directory: URL? = nil) {
         let stamp = ISO8601DateFormatter().string(from: Date())
             .replacingOccurrences(of: ":", with: "")
-        let documents = FileManager.default.urls(for: .documentDirectory,
-                                                 in: .userDomainMask)[0]
-        url = documents.appendingPathComponent("decode-\(label)-\(stamp).log")
+        let folder = directory ?? FileManager.default.urls(for: .documentDirectory,
+                                                           in: .userDomainMask)[0]
+        url = folder.appendingPathComponent("decode-\(label)-\(stamp).log")
         FileManager.default.createFile(atPath: url.path, contents: nil)
         handle = try? FileHandle(forWritingTo: url)
     }
@@ -429,12 +437,41 @@ enum HarnessError: LocalizedError {
     }
 }
 
+/// What one case of a run produced, for the in-app benchmark's report. The
+/// log has the same figures and more; this saves parsing them back.
+struct HarnessCaseOutcome {
+    let caseID: String?
+    let promptSHA256: String?
+    let promptTokens: Int
+    let stats: RawDecodeResult
+    let generatedSHA256: String
+    let thermalAtStart: String
+    let thermalAtEnd: String
+}
+
+/// Where a run is, for a screen that shows it.
+enum HarnessProgress: Equatable {
+    case idle
+    case loading
+    case prefill(done: Int, total: Int)
+    case generating(tokens: Int)
+}
+
 @MainActor
 final class Harness: ObservableObject {
     @Published private(set) var lines: [String] = []
     @Published private(set) var running = false
+    @Published private(set) var progress = HarnessProgress.idle
 
     private var log: RunLog?
+
+    /// `runRawCompletion` calls its progress closure on whatever thread the
+    /// runtime is on, not the main thread, so the published value is set from
+    /// there by hopping over. Setting it in place crashed the first in-app
+    /// benchmark (2026-10-13): its subscriber asserts the main actor.
+    nonisolated private func show(_ progress: HarnessProgress) {
+        Task { @MainActor in self.progress = progress }
+    }
 
     private func emit(_ event: String, _ detail: String = "") {
         let line = log?.write(event, detail) ?? "\(event) \(detail)"
@@ -445,16 +482,25 @@ final class Harness: ObservableObject {
         guard !running else { return }
         running = true
         defer { running = false }
+        _ = await logged(settings: settings, logDirectory: nil)
+    }
 
-        let log = RunLog(label: settings.label)
+    /// One run with a log of its own: the log's URL and each case's outcome,
+    /// or the error the log ends with. The in-app benchmark calls this once
+    /// per case, so each case starts from a freshly loaded model, as a
+    /// `devicectl` run starts from a fresh process.
+    func logged(settings: HarnessSettings,
+                logDirectory: URL?) async -> Result<(log: URL, cases: [HarnessCaseOutcome]), Error> {
+        let log = RunLog(label: settings.label, directory: logDirectory)
         self.log = log
+        defer { progress = .idle }
         emit("start", "os=\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)"
             + " free=\(DeviceState.freeSpaceBytes())"
             + " thermal=\(DeviceState.thermal()) battery=\(DeviceState.battery())"
             + " lowPower=\(DeviceState.lowPower()) uptime=\(DeviceState.uptime())s")
 
         do {
-            try await generate(settings: settings)
+            return .success((log.url, try await generate(settings: settings)))
         } catch {
             // `ModelError` is `CustomStringConvertible` but not `LocalizedError`,
             // so `localizedDescription` renders it as an opaque
@@ -462,10 +508,12 @@ final class Harness: ObservableObject {
             // carries. Log the real description first; keep the localized one
             // for error types that do supply a useful string.
             emit("failed", "\(String(describing: error)) | \(error.localizedDescription)")
+            return .failure(error)
         }
     }
 
-    private func generate(settings: HarnessSettings) async throws {
+    private func generate(settings: HarnessSettings) async throws -> [HarnessCaseOutcome] {
+        progress = .loading
         // Metal comes first, deliberately, and before any check that can fail.
         // `MetalContext.init` compiles all 14 shader modules from source at
         // startup via `Bundle.module`, and whether that resolves inside an app
@@ -481,7 +529,7 @@ final class Harness: ObservableObject {
         emit("shaders-compiled",
              "ms=\((DispatchTime.now().uptimeNanoseconds - shaderStart) / 1_000_000)")
 
-        let modelURL = ModelLocation.directory
+        let modelURL = settings.modelDirectory ?? ModelLocation.directory
         guard FileManager.default.fileExists(atPath: modelURL.path) else {
             throw HarnessError.modelMissing(modelURL.path)
         }
@@ -516,12 +564,15 @@ final class Harness: ObservableObject {
         func tag(_ caseID: String?) -> String {
             session == nil ? "" : " case=\(caseID ?? "ad-hoc")"
         }
-        var cases: [(caseID: String?, promptIds: [Int32], chunkTokens: Int)] = []
+        var cases: [(caseID: String?, promptSHA256: String?, promptIds: [Int32],
+                     chunkTokens: Int)] = []
         let caseIDs: [String?] = session?.map { $0 } ?? [settings.caseID]
         for caseID in caseIDs {
             let promptIds: [Int32]
+            var promptSHA256: String?
             if let caseID {
                 let loaded = try PromptCase.load(caseID)
+                promptSHA256 = loaded.sha256
                 promptIds = tokenizer.encode(
                     try tokenizer.applyChatTemplate(loaded.messages), addBOS: false)
                 emit("prompt-encoded", "case=\(caseID) sha256=\(loaded.sha256) "
@@ -553,7 +604,7 @@ final class Harness: ObservableObject {
                 throw HarnessError.badSetting("prefill chunk \(resolvedChunkTokens) "
                     + "not in \(RuntimeConfiguration.allowedPrefillChunkTokens)")
             }
-            cases.append((caseID, promptIds, resolvedChunkTokens))
+            cases.append((caseID, promptSHA256, promptIds, resolvedChunkTokens))
         }
 
         let config = GenerationConfig(
@@ -648,12 +699,14 @@ final class Harness: ObservableObject {
             + "\(PreadExpertStreamer.usesCountAging(environment: ProcessInfo.processInfo.environment))"
             + (session.map { " session=\($0.joined(separator: ","))" } ?? ""))
 
+        var outcomes: [HarnessCaseOutcome] = []
         for (index, encoded) in cases.enumerated() {
+            let thermalAtStart = DeviceState.thermal()
             if session != nil {
                 emit("case-start", "case=\(encoded.caseID ?? "ad-hoc") index=\(index) "
-                    + "thermal=\(DeviceState.thermal())")
+                    + "thermal=\(thermalAtStart)")
             }
-            try await generate(
+            let (stats, generatedSHA256) = try await generate(
                 promptIds: encoded.promptIds,
                 caseTag: tag(encoded.caseID),
                 textSuffix: session == nil ? nil : encoded.caseID ?? "ad-hoc",
@@ -661,10 +714,16 @@ final class Harness: ObservableObject {
                 context: context, scratch: scratch,
                 prefillConfig: runtimeConfiguration(chunkTokens: encoded.chunkTokens)
                     .prefillConfig)
+            outcomes.append(HarnessCaseOutcome(
+                caseID: encoded.caseID, promptSHA256: encoded.promptSHA256,
+                promptTokens: encoded.promptIds.count, stats: stats,
+                generatedSHA256: generatedSHA256, thermalAtStart: thermalAtStart,
+                thermalAtEnd: DeviceState.thermal()))
         }
         if let session {
             emit("session-done", "cases=\(session.count)")
         }
+        return outcomes
     }
 
     /// One prompt from an empty KV: `runRawCompletion` resets the runner
@@ -677,7 +736,8 @@ final class Harness: ObservableObject {
                           config: GenerationConfig,
                           context: MetalContext,
                           scratch: RawCompletionScratch,
-                          prefillConfig: PrefillRuntimeConfig) async throws {
+                          prefillConfig: PrefillRuntimeConfig) async throws
+        -> (stats: RawDecodeResult, generatedSHA256: String) {
         var text = ""
         let stats = try await runRawCompletion(
             producer: runner,
@@ -689,6 +749,7 @@ final class Harness: ObservableObject {
             prefillConfig: prefillConfig) { progress in
                 switch progress {
                 case .prefill(let done, let total):
+                    self.show(.prefill(done: done, total: total))
                     // One line per chunk. A 14K-token prefill runs for many
                     // minutes. With nothing logged during it, a run in progress,
                     // a jetsam kill and an app the user restarted all left the
@@ -697,6 +758,7 @@ final class Harness: ObservableObject {
                         + "thermal=\(DeviceState.thermal())")
                 case .token(let index, _, let delta):
                     text += delta
+                    self.show(.generating(tokens: index + 1))
                     // Footprint every 16 tokens: the jetsam-survival evidence
                     // Track A's definition of done asks for. Thermal comes with
                     // it because a protocol run is minutes long and B1 reached
@@ -740,5 +802,6 @@ final class Harness: ObservableObject {
         emit("generated", "sha256=\(textDigest) bytes=\(generated.count)" + caseTag)
         lines.append("--- generated ---")
         lines.append(text)
+        return (stats, textDigest)
     }
 }

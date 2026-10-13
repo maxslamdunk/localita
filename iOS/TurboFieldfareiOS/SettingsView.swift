@@ -6,7 +6,7 @@ import TurboFieldfareAppPresentation
 ///
 /// **Generation** holds what shapes replies: memory, then sampling, then a
 /// reset for both. **Models** holds what is on the phone: every stored model,
-/// image support and the harness. There is no Load or Unload here: the chat
+/// image support and the benchmark. There is no Load or Unload here: the chat
 /// screen has both, and the steps below that need the model out of memory
 /// unload it themselves. The model's path and the app's footprint are logged
 /// to `Documents/app-memory.log` (`TurnMemoryLog`) instead of shown. The tab bar is the
@@ -331,8 +331,8 @@ struct SettingsView: View {
         } header: {
             Text("Image Support")
         } footer: {
-            Text("Lets you attach photos to a message. Both models use the same "
-                 + "download. Keep the app open while "
+            Text("Lets you attach photos to a message, for the model the app is "
+                 + "on. Other models use Gemma 4's download. Keep the app open while "
                  + "it downloads; leaving pauses it, and it resumes from where "
                  + "it stopped.")
         }
@@ -763,7 +763,7 @@ struct SettingsView: View {
             // unload the chat model.
             Button { start(.openHarness) } label: {
                 HStack {
-                    Text("Benchmark harness").foregroundStyle(.primary)
+                    Text("Benchmark").foregroundStyle(.primary)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.footnote.weight(.semibold))
@@ -773,16 +773,15 @@ struct SettingsView: View {
             .disabled(model.loadState.isLoading
                       || (model.loadState.isReady && !model.canUnloadModel))
         } footer: {
-            Text("The measurement instrument behind the device rows in "
-                 + "MEASUREMENTS.md. Opening it unloads the chat model: it loads "
-                 + "its own copy, and two do not fit.")
+            Text("Measure how fast this iPhone runs the model, and help tune the "
+                 + "app for it. Opening it unloads the chat model.")
         }
     }
 
     // MARK: - Steps that need the model unloaded
 
     /// Pack activation, discard and removal rename files the loaded runtime
-    /// maps (`canBeginVisionCompanionOperation`), and the harness loads a
+    /// maps (`canBeginVisionCompanionOperation`), and the benchmark loads a
     /// second copy of the model. A download switches the app to another
     /// model, and `installModel` refuses while one is unloading. Deleting the
     /// model in memory, or the one whose image pack it reads, removes files
@@ -855,16 +854,7 @@ struct SettingsView: View {
     }
 
     private var harness: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Run generates the frozen real-generation-v1 prompts and writes "
-                 + "a timing log to Documents. A run takes minutes.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 16)
-            HarnessView()
-        }
-        .navigationTitle("Benchmark harness")
-        .navigationBarTitleDisplayMode(.inline)
+        BenchmarkView(model: model)
     }
 }
 

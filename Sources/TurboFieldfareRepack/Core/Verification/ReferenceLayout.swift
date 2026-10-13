@@ -2,14 +2,17 @@ import CryptoKit
 import Foundation
 
 /// What lets a checkpoint off the pinned list install: its text model is
-/// Gemma 4 26B-A4B laid out exactly as the reference's.
+/// Gemma 4 26B-A4B laid out exactly as the reference's, or as the reference's
+/// with an 8-bit shared expert.
 ///
 /// The repacker copies quantized bytes as they are and never requantizes, and
-/// the runtime has only ever run the reference's layout: affine 4-bit,
-/// group-64 weights with 8-bit routers. So a community checkpoint is accepted
-/// when its architecture, and every text tensor's name, dtype, shape and bit
-/// width, match the reference's. Only the values may differ. SuperGemma 4 is
-/// such a checkpoint, and so are most "heretic" and "abliterated" re-tunes.
+/// the runtime runs affine 4-bit, group-64 weights with 8-bit routers, and a
+/// shared expert of either 4 or 8 bits (`SharedExpertRuntime`). So a community
+/// checkpoint is accepted when its architecture, and every text tensor's name,
+/// dtype, shape and bit width, match one of those two layouts. Only the values
+/// may differ. SuperGemma 4 is such a checkpoint, and so are most "heretic"
+/// and "abliterated" re-tunes. The 8-bit shared expert is what MLX's QAT
+/// builds and LM Studio's builds use.
 ///
 /// Vision and audio tensors are left out, because the text model never reads
 /// them: the reference has a vision tower and SuperGemma 4 has none, yet both
@@ -19,6 +22,19 @@ public enum ReferenceLayout {
     /// computed from its pinned revision's headers.
     public static let gemma4SHA256 =
         "89e2c4663930ecd536a73fb80cbdf9c721d19b24e6d6eb7230c3feb0583f4572"
+
+    /// The same layout with the shared expert's three projections at 8 bits,
+    /// which doubles their packed width and changes nothing else. Computed from
+    /// the headers of `lmstudio-community/gemma-4-26B-A4B-it-QAT-MLX-4bit`;
+    /// LM Studio's non-QAT build and mlx-community's QAT, heretic and base
+    /// builds give the same value (checked 2026-10-13).
+    public static let gemma4SharedExpertInt8SHA256 =
+        "15a9efe9b4ecde87338ff7e4eabd055814b1064ea6863e8a56236d22970498ea"
+
+    /// Whether a fingerprint is one of the layouts the runtime runs.
+    public static func accepts(_ layoutSHA256: String) -> Bool {
+        layoutSHA256 == gemma4SHA256 || layoutSHA256 == gemma4SharedExpertInt8SHA256
+    }
 
     /// SHA-256 over a canonical listing of the architecture and the text
     /// tensors, one line per tensor, sorted by name.
@@ -55,12 +71,12 @@ public enum ReferenceLayout {
     }
 
     /// Throws `sourceLayoutRejected` unless the text model matches the
-    /// reference's layout.
+    /// reference's layout or its 8-bit shared-expert variant.
     static func check(arch: ArchInfo,
                       meta: IndexLoader.SourceMetadata,
                       shardHeaders: [Safetensors.Header]) throws {
         let actual = fingerprint(arch: arch, meta: meta, shardHeaders: shardHeaders)
-        guard actual == gemma4SHA256 else {
+        guard accepts(actual) else {
             throw RepackError.sourceLayoutRejected(
                 reason: "its tensors are not laid out as Gemma 4 26B-A4B's "
                     + "(layout \(actual.prefix(12)))")
@@ -119,9 +135,11 @@ public enum ReferenceLayout {
         }) {
             return "Its attention or embedding weights are not 4-bit."
         }
-        if overrides.contains(where: { $0.key.contains(".mlp.") && $0.bits != 4 }) {
-            return "Its always-on shared expert is 8-bit, a layout not run "
-                + "here yet (QAT and LM Studio builds use it)."
+        if let shared = overrides.first(where: {
+            $0.key.contains(".mlp.") && $0.bits != 4 && $0.bits != 8
+        }) {
+            return "Its always-on shared expert is \(shared.bits)-bit; only 4- or "
+                + "8-bit runs here."
         }
         let routers = overrides.filter { $0.key.contains("router") }
         guard routers.count == 30, routers.allSatisfy({ $0.bits == 8 }) else {

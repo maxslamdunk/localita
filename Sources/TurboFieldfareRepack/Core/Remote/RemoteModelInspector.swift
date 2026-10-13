@@ -105,7 +105,7 @@ public enum RemoteModelInspector {
         let layout = ReferenceLayout.fingerprint(arch: snapshot.arch,
                                                  meta: snapshot.metadata,
                                                  shardHeaders: snapshot.shardHeaders)
-        guard layout == ReferenceLayout.gemma4SHA256 else {
+        guard ReferenceLayout.accepts(layout) else {
             return .incompatible(
                 reason: "It is a Gemma 4 26B-A4B build, but its weights are not laid "
                     + "out like Gemma 4's, so it can't run here.",

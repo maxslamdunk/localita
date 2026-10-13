@@ -51,13 +51,35 @@ struct ReferenceLayoutTests {
         }
     }
 
-    @Test func anEightBitSharedExpertIsRejectedByName() throws {
+    private func sharedExpertConfig(bits: Int) throws -> Data {
         let base = try #require(
             JSONSerialization.jsonObject(with: config()) as? [String: Any])
         var quant = try #require(base["quantization"] as? [String: Any])
-        quant["language_model.model.layers.0.mlp.gate_proj"] = ["bits": 8, "group_size": 64]
-        let reason = ReferenceLayout.configRejection(configData: config(quantization: quant))
-        #expect(reason?.contains("shared expert is 8-bit") == true)
+        for layer in 0..<30 {
+            for proj in ["gate_proj", "up_proj", "down_proj"] {
+                quant["language_model.model.layers.\(layer).mlp.\(proj)"] =
+                    ["bits": bits, "group_size": 64]
+            }
+        }
+        return config(quantization: quant)
+    }
+
+    /// QAT and LM Studio builds: the runtime runs an 8-bit shared expert.
+    @Test func anEightBitSharedExpertPasses() throws {
+        #expect(ReferenceLayout.configRejection(configData: try sharedExpertConfig(bits: 8))
+            == nil)
+    }
+
+    @Test func anotherSharedExpertWidthIsRejectedByName() throws {
+        let reason = ReferenceLayout.configRejection(
+            configData: try sharedExpertConfig(bits: 6))
+        #expect(reason?.contains("shared expert is 6-bit") == true)
+    }
+
+    @Test func bothRunnableLayoutsAreAcceptedAndNothingElse() {
+        #expect(ReferenceLayout.accepts(ReferenceLayout.gemma4SHA256))
+        #expect(ReferenceLayout.accepts(ReferenceLayout.gemma4SharedExpertInt8SHA256))
+        #expect(!ReferenceLayout.accepts(String(repeating: "0", count: 64)))
     }
 
     @Test func aConfigWithoutQuantizationIsNotMLX() {
