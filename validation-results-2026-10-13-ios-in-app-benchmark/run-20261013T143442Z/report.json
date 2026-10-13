@@ -1,0 +1,89 @@
+{
+  "cases" : [
+    {
+      "caseID" : "short-explanation",
+      "cooldownSeconds" : 0,
+      "decodeCacheHitRate" : 0.7945487483530962,
+      "decodeMiBPerToken" : 188.8387784090909,
+      "decodeSeconds" : 78.30254304409027,
+      "generatedSHA256" : "d32db73b41d48e11158e3f44d4460fd823d02e115857d06e328762e5bbcebdbd",
+      "logFile" : "decode-short-explanation-2026-10-13T143442Z.log",
+      "newTokens" : 507,
+      "prefillSeconds" : 9.807984948158264,
+      "promptSHA256" : "c57da2677143657be55e03797c1aabe8e012d61c1a71bf9345acdd575117d1e1",
+      "promptTokens" : 61,
+      "stopReason" : "endOfTurn",
+      "thermalAtEnd" : "nominal",
+      "thermalAtStart" : "nominal"
+    },
+    {
+      "caseID" : "medium-review",
+      "cooldownSeconds" : 61.0283260345459,
+      "decodeCacheHitRate" : 0.7590530903328051,
+      "decodeMiBPerToken" : 211.83265649762282,
+      "decodeSeconds" : 125.60535299777985,
+      "generatedSHA256" : "209ffadbf8d6ca364a2509e820a57f0e279f0b5ff229fd977f2f8a767b20d3ee",
+      "logFile" : "decode-medium-review-2026-10-13T143713Z.log",
+      "newTokens" : 632,
+      "prefillSeconds" : 11.749189972877502,
+      "promptSHA256" : "23add7976db2069c9927affd13c2f5120508702a1c4915ea88b7de565bdd4b33",
+      "promptTokens" : 430,
+      "stopReason" : "endOfTurn",
+      "thermalAtEnd" : "fair",
+      "thermalAtStart" : "nominal"
+    },
+    {
+      "caseID" : "long-synthesis",
+      "cooldownSeconds" : 300.7818899154663,
+      "decodeCacheHitRate" : 0.7365363283416528,
+      "decodeMiBPerToken" : 227.02215058236274,
+      "decodeSeconds" : 111.16253209114075,
+      "generatedSHA256" : "87f6f35786d8f03a8e88022fabf050942e1952ca531bd9a6211117455a6642a7",
+      "logFile" : "decode-long-synthesis-2026-10-13T144433Z.log",
+      "newTokens" : 602,
+      "prefillSeconds" : 77.08671391010284,
+      "promptSHA256" : "b12e4a71493ad151d7a85b91e878ba784b116ef65de9fcb1b1b1c05198b537b8",
+      "promptTokens" : 3015,
+      "stopReason" : "endOfTurn",
+      "thermalAtEnd" : "serious",
+      "thermalAtStart" : "fair"
+    }
+  ],
+  "device" : {
+    "appVersion" : "1.0 (1)",
+    "batteryAtStart" : "65%\/charging",
+    "identifier" : "iPhone18,3",
+    "lowPowerModeAtStart" : false,
+    "osVersion" : "26.6",
+    "physicalMemoryBytes" : 8044216320,
+    "thermalAtStart" : "nominal"
+  },
+  "finished" : "2026-10-13T14:47:43Z",
+  "format" : 1,
+  "id" : "20261013T143442Z",
+  "model" : {
+    "folder" : "gemma4.gturbo",
+    "manifestSHA256" : "1cb53c2423f05dfa673e5f0d9a3407aa355b8227b621f8f8e575830a2bb7fa91",
+    "name" : "Gemma 4"
+  },
+  "outcome" : {
+    "completed" : {
+
+    }
+  },
+  "plannedCases" : [
+    "short-explanation",
+    "medium-review",
+    "long-synthesis"
+  ],
+  "settings" : {
+    "expertCacheSlots" : 24,
+    "maxContext" : 4096,
+    "maxNewTokens" : 1024,
+    "seed" : 1,
+    "temperature" : 0.2,
+    "topK" : 64,
+    "topP" : 0.95
+  },
+  "started" : "2026-10-13T14:34:42Z"
+}
