@@ -47,3 +47,27 @@ beside the project's own phone rows?
   the day. Separating them would take an A B B A of in-app against
   `devicectl` on the same day.
 - Anything about other devices.
+
+## Second run: report format 2 (`89fc5a1`)
+
+Same phone and settings, 18:31Z, battery 90% and charging, all three cases at
+`nominal` (cooldowns 0, 61 and 61 s). Files: `run-20261013T183100Z/`.
+
+| Case | tok/s | First run | Exact counters |
+| --- | --- | --- | --- |
+| short | 6.285 | 6.475 | same text, bytes/token, hit rate |
+| medium | 5.608 | 5.032 | same |
+| long | 5.238 | 5.415 (at `serious`) | same |
+
+- **The format 2 fields are filled** for every case: the four footer lines,
+  footprint, process peak (3.145 / 3.240 / 3.410 GB) and available memory,
+  plus the run's `submissionID`.
+- **No path is left** in the report or the logs. `model-found` reads
+  `~/Library/…`, and the receipt line reads `<other install>/Library/…`.
+- **The results Worker accepts the report unchanged**
+  (`server/benchmark-worker/`, `validateReport`).
+- Speed moved both ways at identical counters. Long is 3% slower at `nominal`
+  than the first run at `serious`. Medium is 11% faster, almost all in `io`
+  (91.42 against 118.68 ms a forward at identical bytes), while its GPU
+  attention+router was slower (35.00 against 28.82 ms). That is the storage and
+  GPU variance `CLAUDE.md` describes, not a change in the computation (n = 2).

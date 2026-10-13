@@ -1,0 +1,117 @@
+{
+  "cases" : [
+    {
+      "availableMemoryBytes" : 3317084240,
+      "caseID" : "short-explanation",
+      "cooldownSeconds" : 0,
+      "decodeCacheHitRate" : 0.7945487483530962,
+      "decodeMiBPerToken" : 188.8387784090909,
+      "decodeSeconds" : 80.67461907863617,
+      "footers" : [
+        "[expert-io decode bytes\/tok=188.84MB hit-rate=79.5% req\/tok=240.00 reads\/tok=58.95 forwards=506 | prefill bytes=6950.78MB hit-rate=0.0% reads=2170 | early decode reads\/tok=29.00 used\/tok=19.35]",
+        "[phase-time decode ms\/fwd cb1=1.00 cb1-wait=49.83 io=93.71 cb2=0.81 routed-drain=1.15 head=9.14 wall=159.44 forwards=506 | sequential per layer; io hides the shared-expert branch]",
+        "[gpu-time decode ms\/fwd embed=0.00 cb1=22.23 shared=12.52 hit-experts=8.36 routed=17.94 head=8.76 busy=63.24 idle=96.20 wall=159.44 forwards=506 | command-buffer timestamps; parts may overlap, busy is their union]",
+        "[read-latency decode reads=29831 mean=4.04ms <0.25ms=0.0% 0.25-0.5ms=0.0% 0.5-1ms=0.1% 1-2ms=0.0% 2-4ms=66.1% 4-8ms=24.2% 8-16ms=8.8% >=16ms=0.7% | prefill reads=2170 mean=2.03ms <0.25ms=0.0% 0.25-0.5ms=0.6% 0.5-1ms=30.5% 1-2ms=49.1% 2-4ms=12.9% 4-8ms=2.0% 8-16ms=4.6% >=16ms=0.3%]"
+      ],
+      "footprintBytes" : 3125366704,
+      "generatedSHA256" : "d32db73b41d48e11158e3f44d4460fd823d02e115857d06e328762e5bbcebdbd",
+      "logFile" : "decode-short-explanation-2026-10-13T183100Z.log",
+      "newTokens" : 507,
+      "peakFootprintBytes" : 3144519600,
+      "prefillSeconds" : 11.542183995246887,
+      "promptSHA256" : "c57da2677143657be55e03797c1aabe8e012d61c1a71bf9345acdd575117d1e1",
+      "promptTokens" : 61,
+      "stopReason" : "endOfTurn",
+      "thermalAtEnd" : "nominal",
+      "thermalAtStart" : "nominal"
+    },
+    {
+      "availableMemoryBytes" : 3260608544,
+      "caseID" : "medium-review",
+      "cooldownSeconds" : 60.85962498188019,
+      "decodeCacheHitRate" : 0.7590530903328051,
+      "decodeMiBPerToken" : 211.83265649762282,
+      "decodeSeconds" : 112.7010840177536,
+      "footers" : [
+        "[expert-io decode bytes\/tok=211.83MB hit-rate=75.9% req\/tok=240.00 reads\/tok=66.13 forwards=631 | prefill bytes=8875.86MB hit-rate=0.0% reads=2771 | early decode reads\/tok=29.00 used\/tok=20.69]",
+        "[phase-time decode ms\/fwd cb1=0.94 cb1-wait=68.89 io=91.42 cb2=0.78 routed-drain=1.24 head=10.75 wall=178.61 forwards=631 | sequential per layer; io hides the shared-expert branch]",
+        "[gpu-time decode ms\/fwd embed=0.00 cb1=35.00 shared=16.79 hit-experts=10.65 routed=20.61 head=10.36 busy=84.71 idle=93.90 wall=178.61 forwards=631 | command-buffer timestamps; parts may overlap, busy is their union]",
+        "[read-latency decode reads=41730 mean=3.68ms <0.25ms=0.0% 0.25-0.5ms=0.3% 0.5-1ms=0.7% 1-2ms=0.6% 2-4ms=68.3% 4-8ms=22.8% 8-16ms=7.1% >=16ms=0.2% | prefill reads=2771 mean=1.12ms <0.25ms=0.1% 0.25-0.5ms=4.3% 0.5-1ms=52.3% 1-2ms=41.5% 2-4ms=0.8% 4-8ms=0.4% 8-16ms=0.3% >=16ms=0.4%]"
+      ],
+      "footprintBytes" : 3181842400,
+      "generatedSHA256" : "209ffadbf8d6ca364a2509e820a57f0e279f0b5ff229fd977f2f8a767b20d3ee",
+      "logFile" : "decode-medium-review-2026-10-13T183335Z.log",
+      "newTokens" : 632,
+      "peakFootprintBytes" : 3239841760,
+      "prefillSeconds" : 11.489362001419067,
+      "promptSHA256" : "23add7976db2069c9927affd13c2f5120508702a1c4915ea88b7de565bdd4b33",
+      "promptTokens" : 430,
+      "stopReason" : "endOfTurn",
+      "thermalAtEnd" : "nominal",
+      "thermalAtStart" : "nominal"
+    },
+    {
+      "availableMemoryBytes" : 3194384344,
+      "caseID" : "long-synthesis",
+      "cooldownSeconds" : 60.69379699230194,
+      "decodeCacheHitRate" : 0.7365363283416528,
+      "decodeMiBPerToken" : 227.02215058236274,
+      "decodeSeconds" : 114.9196149110794,
+      "footers" : [
+        "[expert-io decode bytes\/tok=227.02MB hit-rate=73.7% req\/tok=240.00 reads\/tok=70.88 forwards=601 | prefill bytes=30605.86MB hit-rate=0.0% reads=9555 | early decode reads\/tok=29.00 used\/tok=21.36]",
+        "[phase-time decode ms\/fwd cb1=1.03 cb1-wait=64.22 io=110.54 cb2=0.86 routed-drain=1.27 head=9.39 wall=191.21 forwards=601 | sequential per layer; io hides the shared-expert branch]",
+        "[gpu-time decode ms\/fwd embed=0.00 cb1=33.97 shared=13.75 hit-experts=9.20 routed=19.03 head=8.95 busy=77.52 idle=113.69 wall=191.21 forwards=601 | command-buffer timestamps; parts may overlap, busy is their union]",
+        "[read-latency decode reads=42596 mean=4.22ms <0.25ms=0.0% 0.25-0.5ms=0.1% 0.5-1ms=0.2% 1-2ms=0.2% 2-4ms=60.6% 4-8ms=27.8% 8-16ms=10.7% >=16ms=0.5% | prefill reads=9555 mean=6.75ms <0.25ms=0.0% 0.25-0.5ms=1.5% 0.5-1ms=14.4% 1-2ms=17.9% 2-4ms=4.3% 4-8ms=15.0% 8-16ms=46.6% >=16ms=0.3%]"
+      ],
+      "footprintBytes" : 3248066600,
+      "generatedSHA256" : "87f6f35786d8f03a8e88022fabf050942e1952ca531bd9a6211117455a6642a7",
+      "logFile" : "decode-long-synthesis-2026-10-13T183641Z.log",
+      "newTokens" : 602,
+      "peakFootprintBytes" : 3410300968,
+      "prefillSeconds" : 67.89413905143738,
+      "promptSHA256" : "b12e4a71493ad151d7a85b91e878ba784b116ef65de9fcb1b1b1c05198b537b8",
+      "promptTokens" : 3015,
+      "stopReason" : "endOfTurn",
+      "thermalAtEnd" : "nominal",
+      "thermalAtStart" : "nominal"
+    }
+  ],
+  "device" : {
+    "appVersion" : "1.0 (1)",
+    "batteryAtStart" : "90%\/charging",
+    "identifier" : "iPhone18,3",
+    "lowPowerModeAtStart" : false,
+    "osVersion" : "26.6",
+    "physicalMemoryBytes" : 8044216320,
+    "thermalAtStart" : "nominal"
+  },
+  "finished" : "2026-10-13T18:39:45Z",
+  "format" : 2,
+  "id" : "20261013T183100Z",
+  "model" : {
+    "folder" : "gemma4.gturbo",
+    "manifestSHA256" : "1cb53c2423f05dfa673e5f0d9a3407aa355b8227b621f8f8e575830a2bb7fa91",
+    "name" : "Gemma 4"
+  },
+  "outcome" : {
+    "completed" : {
+
+    }
+  },
+  "plannedCases" : [
+    "short-explanation",
+    "medium-review",
+    "long-synthesis"
+  ],
+  "settings" : {
+    "expertCacheSlots" : 24,
+    "maxContext" : 4096,
+    "maxNewTokens" : 1024,
+    "seed" : 1,
+    "temperature" : 0.2,
+    "topK" : 64,
+    "topP" : 0.95
+  },
+  "started" : "2026-10-13T18:31:00Z",
+  "submissionID" : "99E4D61A-2E08-49FD-AFE0-E11611088C9D"
+}
