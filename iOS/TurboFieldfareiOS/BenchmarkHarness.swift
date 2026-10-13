@@ -465,6 +465,14 @@ final class Harness: ObservableObject {
 
     private var log: RunLog?
 
+    /// `runRawCompletion` calls its progress closure on whatever thread the
+    /// runtime is on, not the main thread, so the published value is set from
+    /// there by hopping over. Setting it in place crashed the first in-app
+    /// benchmark (2026-10-13): its subscriber asserts the main actor.
+    nonisolated private func show(_ progress: HarnessProgress) {
+        Task { @MainActor in self.progress = progress }
+    }
+
     private func emit(_ event: String, _ detail: String = "") {
         let line = log?.write(event, detail) ?? "\(event) \(detail)"
         lines.append(line)
@@ -741,7 +749,7 @@ final class Harness: ObservableObject {
             prefillConfig: prefillConfig) { progress in
                 switch progress {
                 case .prefill(let done, let total):
-                    self.progress = .prefill(done: done, total: total)
+                    self.show(.prefill(done: done, total: total))
                     // One line per chunk. A 14K-token prefill runs for many
                     // minutes. With nothing logged during it, a run in progress,
                     // a jetsam kill and an app the user restarted all left the
@@ -750,7 +758,7 @@ final class Harness: ObservableObject {
                         + "thermal=\(DeviceState.thermal())")
                 case .token(let index, _, let delta):
                     text += delta
-                    self.progress = .generating(tokens: index + 1)
+                    self.show(.generating(tokens: index + 1))
                     // Footprint every 16 tokens: the jetsam-survival evidence
                     // Track A's definition of done asks for. Thermal comes with
                     // it because a protocol run is minutes long and B1 reached

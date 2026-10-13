@@ -37,8 +37,10 @@ final class StandardBenchmark: ObservableObject {
     var isRunning: Bool { task != nil }
 
     init() {
-        // `Harness` publishes on the main actor.
-        progressSink = harness.$progress.sink { [weak self] progress in
+        // `Harness` publishes on the main actor; delivered on the main queue
+        // regardless, since `assumeIsolated` traps anywhere else.
+        progressSink = harness.$progress.receive(on: DispatchQueue.main).sink {
+            [weak self] progress in
             MainActor.assumeIsolated {
                 guard let self, case .running(let index, _) = self.stage else { return }
                 self.stage = .running(caseIndex: index, progress)
@@ -257,7 +259,7 @@ struct BenchmarkView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Help tune the app for your iPhone")
                     .font(.headline)
-                Text("Every iPhone model runs \(model.installDescriptor.shortName) a "
+                Text("Every iPhone model runs \(benchmarked.shortName) a "
                      + "little differently. A benchmark measures how yours does, and "
                      + "sharing the result shows what to tune for it.")
                 Text("Results hold only the iPhone model, the iOS version and speed "
@@ -300,13 +302,20 @@ struct BenchmarkView: View {
         }
     }
 
+    /// Always Gemma 4, whatever the chat is on: it is the model the
+    /// project's phone rows, the fitted early-read guess and the protocol are
+    /// for, so only its runs compare across devices. The chat's choice of
+    /// model is left as it is.
+    private let benchmarked = AppModelInstallDescriptor.default
+
     private var directory: URL {
-        ModelLocation.directory(named: model.installDescriptor.directoryName)
+        ModelLocation.directory(named: benchmarked.directoryName)
     }
 
     private var blocker: String? {
-        if !model.isModelInstalled {
-            return "\(model.installDescriptor.shortName) is not downloaded yet."
+        if !ChatSession.isInstalled(benchmarked, current: model) {
+            return "The benchmark runs \(benchmarked.shortName). Download it in "
+                + "Models first."
         }
         if model.isInstallingModel || model.isInstallingVisionPack {
             return "Wait for the download to finish; it would slow the run down."
@@ -320,7 +329,7 @@ struct BenchmarkView: View {
             case .idle:
                 Button("Run Benchmark") {
                     benchmark.start(
-                        model: StandardBenchmark.modelInfo(model.installDescriptor,
+                        model: StandardBenchmark.modelInfo(benchmarked,
                                                            directory: directory),
                         directory: directory)
                 }
