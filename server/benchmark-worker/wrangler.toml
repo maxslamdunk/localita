@@ -4,6 +4,7 @@ main = "src/index.ts"
 compatibility_date = "2026-09-01"
 workers_dev = true
 preview_urls = false
+send_metrics = false
 
 # No request logs: they would hold senders' addresses.
 [observability]
@@ -12,8 +13,8 @@ enabled = false
 [[d1_databases]]
 binding = "DB"
 database_name = "turbo-fieldfare-bench"
-# Replaced with the ID `wrangler d1 create` prints. Local runs ignore it.
-database_id = "00000000-0000-0000-0000-000000000000"
+# From `wrangler d1 create` (2026-10-15). Local runs ignore it.
+database_id = "3bd9972f-dc91-47ad-a5bc-5baa10257386"
 migrations_dir = "migrations"
 
 # Ten reports a minute from one address. Counts are kept per Cloudflare

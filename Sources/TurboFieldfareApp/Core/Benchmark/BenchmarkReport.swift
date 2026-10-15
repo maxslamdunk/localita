@@ -167,6 +167,9 @@ public struct BenchmarkReport: Codable, Equatable, Sendable {
     /// The cases the run was asked for, in order; `cases` holds those done.
     public var plannedCases: [String]
     public var cases: [CaseResult]
+    /// When the person sent this run to the project. Kept on the phone only:
+    /// `BenchmarkSubmission.payload` leaves it out.
+    public var sentAt: Date?
 
     public init(id: String, started: Date, device: DeviceInfo, model: ModelInfo,
                 settings: RunSettings, plannedCases: [String]) {
@@ -181,6 +184,7 @@ public struct BenchmarkReport: Codable, Equatable, Sendable {
         self.settings = settings
         self.plannedCases = plannedCases
         self.cases = []
+        self.sentAt = nil
     }
 }
 
@@ -296,8 +300,83 @@ public struct BenchmarkStore: Sendable {
         .map { folder.appendingPathComponent($0) }
     }
 
+    /// Records that the run was sent, in its own report.
+    public func markSent(_ id: String, at date: Date) throws {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        var report = try decoder.decode(BenchmarkReport.self, from: Data(
+            contentsOf: folder(for: id).appendingPathComponent(Self.reportFileName)))
+        report.sentAt = date
+        try save(report)
+    }
+
     public func delete(_ id: String) throws {
         try FileManager.default.removeItem(at: folder(for: id))
+    }
+}
+
+/// Sends a run to the project's results Worker (`server/benchmark-worker/`),
+/// which checks it against the protocol and stores it. What is sent is
+/// `payload(for:)`, byte for byte, which the send sheet shows in full first.
+public struct BenchmarkSubmission: Sendable {
+    /// The deployed Worker (2026-10-15). The app offers no sending when nil.
+    /// Changing it strands app versions already out, which keep sending here.
+    public static let defaultEndpoint = URL(
+        string: "https://turbo-fieldfare-bench.gemma-local-ios.workers.dev/v1/results")
+
+    public enum Reply: Equatable, Sendable {
+        /// Stored now, or already stored by an earlier send of the same run.
+        case stored
+        /// The Worker refused the report; the reason names the field.
+        case refused(String)
+        /// Too many sends from this network lately.
+        case tryLater
+        case failed(status: Int)
+    }
+
+    public let endpoint: URL
+    public let session: URLSession
+
+    public init(endpoint: URL, session: URLSession = .shared) {
+        self.endpoint = endpoint
+        self.session = session
+    }
+
+    /// Only a report in the Worker's format can be sent; it refuses others.
+    public static func canSend(_ report: BenchmarkReport) -> Bool {
+        report.format == BenchmarkReport.currentFormat
+    }
+
+    /// The report as sent: without `sentAt`, which is the phone's own note.
+    public static func payload(for report: BenchmarkReport) throws -> Data {
+        var sent = report
+        sent.sentAt = nil
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        encoder.dateEncodingStrategy = .iso8601
+        return try encoder.encode(sent)
+    }
+
+    /// Throws only when the Worker could not be reached.
+    public func send(_ report: BenchmarkReport) async throws -> Reply {
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30
+        let (data, response) = try await session.upload(
+            for: request, from: Self.payload(for: report))
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        switch status {
+        case 201, 409:
+            return .stored
+        case 400:
+            let body = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            return .refused(body?["error"] as? String ?? "the report was refused")
+        case 429:
+            return .tryLater
+        default:
+            return .failed(status: status)
+        }
     }
 }
 

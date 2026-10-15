@@ -212,7 +212,9 @@ struct BenchmarkView: View {
                     ForEach(benchmark.reports, id: \.id) { report in
                         NavigationLink {
                             BenchmarkResultView(report: report,
-                                                files: benchmark.store.files(for: report.id))
+                                                files: benchmark.store.files(for: report.id),
+                                                store: benchmark.store,
+                                                onSent: { benchmark.refresh() })
                         } label: {
                             BenchmarkRow(report: report)
                         }
@@ -404,12 +406,13 @@ private struct BenchmarkRow: View {
             .map { String(format: "%.2f", $0.tokensPerSecond) }
             .joined(separator: " · ")
         let suffix = speeds.isEmpty ? "" : " · \(speeds) tok/s"
+        let sent = report.sentAt == nil ? "" : " · Sent"
         switch report.outcome {
-        case .completed: return speeds + " tok/s"
-        case .running: return "Did not finish" + suffix
-        case .cancelled: return "Stopped" + suffix
-        case .interrupted: return "Stopped when the app was left" + suffix
-        case .failed: return "Failed" + suffix
+        case .completed: return speeds + " tok/s" + sent
+        case .running: return "Did not finish" + suffix + sent
+        case .cancelled: return "Stopped" + suffix + sent
+        case .interrupted: return "Stopped when the app was left" + suffix + sent
+        case .failed: return "Failed" + suffix + sent
         }
     }
 
@@ -423,13 +426,28 @@ private struct BenchmarkRow: View {
     }
 }
 
-/// One run's figures and conditions, with its files to share.
+/// One run's figures and conditions, with its files to share and, for a
+/// report in the current format, a way to send it to the project.
 private struct BenchmarkResultView: View {
-    let report: BenchmarkReport
+    @State private var report: BenchmarkReport
     let files: [URL]
+    let store: BenchmarkStore
+    let onSent: () -> Void
+    @State private var isSending = false
+
+    init(report: BenchmarkReport, files: [URL], store: BenchmarkStore,
+         onSent: @escaping () -> Void) {
+        _report = State(initialValue: report)
+        self.files = files
+        self.store = store
+        self.onSent = onSent
+    }
 
     var body: some View {
         Form {
+            if BenchmarkSubmission.canSend(report) {
+                sendSection
+            }
             Section {
                 ForEach(report.cases, id: \.caseID) { result in
                     LabeledContent {
@@ -465,12 +483,143 @@ private struct BenchmarkResultView: View {
         }
         .navigationTitle(report.started.formatted(date: .abbreviated, time: .shortened))
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $isSending) {
+            BenchmarkSendSheet(report: report) { date in
+                try? store.markSent(report.id, at: date)
+                report.sentAt = date
+                onSent()
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 ShareLink(items: files) {
                     Image(systemName: "square.and.arrow.up")
                 }
                 .disabled(files.isEmpty)
+            }
+        }
+    }
+
+    private var sendSection: some View {
+        Section {
+            if let sentAt = report.sentAt {
+                LabeledContent("Sent", value: sentAt.formatted(date: .abbreviated,
+                                                               time: .shortened))
+            } else {
+                Button("Send to the Project…") { isSending = true }
+            }
+        } footer: {
+            Text("Results from many iPhones show what to tune for each. You see "
+                 + "exactly what is sent before it goes.")
+        }
+    }
+}
+
+/// What sending a run shows: a summary, what the report holds and where it
+/// goes, and the report itself, byte for byte as it will be sent.
+private struct BenchmarkSendSheet: View {
+    let report: BenchmarkReport
+    let onSent: (Date) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var sending = false
+    @State private var problem: String?
+
+    private let endpoint = BenchmarkSubmission.defaultEndpoint
+
+    private var payload: String {
+        (try? BenchmarkSubmission.payload(for: report))
+            .map { String(decoding: $0, as: UTF8.self) } ?? ""
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("This run") {
+                    LabeledContent("iPhone", value: report.device.identifier)
+                    LabeledContent("iOS", value: report.device.osVersion)
+                    ForEach(report.cases, id: \.caseID) { result in
+                        LabeledContent(BenchmarkRow.caseName(result.caseID),
+                                       value: String(format: "%.2f tok/s",
+                                                     result.tokensPerSecond))
+                            .monospacedDigit()
+                    }
+                }
+                Section {
+                    Text("The iPhone model and its memory, the iOS and app versions, the "
+                         + "battery and heat when each prompt ran, and the run's speed and "
+                         + "memory figures. Never your chats, your name, an account, or "
+                         + "anything that identifies this iPhone.")
+                    Text("Results are stored on Cloudflare for the TurboFieldfare project "
+                         + "and published in its public GitHub repository.")
+                        .foregroundStyle(.secondary)
+                } header: {
+                    Text("What is sent")
+                }
+                Section {
+                    DisclosureGroup("The report, as it will be sent") {
+                        ScrollView(.horizontal) {
+                            Text(payload)
+                                .font(.caption2.monospaced())
+                                .textSelection(.enabled)
+                                .fixedSize()
+                        }
+                    }
+                }
+                if let problem {
+                    Section {
+                        Text(problem).foregroundStyle(.red)
+                    }
+                }
+                if endpoint == nil {
+                    Section {
+                        Text("Sending is not set up in this build yet.")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .navigationTitle("Send Results")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .disabled(sending)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    if sending {
+                        ProgressView()
+                    } else {
+                        Button("Send") { send() }
+                            .disabled(endpoint == nil)
+                    }
+                }
+            }
+            .interactiveDismissDisabled(sending)
+        }
+    }
+
+    private func send() {
+        guard let endpoint else { return }
+        sending = true
+        problem = nil
+        Task {
+            defer { sending = false }
+            do {
+                switch try await BenchmarkSubmission(endpoint: endpoint).send(report) {
+                case .stored:
+                    onSent(Date())
+                    dismiss()
+                case .refused(let reason):
+                    problem = "The project's server did not accept this report: \(reason)"
+                case .tryLater:
+                    problem = "Too many results were sent from this network just now. "
+                        + "Try again in a minute."
+                case .failed(let status):
+                    problem = "The project's server answered \(status). Try again later."
+                }
+            } catch {
+                problem = "Could not reach the project's server. Check the connection "
+                    + "and try again."
             }
         }
     }
