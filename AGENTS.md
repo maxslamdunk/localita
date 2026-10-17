@@ -472,6 +472,7 @@ demand.
 | `docs/SYSTEM_DESIGN.md` | current, Mac runtime | Architecture and the code map. |
 | `docs/COMMUNITY_BENCHMARKS.md` | current, protocol | The `real-generation-v1` prompts and Mac protocol. |
 | `docs/EXTERNAL_PRIOR_ART.md` | current, thin | Outside techniques. |
+| `docs/APP_STORE.md` | current, this project | The TestFlight and App Store text, and the privacy answers. |
 | `docs/experiments/CLAUDE_MD_ARCHIVE_2026-10-03.md` | history | The Mac storage investigation as it was told in this guide, then named `CLAUDE.md`. |
 | `docs/BENCHMARKS.md` | other hardware | Never quote it. |
 | `docs/OPTIMIZATION_JOURNEY.md`, `docs/UPSTREAM_README.md`, `CONTRIBUTING.md`, `docs/OPENAI_SERVER.md` | upstream | The upstream Mac project. |
