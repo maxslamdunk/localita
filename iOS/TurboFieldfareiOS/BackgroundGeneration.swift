@@ -10,7 +10,7 @@ import UIKit
 /// may be used.
 ///
 /// What it rests on, measured on the iPhone 17 under iOS 26.6
-/// (`validation-results-2026-10-09-ios-background-probes/`):
+/// (`results/validation-results-2026-10-09-ios-background-probes/`):
 ///
 /// - A backgrounded app may not submit GPU work (`MTLCommandBufferError`
 ///   code 7), and `BGContinuedProcessingTask` does not offer the GPU on this

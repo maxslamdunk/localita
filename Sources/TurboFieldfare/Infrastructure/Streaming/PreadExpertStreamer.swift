@@ -486,7 +486,7 @@ public final class PreadExpertStreamer: @unchecked Sendable {
 
     /// Whether expert reads set `F_NOCACHE`. On by default on iOS, where the
     /// file cache serves under 1% of misses and skipping it made every read
-    /// 0.50–0.67 ms faster (`benchmark-results-2026-10-03-ios-expert-read-nocache/`).
+    /// 0.50–0.67 ms faster (`results/benchmark-results-2026-10-03-ios-expert-read-nocache/`).
     /// Off by default on macOS, where it measured neutral (IO-03).
     /// `TURBO_FIELDFARE_EXPERT_READ_NOCACHE=1` or `=0` overrides either default.
     public static func readsBypassFileCache(
@@ -510,7 +510,7 @@ public final class PreadExpertStreamer: @unchecked Sendable {
 
     /// Per cache plan (one per token per layer in decode), every expert's LFU
     /// count is multiplied by this before the plan's experts add 1. Best of
-    /// 0.9–0.999 in replay (`research-results-2026-10-03-cache-policy/`).
+    /// 0.9–0.999 in replay (`results/research-results-2026-10-03-cache-policy/`).
     public static let useCountDecay = 0.97
 
     /// Whether LFU counts age: decay by `useCountDecay` per plan, and reset by
@@ -519,7 +519,7 @@ public final class PreadExpertStreamer: @unchecked Sendable {
     /// evicting by the first ones' routing. In replay that cost 8 hit-rate
     /// points over 11 conversations back to back (CACHE-11). On the iPhone,
     /// such a session ran +23% tok/s with aging, at identical output
-    /// (`benchmark-results-2026-10-03-ios-expert-cache-aging/`). On by
+    /// (`results/benchmark-results-2026-10-03-ios-expert-cache-aging/`). On by
     /// default on both platforms; the Mac's case is replay only.
     /// `TURBO_FIELDFARE_EXPERT_CACHE_AGING=1` or `=0` overrides the default.
     public static func usesCountAging(

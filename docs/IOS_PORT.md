@@ -253,7 +253,7 @@ Steps:
    pause, and passed its own verification. A test-only `--model-dir <name>`
    launch argument installs it beside the side-loaded model without touching
    it. Whether the scattered write order it inherits costs read speed on the
-   phone is measured in `benchmark-results-2026-09-24-ios-download-order/`.
+   phone is measured in `results/benchmark-results-2026-09-24-ios-download-order/`.
 
    ✅ **The download keeps running in the background since 2026-10-07**
    (`BackgroundDownload`). The download is wrapped in an iOS 26
@@ -288,7 +288,7 @@ Steps:
    ✅ **A reply can keep generating in the background since 2026-10-09**
    (`BackgroundGeneration`, opt-in; tried by hand on the phone, no
    scripted run). The probes in
-   `validation-results-2026-10-09-ios-background-probes/` found one way for a
+   `results/validation-results-2026-10-09-ios-background-probes/` found one way for a
    backgrounded app to use the GPU: showing Picture in Picture. So when the
    user leaves mid-reply, the reply moves to a small window that shows its
    last lines, with Markdown styled, and offers only close and return-to-app
@@ -488,7 +488,7 @@ Steps:
      device as an Xcode test bundle hosted in the `iOS/` app — the same
      assertions that gate the Mac, not a reimplementation, which would drift and
      then lie. **142 tests in 46 suites, 0 failures, 0 skipped**
-     (`validation-results-2026-09-16-ios-kernels/`). Every text-path kernel
+     (`results/validation-results-2026-09-16-ios-kernels/`). Every text-path kernel
      conforms on Apple10, as do the nine Accelerate-vs-scalar reference suites,
      which is what establishes that the *comparator* is sound on this silicon.
      Vision and the TensorOps/MPP path — the two flagged in advance as most
@@ -707,7 +707,7 @@ below makes that deferral structural rather than a matter of remembering to.
      [CACHE-03](experiments/summaries/03-expert-cache-prediction-and-layout.md#cache-03)
      was deferred on — "conditional +memory experiment" — so the phone reopens
      it with a new argument rather than repeating it. Predictions for the 24 and
-     32 slot runs are in `benchmark-results-2026-09-16-ios-slots/predictions.md`.
+     32 slot runs are in `results/benchmark-results-2026-09-16-ios-slots/predictions.md`.
      **DONE 2026-09-16 — the largest win in this log, and it is memory-funded.**
      32 slots per layer gives **7.005 / 6.181 / 4.786 tok/s**: +59 / +56 / +34%
      over the 16-slot baseline and **1.87× / 1.85× / 1.60× the Mac host**, for
@@ -742,7 +742,7 @@ below makes that deferral structural rather than a matter of remembering to.
        above, whose baseline ran cooler than its 24- and 32-slot runs.
      - ⚠️ **Lowered to 24 on 2026-09-24.** At 32 the chat app rests at about
        4.1 GB, and the system photo picker could not open beside it without the
-       app being killed. See `benchmark-results-2026-09-24-ios-vision-memory/`.
+       app being killed. See `results/benchmark-results-2026-09-24-ios-vision-memory/`.
      - **32 is now the iOS default — DONE 2026-09-16 (`bf95248`).** Expressed as
        `RuntimeConfiguration.productionExpertCacheSlots`: 32 on iOS, 16 on
        macOS, because CACHE-03 measured 32 as actively harmful on the 8 GB Mac
@@ -765,7 +765,7 @@ below makes that deferral structural rather than a matter of remembering to.
      long, prefill time **−31.9 / −32.3%**, and end-to-end wall on the long case
      **313.4 → 243.3 s (−22.4%)**. Costs ~36 MB and changes no output. Combined
      with 32 slots the device now runs at **2.03× / 1.85× / 1.74× the Mac host**.
-     Predictions and scoring are in `benchmark-results-2026-09-16-ios-prefill/`.
+     Predictions and scoring are in `results/benchmark-results-2026-09-16-ios-prefill/`.
      - **This was a default nobody revisited, not a new idea.**
        `docs/RUNTIME_CONTROLS.md` already recorded 256 as 16% faster than 128 on
        the Mac with byte-identical output, and the server already resolves

@@ -48,7 +48,7 @@ leave it, and once the model is downloaded the app works without a connection.
 
 Measured on an iPhone 17 (8 GB) with iOS 26.6, using the app's own benchmark
 at default settings, on 2026-10-13, with the phone cool (`nominal`) on every
-case. Source: [`validation-results-2026-10-13-ios-in-app-benchmark/`](validation-results-2026-10-13-ios-in-app-benchmark/results.md),
+case. Source: [`results/validation-results-2026-10-13-ios-in-app-benchmark/`](results/validation-results-2026-10-13-ios-in-app-benchmark/results.md),
 second run.
 
 | Prompt | Prompt length | Reply speed | Time before the reply starts | App memory, peak |

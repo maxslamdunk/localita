@@ -10,7 +10,7 @@ import Metal
 /// scale. It is stored in the router's own 8-bit affine format, so
 /// `router_gemv_gemma4_r4` runs it unchanged with `unitScale` as the
 /// effective scale. See
-/// `benchmark-results-2026-10-03-ios-fitted-guess/predictions.md`.
+/// `results/benchmark-results-2026-10-03-ios-fitted-guess/predictions.md`.
 ///
 /// Layout, little-endian: a 64-byte header (8-byte magic `TFNLG1\0\0`, then
 /// UInt32 numLayers, numExperts, hiddenSize, groupSize, firstTargetLayer,
@@ -21,7 +21,7 @@ import Metal
 /// in `index.json` by the model's manifest `sourceSnapshotHash` with the
 /// file's SHA-256. Models may share a file: supergemma4's routers are
 /// byte-identical to gemma4's, and gemma4's file scores as well on it as its
-/// own fit (`research-results-2026-10-04-supergemma4-next-layer-guess/`). A
+/// own fit (`results/research-results-2026-10-04-supergemma4-next-layer-guess/`). A
 /// model with no entry gets no fitted guess; the early read then scores with
 /// the next layer's own router.
 final class NextLayerGuessWeights {

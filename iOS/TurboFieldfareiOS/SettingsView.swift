@@ -19,7 +19,7 @@ import TurboFieldfareAppPresentation
 ///
 /// - **Context stops at 8K.** On 2026-09-24, 16K at 32 slots was killed once
 ///   and completed once in the same memory state
-///   (`benchmark-results-2026-09-24-ios-context/`), so it is not a setting.
+///   (`results/benchmark-results-2026-09-24-ios-context/`), so it is not a setting.
 /// - **Slots are 16, 24 and 32**, the three counts measured on this phone
 ///   (2026-09-16). 8 was never run here.
 ///

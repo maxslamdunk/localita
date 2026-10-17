@@ -39,7 +39,7 @@ public struct RuntimeConfiguration: Sendable, Equatable {
     /// killed for `proc-thrashing` with it open, and iOS starts killing other
     /// processes from about 3.9 GB. At 24 the app rests at about 3.3 GB, and the
     /// same text-and-two-photos session completed with the compressor running
-    /// at half the rate (`benchmark-results-2026-09-24-ios-vision-memory/`).
+    /// at half the rate (`results/benchmark-results-2026-09-24-ios-vision-memory/`).
     /// 32 stays selectable in the iOS Settings sheet.
     ///
     /// This is memory-funded speed, not a free win — report it as such.
@@ -98,7 +98,7 @@ public struct RuntimeConfiguration: Sendable, Equatable {
     /// short case gained +16.5% with the unfitted guess and a further +5.4%
     /// with the fitted one. Costs one 3.36 MB staging buffer plus the mapped
     /// 11.1 MB guess file. See
-    /// `benchmark-results-2026-10-03-ios-fitted-guess/results.md`.
+    /// `results/benchmark-results-2026-10-03-ios-fitted-guess/results.md`.
     public let earlyExpertRead: Bool
 
     public init(expertCacheSlots: Int = RuntimeConfiguration.productionExpertCacheSlots,

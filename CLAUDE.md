@@ -36,10 +36,10 @@ differ.
 Measured with 24 slots, grouped full attention and the early read off. **The
 early read has been on by default since 2026-10-03**, with the fitted guess for
 gemma4: about +17–20% tok/s for +11–18% bytes/token against this table
-(`benchmark-results-2026-10-03-ios-fitted-guess/`). **Expert reads have
+(`results/benchmark-results-2026-10-03-ios-fitted-guess/`). **Expert reads have
 skipped the OS file cache (`F_NOCACHE`) on iOS since the same day**, worth
 about +4 to +8% more at identical bytes
-(`benchmark-results-2026-10-03-ios-expert-read-nocache/`). Per decode forward,
+(`results/benchmark-results-2026-10-03-ios-expert-read-nocache/`). Per decode forward,
 iPhone 17, 2026-10-01/02, short / medium / long:
 
 | | short | medium | long |
@@ -52,7 +52,7 @@ iPhone 17, 2026-10-01/02, short / medium / long:
 | bytes/token, MiB | 160.71 | 187.08 | 204.59 |
 | expert-cache hit rate | 79.1% | 75.7% | 73.4% |
 
-From the GPU timestamps (`benchmark-results-2026-10-02-ios-gpu-time/`):
+From the GPU timestamps (`results/benchmark-results-2026-10-02-ios-gpu-time/`):
 
 - **The GPU is idle 62–63% of each token**: 116 / 134 / 140 ms. About 87–106 ms
   of that falls inside `io`.
@@ -101,7 +101,7 @@ is not a veto.
 
 For any change proposed to make the runtime faster or smaller, write a
 prediction before the run that scores it. Put it in
-`benchmark-results-<date>-<topic>/predictions.md` and commit it first:
+`results/benchmark-results-<date>-<topic>/predictions.md` and commit it first:
 
 1. **What moves, by how much:** signed numbers or tight ranges, for the metrics
    the change targets (tok/s, a `[phase-time …]` or `[gpu-time …]` figure,
@@ -174,7 +174,7 @@ one of them, it is lost.
 
 - `MEASUREMENTS.md`: the run log, **append-only.** Every real-model run gets a
   row, and no existing row is edited.
-- `benchmark-results-<date>-<topic>/` and `validation-results-…/`:
+- `results/benchmark-results-<date>-<topic>/` and `results/validation-results-…/`:
   predictions, results, logs, and the script that ran them.
 - `docs/experiments/summaries/`: what was tried in this project and why it was
   kept or dropped. Read the relevant one before proposing an optimization. A
@@ -256,10 +256,9 @@ CI (`.github/workflows/ci.yml`) runs two jobs. One builds on the oldest
 supported Xcode, 26.3 on `macos-26`. The other, on `xcode-27`, runs the SwiftUI
 macro checks, release and debug builds, `Scripts/test.sh`, and the symlink,
 Markdown-link and app-version checks; the app-version check only warns. CI never
-loads the model. Pushes that touch only `server/`, `benchmark-results-*/`,
-`validation-results-*/` or `benchmark-submissions/` skip CI, unless they change
-Markdown. The iOS app is not built in CI, so build it yourself after touching
-shared code.
+loads the model. Pushes that touch only `server/`, `results/` or
+`benchmark-submissions/` skip CI, unless they change Markdown. The iOS app is
+not built in CI, so build it yourself after touching shared code.
 
 ### Which tests to run
 
@@ -307,7 +306,7 @@ xcodebuild test -project iOS/TurboFieldfareiOS.xcodeproj -scheme TurboFieldfarei
 
 The harness writes `Documents/decode-<label>-<stamp>.log`, plus the generated
 text as `.txt`. Pull them with `devicectl device copy from`. For a scripted
-A/B, start from `benchmark-results-2026-10-01-grouped-attention/run-ab.sh`. It
+A/B, start from `results/benchmark-results-2026-10-01-grouped-attention/run-ab.sh`. It
 handles the devicectl quirks: padded process paths, empty listings while the
 phone is busy, and process paths named after the local bundle folder.
 
@@ -431,23 +430,23 @@ are **MiB labelled MB**.
 
 | Fact | Value | Source |
 | --- | --- | --- |
-| Decode at defaults | In the table under [Where the time goes](#where-the-time-goes-on-the-phone). Rows taken before 2026-10-01 used the old attention kernel; account for that in any `cb1-wait` comparison. | `benchmark-results-2026-10-01-grouped-attention/`, `…-10-02-ios-gpu-time/` |
-| Memory ceiling | Advertised 6.43 GB with the `increased-memory-limit` entitlement, but the app is killed from **5.60 GB** (5.60–5.87 across runs, tracking system-wide free memory). Without the entitlement: 3.53 GB, exact. Under a real 16K-context load it was killed at **4.44 GB** for `proc-thrashing`. **Budget against ~4.3 GB.** From ~3.9 GB, iOS kills other processes to keep the app alive, and the phone lags. The app rests at ~3.3 GB at 24 slots and ~4.1 GB at 32. Mmapped read-only weights are nearly free: ~16.6 MB of footprint for 1.26 GiB. | 2026-09-16, 2026-09-24 rows in `MEASUREMENTS.md`; `benchmark-results-2026-09-24-ios-context/` |
+| Decode at defaults | In the table under [Where the time goes](#where-the-time-goes-on-the-phone). Rows taken before 2026-10-01 used the old attention kernel; account for that in any `cb1-wait` comparison. | `results/benchmark-results-2026-10-01-grouped-attention/`, `…-10-02-ios-gpu-time/` |
+| Memory ceiling | Advertised 6.43 GB with the `increased-memory-limit` entitlement, but the app is killed from **5.60 GB** (5.60–5.87 across runs, tracking system-wide free memory). Without the entitlement: 3.53 GB, exact. Under a real 16K-context load it was killed at **4.44 GB** for `proc-thrashing`. **Budget against ~4.3 GB.** From ~3.9 GB, iOS kills other processes to keep the app alive, and the phone lags. The app rests at ~3.3 GB at 24 slots and ~4.1 GB at 32. Mmapped read-only weights are nearly free: ~16.6 MB of footprint for 1.26 GiB. | 2026-09-16, 2026-09-24 rows in `MEASUREMENTS.md`; `results/benchmark-results-2026-09-24-ios-context/` |
 | Storage read | **1.650 GB/s** random at the 3,358,720 B slot size over a 12.01 GiB fresh corpus, serial. OS file cache knee at 1–4 GiB, but at runtime the app's footprint leaves it serving under 1% of misses. ⚠️ Decode was 8–13% slower on 2026-09-22 than on 09-16, at identical bytes. Artifact aging and the 0.8 merge are both candidates, unseparated (n=1). | 2026-09-16 probe; 2026-09-22 row |
-| Expert-cache slots | Per layer, 3,358,720 B each, so +8 slots is about +0.8 GB. At 16 / 24 / 32, tok/s was 4.40 / 6.03 / 7.01 (short), 3.57 / 4.33 / 4.79 (long), and hit rate 67.7 / ~79 / 86.5% (short). Default is 24 since 2026-09-24, because 32 left no room for the system photo picker. That was before grouped attention and the 1024 prefill cap. | `benchmark-results-2026-09-16-ios-slots/`, `…-09-24-ios-vision-memory/` |
-| Prefill chunk cap 1024 | Long-case prefill bytes −70.6% against 256, medium −42.1%; medium now runs in one chunk. Costs +152.4 MB of KV ring on every iOS run, because the ring is sized from the cap. Per-chunk volume grows with chunk size, so doubling the chunk does not halve the bytes. | `benchmark-results-2026-09-22-ios-prefill-chunk/` |
-| Grouped full attention (upstream #182) | `cb1-wait` −0.5 / −5.3 / −11.8 to −19.1 ms; long +6.7% tok/s. Bit-identical output and 0 bytes/token. Default since `5820bbd`. The gain near the 8K cap is unmeasured. | `benchmark-results-2026-10-01-grouped-attention/` |
-| Early expert read (on by default since 2026-10-03, `e4eb3a4`) | Reads one predicted expert of layer L+1 during storage-idle time. Storage idle per layer is 1.9–2.5 ms against 2.1–2.2 ms per read, so one fits and two do not: two reads measured **−25.9 / −14.6 / −20.7% tok/s** against one (`…-10-08-ios-early-read-x2/`). With the fitted guess file (11.1 MB, fitted on gemma4; supergemma4 has byte-identical routers and shares it, measured on the phone in `…-10-04-ios-supergemma4-guess/`) it gives about **+17–20% tok/s at +11–18% bytes/token**, with identical output and precision 0.68–0.75. Outside the fit's training set, including Russian, Chinese and Spanish, the fitted guess beat the router on all six prompts tried (+0.11 to +0.15 precision, Mac, `…-10-05-mac-early-read-out-of-domain/`). | `benchmark-results-2026-10-02-ios-next-layer-prefetch/`, `…-10-03-ios-fitted-guess/`, CACHE-10 |
-| Expert-cache count aging (on) | LFU counts decay 0.97 per plan and reset when the KV resets. Today's benchmark is a fresh process per prompt and cannot see it. Over a `--session` of 11 prompts on one loaded model, as the app runs chats, it gave **+23.1% tok/s** (4.73 → 5.83), hit rate 67.7% → 75.4%, bytes/token −18.5%, with identical output. The first prompt gains ~1 point. Prefill bytes +6.2%, because the reset precedes prefill. | `benchmark-results-2026-10-03-ios-expert-cache-aging/`, CACHE-11 |
-| Thermal | `serious` costs ~12% tok/s, mostly through `io`. At `fair` the GPU may slow ~9% (n=1). Separately, whole-run GPU speed varies up to ~40% between consecutive runs at the same thermal state. | `benchmark-results-2026-09-16-ios-slots/`, `…-10-03-ios-fitted-guess/` |
-| Kernel numerics | The device kernel suites pass: 179 tests in 51 suites as of 2026-10-01. Worst-case relative error is identical to the M1 at every shared site. This is conformance in isolation, not a composition test. Device-vs-Mac text differences under sampling are not evidence of a defect. | `validation-results-2026-09-16-ios-kernels/`, `…-09-24-ios-vision/` |
+| Expert-cache slots | Per layer, 3,358,720 B each, so +8 slots is about +0.8 GB. At 16 / 24 / 32, tok/s was 4.40 / 6.03 / 7.01 (short), 3.57 / 4.33 / 4.79 (long), and hit rate 67.7 / ~79 / 86.5% (short). Default is 24 since 2026-09-24, because 32 left no room for the system photo picker. That was before grouped attention and the 1024 prefill cap. | `results/benchmark-results-2026-09-16-ios-slots/`, `…-09-24-ios-vision-memory/` |
+| Prefill chunk cap 1024 | Long-case prefill bytes −70.6% against 256, medium −42.1%; medium now runs in one chunk. Costs +152.4 MB of KV ring on every iOS run, because the ring is sized from the cap. Per-chunk volume grows with chunk size, so doubling the chunk does not halve the bytes. | `results/benchmark-results-2026-09-22-ios-prefill-chunk/` |
+| Grouped full attention (upstream #182) | `cb1-wait` −0.5 / −5.3 / −11.8 to −19.1 ms; long +6.7% tok/s. Bit-identical output and 0 bytes/token. Default since `5820bbd`. The gain near the 8K cap is unmeasured. | `results/benchmark-results-2026-10-01-grouped-attention/` |
+| Early expert read (on by default since 2026-10-03, `e4eb3a4`) | Reads one predicted expert of layer L+1 during storage-idle time. Storage idle per layer is 1.9–2.5 ms against 2.1–2.2 ms per read, so one fits and two do not: two reads measured **−25.9 / −14.6 / −20.7% tok/s** against one (`…-10-08-ios-early-read-x2/`). With the fitted guess file (11.1 MB, fitted on gemma4; supergemma4 has byte-identical routers and shares it, measured on the phone in `…-10-04-ios-supergemma4-guess/`) it gives about **+17–20% tok/s at +11–18% bytes/token**, with identical output and precision 0.68–0.75. Outside the fit's training set, including Russian, Chinese and Spanish, the fitted guess beat the router on all six prompts tried (+0.11 to +0.15 precision, Mac, `…-10-05-mac-early-read-out-of-domain/`). | `results/benchmark-results-2026-10-02-ios-next-layer-prefetch/`, `…-10-03-ios-fitted-guess/`, CACHE-10 |
+| Expert-cache count aging (on) | LFU counts decay 0.97 per plan and reset when the KV resets. Today's benchmark is a fresh process per prompt and cannot see it. Over a `--session` of 11 prompts on one loaded model, as the app runs chats, it gave **+23.1% tok/s** (4.73 → 5.83), hit rate 67.7% → 75.4%, bytes/token −18.5%, with identical output. The first prompt gains ~1 point. Prefill bytes +6.2%, because the reset precedes prefill. | `results/benchmark-results-2026-10-03-ios-expert-cache-aging/`, CACHE-11 |
+| Thermal | `serious` costs ~12% tok/s, mostly through `io`. At `fair` the GPU may slow ~9% (n=1). Separately, whole-run GPU speed varies up to ~40% between consecutive runs at the same thermal state. | `results/benchmark-results-2026-09-16-ios-slots/`, `…-10-03-ios-fitted-guess/` |
+| Kernel numerics | The device kernel suites pass: 179 tests in 51 suites as of 2026-10-01. Worst-case relative error is identical to the M1 at every shared site. This is conformance in isolation, not a composition test. Device-vs-Mac text differences under sampling are not evidence of a defect. | `results/validation-results-2026-09-16-ios-kernels/`, `…-09-24-ios-vision/` |
 
 ### Mac validation host (M1 MacBook Air, 8 GB, 256 GB SSD, macOS 26.6.1, Swift 6.3.3)
 
 | Fact | Value | Source |
 | --- | --- | --- |
 | Decode at defaults (16 slots) | **3.729 / 3.255 / 2.897 tok/s**; bytes/token 260.2 / 281.9 / 309.3 MB; hit rate 67.7 / 65.0 / 61.6%. `io` 155 / 177 / 196 ms (57–58%), `cb1-wait` 90 / 105 / 125 ms. Measured at `4056bfa`, before grouped attention; the Mac arm of that A/B was not run. | 2026-09-15 rows |
-| `cb1-wait` composition | Attention + router is 47–48% of it, the previous layer's routed buffer 30–36 ms, and CPU/GPU handoff 16–17 ms per forward (short case). | `benchmark-results-2026-10-01-phase-instrumentation/` |
+| `cb1-wait` composition | Attention + router is 47–48% of it, the previous layer's routed buffer 30–36 ms, and CPU/GPU handoff 16–17 ms per forward (short case). | `results/benchmark-results-2026-10-01-phase-instrumentation/` |
 | Storage | Production fetch 1.67–1.74 GB/s on the 2026-08-19 sequentially rewritten artifact at 26.8 d. A fresh sequential control reads 2.30 GB/s at slot granularity. Install-time write order sets read rate (scattered: 1.30–1.34). Recency effects are real but unquantified (IO-13). | IO-12, IO-13 |
 | Page cache and slots | Page cache knee 256 MiB–1 GiB; about 1.44 GB of file cache at idle. 32 slots collapses decode to 1.578 tok/s on this host (CACHE-03), which is why the Mac default stays 16. | 2026-08-10 rows, CACHE-03 |
 
@@ -461,7 +460,7 @@ demand.
 | --- | --- | --- |
 | `docs/IOS_PORT.md` | current, this project | The port plan, its tracks and history, and the repo layout. |
 | `MEASUREMENTS.md` | current, append-only | Every real-model run. |
-| `benchmark-results-*/`, `validation-results-*/` | current, this project | Predictions, results and logs per experiment. |
+| `results/` (benchmark, research and validation folders) | current, this project | Predictions, results and logs per experiment. |
 | `docs/experiments/summaries/` | current, prior art | What was tried; see the table below. |
 | `docs/RUNTIME_CONTROLS.md` | current | Controls and defaults, both platforms. |
 | `docs/SYSTEM_DESIGN.md` | current, Mac runtime | Architecture and the code map. |

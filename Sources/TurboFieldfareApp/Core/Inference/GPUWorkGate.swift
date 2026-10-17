@@ -7,7 +7,7 @@ import TurboFieldfare
 ///
 /// iOS refuses GPU work from an app in the background, unless it is showing
 /// Picture in Picture, and from any app once the phone locks (iPhone 17,
-/// iOS 26.6, `validation-results-2026-10-09-ios-background-probes/`). The
+/// iOS 26.6, `results/validation-results-2026-10-09-ios-background-probes/`). The
 /// decode loop reports a refusal as `GPUWorkNotPermitted`. The turn then waits
 /// here with its KV intact and runs the refused token again when the platform
 /// layer says the GPU is back. It also retries every few seconds, in case that

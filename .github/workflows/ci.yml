@@ -1,8 +1,8 @@
 name: CI
 
 # Changes that cannot reach the Mac build or tests skip CI: the results
-# Worker (it has its own node tests), benchmark and validation results, and
-# exported submissions. Markdown anywhere still runs, for the link check.
+# Worker (it has its own node tests), everything under results/, and exported
+# submissions. Markdown anywhere still runs, for the link check.
 # Later patterns override earlier ones; keep the two lists the same.
 on:
   push:
@@ -11,8 +11,7 @@ on:
     paths:
       - '**'
       - '!server/**'
-      - '!benchmark-results-*/**'
-      - '!validation-results-*/**'
+      - '!results/**'
       - '!benchmark-submissions/**'
       - '**/*.md'
   pull_request:
@@ -25,8 +24,7 @@ on:
     paths:
       - '**'
       - '!server/**'
-      - '!benchmark-results-*/**'
-      - '!validation-results-*/**'
+      - '!results/**'
       - '!benchmark-submissions/**'
       - '**/*.md'
 

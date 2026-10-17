@@ -93,8 +93,8 @@ struct ModelInfoView: View {
 
     /// Short, medium and long benchmark cases at default settings, rounded.
     /// Gemma 4: 7.07 / 5.55 / 5.73 tok/s
-    /// (`benchmark-results-2026-10-03-ios-expert-read-nocache/`). SuperGemma 4:
-    /// 7.09 / 6.37 / 5.75 tok/s (`benchmark-results-2026-10-04-ios-supergemma4-guess/`).
+    /// (`results/benchmark-results-2026-10-03-ios-expert-read-nocache/`). SuperGemma 4:
+    /// 7.09 / 6.37 / 5.75 tok/s (`results/benchmark-results-2026-10-04-ios-supergemma4-guess/`).
     private var measuredSpeed: String? {
         switch descriptor.key {
         case AppModelInstallDescriptor.default.key: "About 5.5–7 tok/s"

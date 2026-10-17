@@ -15,19 +15,19 @@ import Metal
 /// wasted. The cache plans exactly as it would without this, so hit rate and
 /// generated text are unchanged; only where some misses' bytes come from
 /// differs. See
-/// `benchmark-results-2026-10-02-ios-next-layer-prefetch/predictions.md`.
+/// `results/benchmark-results-2026-10-02-ios-next-layer-prefetch/predictions.md`.
 ///
 /// The scores come from the fitted guess the runtime ships for this model
 /// (`NextLayerGuessWeights`) when there is one, and otherwise from layer L+1's
 /// own router. `TURBO_FIELDFARE_EARLY_EXPERT_GUESS` overrides that with a file
 /// path, or with `router` to force the router. Measured on the iPhone 17: the
 /// fitted guess is used 0.68–0.75 of the time against the router's 0.55–0.61
-/// (`benchmark-results-2026-10-03-ios-fitted-guess/results.md`).
+/// (`results/benchmark-results-2026-10-03-ios-fitted-guess/results.md`).
 ///
 /// One read per layer by default: on the iPhone 17 the storage idle time per
 /// layer was about one read long. `TURBO_FIELDFARE_EARLY_EXPERT_READS` (1–8)
 /// sets more; each costs one more 3.36 MB staging buffer. On the M1 two beat
-/// one by +11.5 to +14.8% (`benchmark-results-2026-10-07-early-read-v3/`).
+/// one by +11.5 to +14.8% (`results/benchmark-results-2026-10-07-early-read-v3/`).
 final class NextLayerExpertPrefetcher: @unchecked Sendable {
     static let environmentKey = "TURBO_FIELDFARE_EARLY_EXPERT_READ"
     static let readsEnvironmentKey = "TURBO_FIELDFARE_EARLY_EXPERT_READS"

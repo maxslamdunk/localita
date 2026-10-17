@@ -16,7 +16,7 @@ import TurboFieldfare
 ///    .supportedResources` containing `.gpu`)? Logged at launch.
 /// 2. Does the Neural Engine, through Core ML, still run in the background?
 ///    `ane-probe.mlmodelc` in `Documents` (see
-///    `validation-results-2026-10-09-ios-background-probes/`) is timed every
+///    `results/validation-results-2026-10-09-ios-background-probes/`) is timed every
 ///    beat; its CPU-only time is measured at start, so a background time near
 ///    that means Core ML fell back to the CPU.
 /// 3. Does iOS keep the app alive at its chat footprint (model loaded, 24

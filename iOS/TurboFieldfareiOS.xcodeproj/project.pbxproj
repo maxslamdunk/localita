@@ -83,7 +83,7 @@
 			 * are orchestration (slot lifetime, expert-to-slot binding, tile
 			 * planning, pread cache-plan hit/miss accounting). None compares a
 			 * GPU result against a CPU reference. Tracked as a known gap in
-			 * validation-results-2026-09-16-ios-kernels/predictions.md.
+			 * results/validation-results-2026-09-16-ios-kernels/predictions.md.
 			 */
 			membershipExceptions = (
 				"Prefill/PrefillGroupedRoutedMoETests+Binding.swift",

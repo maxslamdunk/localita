@@ -196,14 +196,14 @@ capacity and memory cost.
   guess shipped in the runtime's `NextLayerGuess/` resources. Outside the
   fit's training set the fitted guess still beat the router on all six prompts
   tried, Russian, Chinese and Spanish included (+0.11 to +0.15 precision;
-  `benchmark-results-2026-10-05-mac-early-read-out-of-domain/results.md`). See
-  `benchmark-results-2026-10-02-ios-next-layer-prefetch/results.md` and
-  `benchmark-results-2026-10-03-ios-fitted-guess/results.md`.
+  `results/benchmark-results-2026-10-05-mac-early-read-out-of-domain/results.md`). See
+  `results/benchmark-results-2026-10-02-ios-next-layer-prefetch/results.md` and
+  `results/benchmark-results-2026-10-03-ios-fitted-guess/results.md`.
 - **Lesson:** A prefetch that raises bytes/token can still win when it is
   confined to measured idle storage time. Measure the idle window first.
 - **Open:**
   - Two reads per layer beat one on the M1 by +7.7 / +13.4 / +14.9%
-    (`benchmark-results-2026-10-05-mac-upstream-early-read/results-two-reads.md`).
+    (`results/benchmark-results-2026-10-05-mac-upstream-early-read/results-two-reads.md`).
     The cause is unseparated: a longer idle window per layer (the M1's GPU is
     slower), or the drive's gain from a second request in flight.
   - **On the iPhone two reads are slower than one: −25.9 / −14.6 / −20.7%
@@ -212,13 +212,13 @@ capacity and memory cost.
     serial read (1.7–2.0 ms of `io`), and right ones saved almost nothing:
     the first read already fills the phone's idle window. Short and long also
     had a slower GPU in both ×2 runs (head +23 / +30%), unattributed
-    (`benchmark-results-2026-10-08-ios-early-read-x2/results.md`). One read
+    (`results/benchmark-results-2026-10-08-ios-early-read-x2/results.md`). One read
     stays the default.
   - Three and four were slower than two on the M1: −5.0 / −4.2 / −2.6% and
     −21.7 / −17.6 / −11.9%, with identical output. Storage then ran at
     1.68–1.78 GB/s, this Mac's random-read ceiling, so each extra wasted read
     displaced a needed one
-    (`benchmark-results-2026-10-05-mac-upstream-early-read/results-three-four-reads.md`).
+    (`results/benchmark-results-2026-10-05-mac-upstream-early-read/results-three-four-reads.md`).
   - Idea, not built: drop the fixed read count. Read guesses best first, one
     at a time, until the next layer's plan arrives. Keep finished or
     in-flight reads the plan needs, abort an unneeded in-flight read, and drop
@@ -258,8 +258,8 @@ capacity and memory cost.
 - **Final disposition:** **Production since 2026-10-03, on both platforms**
   (`TURBO_FIELDFARE_EXPERT_CACHE_AGING`). The Mac's case is replay only. Next
   steps: moving the reset after prefill, and the learned policy (+1.3 points
-  in replay). See `research-results-2026-10-03-cache-policy/results.md` and
-  `benchmark-results-2026-10-03-ios-expert-cache-aging/results.md`.
+  in replay). See `results/research-results-2026-10-03-cache-policy/results.md` and
+  `results/benchmark-results-2026-10-03-ios-expert-cache-aging/results.md`.
 - **Lesson:** The benchmark starts a fresh process, so state that accumulates
   over a session is invisible to it. Replay sessions, not only prompts.
 
