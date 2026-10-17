@@ -886,7 +886,7 @@ two options at no cost.
 
 | Remote | Points at | Use |
 | --- | --- | --- |
-| `origin` | `maxslamdunk/turbo-fieldfare-ios` (private) | Everything. |
+| `origin` | `maxslamdunk/localita` (private; `turbo-fieldfare-ios` until 2026-10-17) | Everything. |
 | `upstream` | `drumih/turbo-fieldfare` | Fetch only; push URL is set to `DISABLED`. |
 
 - `git fetch upstream && git merge upstream/main` pulls upstream work in for
