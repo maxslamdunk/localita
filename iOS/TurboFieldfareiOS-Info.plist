@@ -5,11 +5,12 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<!-- BackgroundDownload: each download's continued-processing task gets
-	     a unique identifier under this prefix. -->
+	     a unique identifier under this prefix. It follows the bundle ID, so a
+	     build under another bundle ID keeps background downloads working. -->
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>io.github.maxslamdunk.TurboFieldfareiOS.download.*</string>
-		<string>io.github.maxslamdunk.TurboFieldfareiOS.probe.*</string>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER).download.*</string>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER).probe.*</string>
 	</array>
 	<!-- Picture in Picture needs this mode: BackgroundGeneration keeps a reply
 	     generating in a PiP window, and BackgroundProbe measured why that

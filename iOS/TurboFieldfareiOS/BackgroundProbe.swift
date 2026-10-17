@@ -348,7 +348,7 @@ final class BackgroundProbe: NSObject, ObservableObject {
     }
 
     private func submitTask() {
-        let prefix = Bundle.main.bundleIdentifier ?? "io.github.maxslamdunk.TurboFieldfareiOS"
+        let prefix = Bundle.main.bundleIdentifier ?? "io.github.maxslamdunk.Localita"
         let identifier = prefix + ".probe." + UUID().uuidString
         let registered = BGTaskScheduler.shared.register(forTaskWithIdentifier: identifier,
                                                          using: .main) { launched in

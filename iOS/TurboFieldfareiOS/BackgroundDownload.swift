@@ -141,7 +141,7 @@ enum BackgroundDownload {
         // Info.plist, registered right before it is submitted. Registering the
         // wildcard itself does not match unique identifiers (FB, Apple forums
         // thread 799126).
-        let prefix = Bundle.main.bundleIdentifier ?? "io.github.maxslamdunk.TurboFieldfareiOS"
+        let prefix = Bundle.main.bundleIdentifier ?? "io.github.maxslamdunk.Localita"
         let identifier = prefix + ".download." + UUID().uuidString
         let registered = BGTaskScheduler.shared.register(
             forTaskWithIdentifier: identifier, using: .main

@@ -295,7 +295,7 @@ CLI `--prompt` is raw completion; `--messages-file` applies the Gemma 4 IT chat
 format. The footers go to stderr: `[expert-io …]`, `[phase-time …]`,
 `[gpu-time …]` and `[read-latency …]`. The iOS harness prints the same lines.
 
-On the iPhone, with bundle `io.github.maxslamdunk.TurboFieldfareiOS`. Find the
+On the iPhone, with bundle `io.github.maxslamdunk.Localita`. Find the
 device's devicectl id with `xcrun devicectl list devices` and its UDID with
 `xcrun xctrace list devices`:
 
@@ -304,7 +304,7 @@ xcodebuild -project iOS/TurboFieldfareiOS.xcodeproj -scheme TurboFieldfareiOS \
   -configuration Release -destination 'generic/platform=iOS' -allowProvisioningUpdates build
 xcrun devicectl device install app --device <devicectl id> <path>/TurboFieldfareiOS.app
 xcrun devicectl device process launch --device <devicectl id> --terminate-existing \
-  io.github.maxslamdunk.TurboFieldfareiOS --autorun --case long-synthesis --label <label> \
+  io.github.maxslamdunk.Localita --autorun --case long-synthesis --label <label> \
   --slots 24 --max-new 1024 --max-context 4096 [--early-expert-read [--early-expert-guess <file>]]
 xcodebuild test -project iOS/TurboFieldfareiOS.xcodeproj -scheme TurboFieldfareiOS \
   -destination 'id=<udid>'   # device kernel suites, Debug
