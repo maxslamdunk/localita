@@ -4,5 +4,5 @@ import Foundation
 /// (`server/benchmark-worker/src/privacy.ts`). The App Store listing names the
 /// same address, so it stays fixed.
 enum PrivacyPolicy {
-    static let url = URL(string: "https://turbo-fieldfare-bench.gemma-local-ios.workers.dev/privacy")!
+    static let url = URL(string: "https://localita.maxslamdunk.workers.dev/privacy")!
 }

@@ -565,7 +565,7 @@ private struct BenchmarkSendSheet: View {
                          + "battery and heat when each prompt ran, and the run's speed and "
                          + "memory figures. Never your chats, your name, an account, or "
                          + "anything that identifies this iPhone.")
-                    Text("Results are stored on Cloudflare for the TurboFieldfare project "
+                    Text("Results are stored on Cloudflare for the \(AppName.display) project "
                          + "and published in its public GitHub repository.")
                         .foregroundStyle(.secondary)
                     Link("Privacy Policy", destination: PrivacyPolicy.url)

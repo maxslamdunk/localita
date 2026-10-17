@@ -322,7 +322,7 @@ public struct BenchmarkSubmission: Sendable {
     /// The deployed Worker (2026-10-15). The app offers no sending when nil.
     /// Changing it strands app versions already out, which keep sending here.
     public static let defaultEndpoint = URL(
-        string: "https://turbo-fieldfare-bench.gemma-local-ios.workers.dev/v1/results")
+        string: "https://localita.maxslamdunk.workers.dev/v1/results")
 
     public enum Reply: Equatable, Sendable {
         /// Stored now, or already stored by an earlier send of the same run.

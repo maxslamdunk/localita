@@ -269,7 +269,7 @@ struct HarnessView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("TurboFieldfare").font(.headline)
+                Text(AppName.display).font(.headline)
                 Spacer()
                 if harness.running {
                     ProgressView()

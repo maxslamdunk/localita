@@ -334,7 +334,7 @@ enum BackgroundDownload {
             record("stopped with an error: \(message)")
             notify(title: "Download stopped",
                    body: "\(model.installDescriptor.shortName) stopped at "
-                       + "\(percentText(model)): \(message). Open TurboFieldfare to retry.",
+                       + "\(percentText(model)): \(message). Open \(AppName.display) to retry.",
                    after: nil)
         default:
             // Paused at a checkpoint. The pending notification fires if the
@@ -385,15 +385,15 @@ enum BackgroundDownload {
         if !network.isSatisfied {
             return ("Download waiting for a connection",
                     "\(name) paused at \(at): the iPhone has no internet connection. "
-                        + "Open TurboFieldfare once it is back to continue; " + kept)
+                        + "Open \(AppName.display) once it is back to continue; " + kept)
         }
         if waitsForWiFi(network) {
             return ("Download waiting for Wi-Fi",
                     "\(name) paused at \(at) when the iPhone left Wi-Fi; it does not "
-                        + "use mobile data. Open TurboFieldfare on Wi-Fi to continue; " + kept)
+                        + "use mobile data. Open \(AppName.display) on Wi-Fi to continue; " + kept)
         }
         return ("Download paused",
-                "\(name) paused at \(at). Open TurboFieldfare to continue; " + kept)
+                "\(name) paused at \(at). Open \(AppName.display) to continue; " + kept)
     }
 
     private static func waitsForWiFi(_ network: DownloadNetwork) -> Bool {

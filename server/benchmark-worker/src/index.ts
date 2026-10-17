@@ -5,7 +5,7 @@
 // memory and writes nothing, and the Worker logs nothing (observability is
 // off in `wrangler.toml`).
 
-import { PRIVACY_HTML } from "./privacy.ts";
+import { APP_NAME, PRIVACY_HTML } from "./privacy.ts";
 import { Invalid, MAX_BODY_BYTES, validateReport } from "./validate.ts";
 import type { Accepted } from "./validate.ts";
 
@@ -61,7 +61,7 @@ async function readCapped(request: Request, max: number): Promise<string | null>
 export async function handle(request: Request, deps: Deps): Promise<Response> {
   const url = new URL(request.url);
   if (url.pathname === "/" && request.method === "GET") {
-    return new Response("TurboFieldfare benchmark results. The app sends them to "
+    return new Response(`${APP_NAME} benchmark results. The app sends them to `
       + "POST /v1/results.\n", { headers: { "content-type": "text/plain" } });
   }
   if (url.pathname === "/privacy" && request.method === "GET") {

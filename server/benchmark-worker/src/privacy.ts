@@ -4,8 +4,8 @@
 // commit, with a new effective date. The app's `PrivacyInfo.xcprivacy` and
 // the App Store privacy label say the same things in Apple's terms.
 
-// The app's name, as its users see it.
-export const APP_NAME = "TurboFieldfare";
+// The app's display name, as `INFOPLIST_KEY_CFBundleDisplayName` sets it.
+export const APP_NAME = "Localita";
 
 export const PRIVACY_EFFECTIVE = "16 October 2026";
 
