@@ -4,8 +4,9 @@ import Foundation
 /// answer is still arriving, and names the trailing block that is still being
 /// written.
 ///
-/// Blank lines are almost the only splitter, and a fence line is the one
-/// exception. Everything else stays with the block above it: `Title` followed
+/// Blank lines are almost the only splitter. The exceptions are a fence line,
+/// and the end of an ATX heading or a thematic break, which are one line each.
+/// Everything else stays with the block above it: `Title` followed
 /// by `---` is a setext heading, a `|` row that follows a paragraph line
 /// belongs to that paragraph, a list item that follows another keeps its
 /// ordinal from the list it is in — and a progressive render is only worth
@@ -247,8 +248,8 @@ public enum ResponseBlockSplitter {
 
         let indent = indentWidth(bytes, content)
         guard var current = state.current else {
-            state.current = opening(bytes, content: content, lineEnd: lineEnd, indent: indent)
-            state.pendingBlank = false
+            open(bytes, content: content, lineEnd: lineEnd, indent: indent,
+                 terminated: terminated, state: &state, completed: &completed)
             return
         }
 
@@ -262,9 +263,8 @@ public enum ResponseBlockSplitter {
             // block it would continue stays open until the line ends.
             guard continues || !terminated else {
                 completed.append(block(from: current))
-                state.current = opening(
-                    bytes, content: content, lineEnd: lineEnd, indent: indent)
-                state.pendingBlank = false
+                open(bytes, content: content, lineEnd: lineEnd, indent: indent,
+                     terminated: terminated, state: &state, completed: &completed)
                 return
             }
             state.pendingBlank = false
@@ -305,6 +305,35 @@ public enum ResponseBlockSplitter {
 
         current.contentEnd = content.upperBound
         state.current = current
+    }
+
+    /// Opens a block on `content`, and commits it at once if it is a block
+    /// that cannot run past its own line.
+    ///
+    /// An ATX heading and a thematic break are one line each in CommonMark, so
+    /// whatever follows is a block of its own even without a blank line between
+    /// them. Leaving them open made the next lines part of them: a table under
+    /// `### Summary` went to the renderer as a heading block, and iOS, which
+    /// draws tables as views, showed it as source; text under a `---` was drawn
+    /// as the rule and lost. Only a terminated line commits, because an
+    /// unterminated one is scanned into a copy whose completions are dropped.
+    private static func open(
+        _ bytes: UnsafeBufferPointer<UInt8>,
+        content: Range<Int>,
+        lineEnd: Int,
+        indent: Int,
+        terminated: Bool,
+        state: inout ScanState,
+        completed: inout [Block]
+    ) {
+        let current = opening(bytes, content: content, lineEnd: lineEnd, indent: indent)
+        state.pendingBlank = false
+        if terminated, current.kind == .heading || current.kind == .thematicBreak {
+            completed.append(block(from: current))
+            state.current = nil
+        } else {
+            state.current = current
+        }
     }
 
     private static func opening(

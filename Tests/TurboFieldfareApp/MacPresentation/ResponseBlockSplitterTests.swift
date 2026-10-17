@@ -218,16 +218,50 @@ import Testing
         #expect(Self.texts(source)[2] == "$$\nx = 1\n$$")
     }
 
-    /// The parser reads a `#` line and the text under it as a heading plus a
-    /// paragraph whether or not a blank line separates them. Splitting there
-    /// would be safe, but the blank-line rule is the one that also keeps
-    /// `Title` above `---` in the same block, where splitting is not.
-    @Test func blankLinesAreTheOnlyBoundary() {
-        #expect(Self.texts("#### Checklist\n- [x] done\n- [ ] open")
-            == ["#### Checklist\n- [x] done\n- [ ] open"])
+    /// `Title` above `---` is a setext heading, so the two stay in one block;
+    /// splitting there would turn the heading into a paragraph and a rule.
+    @Test func setextUnderlineStaysWithItsTitle() {
         #expect(Self.texts("Title\n---\n\nBody") == ["Title\n---", "Body"])
         #expect(Self.kinds("Title\n---\n\nBody") == [.paragraph, .paragraph])
         #expect(Self.kinds("\n---\n\nBody") == [.thematicBreak, .paragraph])
+    }
+
+    /// An ATX heading is one line, so what follows it is its own block with or
+    /// without a blank line. A table directly under a heading was absorbed into
+    /// it, and iOS, which draws tables as views, showed the table as source.
+    @Test func headingEndsAtItsOwnLine() {
+        #expect(Self.texts("#### Checklist\n- [x] done\n- [ ] open")
+            == ["#### Checklist", "- [x] done\n- [ ] open"])
+        #expect(Self.kinds("#### Checklist\n- [x] done\n- [ ] open") == [.heading, .list])
+
+        let table = "### Summary\n| A | B |\n| :--- | :--- |\n| **x** $N$ | y |"
+        #expect(Self.kinds(table) == [.heading, .table])
+        #expect(Self.texts(table)
+            == ["### Summary", "| A | B |\n| :--- | :--- |\n| **x** $N$ | y |"])
+        #expect(MarkdownTable.parse(Self.texts(table)[1])?.rows == [["**x** $N$", "y"]])
+    }
+
+    /// A rule is one line too; text under it was drawn as the rule and lost.
+    @Test func thematicBreakEndsAtItsOwnLine() {
+        #expect(Self.texts("Intro\n\n***\nBody") == ["Intro", "***", "Body"])
+        #expect(Self.kinds("Intro\n\n***\nBody") == [.paragraph, .thematicBreak, .paragraph])
+    }
+
+    /// The heading commits only once its line ends; an unterminated `#` line
+    /// can still change, and is the open block until then.
+    @Test func headingCommitsWhenItsLineEnds() {
+        let partial = ResponseBlockSplitter.split("## Head")
+        #expect(partial.completed.isEmpty)
+        #expect(partial.open?.kind == .heading)
+
+        let ended = ResponseBlockSplitter.split("## Heading\n| a")
+        #expect(ended.completed.map(\.kind) == [.heading])
+        #expect(ended.open?.kind == .table)
+
+        // Resuming across the boundary agrees with a fresh scan.
+        let resumed = ResponseBlockSplitter.split(
+            "## Heading\n| a | b |\n", resuming: ResponseBlockSplitter.split("## Head"))
+        #expect(resumed == ResponseBlockSplitter.split("## Heading\n| a | b |\n"))
     }
 
     @Test func carriageReturnsAreTolerated() {
