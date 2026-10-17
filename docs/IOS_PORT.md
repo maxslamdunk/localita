@@ -6,7 +6,7 @@ continues. Target device chosen 2026-09-15: **iPhone 17** (see
 8 GB M1 validation host on every benchmark case.
 
 This document is the framing and sequencing for the iPhone port. It does not
-restate the measured facts — `CLAUDE.md` is the single source of truth for those
+restate the measured facts — `AGENTS.md` is the single source of truth for those
 and every number below is either quoted from that table or labeled as arithmetic
 derived from it.
 
@@ -14,7 +14,7 @@ derived from it.
 
 > **Superseded as guidance on 2026-10-03.** The project goal is now end-to-end
 > decode and prefill time on the iPhone, with bytes/token as one lever among
-> several (see "The goal" and "Where the time goes on the phone" in `CLAUDE.md`).
+> several (see "The goal" and "Where the time goes on the phone" in `AGENTS.md`).
 > On the phone, `io` is ~60% of a decode forward and GPU work plus handoff ~30%,
 > and the best result so far, the early expert read, raises bytes/token. The text
 > below is the 2026-08/09 framing from the Mac, kept as the plan's history.
@@ -31,7 +31,7 @@ that window it moves bytes at **1.30–1.34 GB/s against the 1.36–1.39 GB/s th
 files can deliver**. So decode on that host *is* storage-bound after all, at
 94–96% of the achievable rate. The intermediate claim that it ran at 29% of a
 2.7–3.2 GB/s roof was arithmetic against a roof measured on zero-filled data;
-that roof is withdrawn. See the resolution in `CLAUDE.md`.
+that roof is withdrawn. See the resolution in `AGENTS.md`.
 
 The phase split (step B0b, 2026-08-10) says where that time actually goes:
 **`io` is 59–63% of a decode forward**, so reads bind, and the expert cache
@@ -79,7 +79,7 @@ the port controls. Two things change:
 Chosen 2026-09-15: **iPhone 17** (model A3258). Everything below is from spec
 sheets or from reading this repo's code, not from measurement. Sources are in
 [`IMPLEMENTATION_REFERENCES.md`](IMPLEMENTATION_REFERENCES.md#ios-target-platform).
-(Written before any device measurement; measured values are now in `CLAUDE.md`'s iPhone table.)
+(Written before any device measurement; measured values are now in `AGENTS.md`'s iPhone table.)
 
 | | iPhone 17 | Mac validation host |
 | --- | --- | --- |
@@ -99,7 +99,7 @@ The iPhone Air, 17 Pro and 17 Pro Max have 12 GB of RAM.
   footprint. Step A1 reads it with and without the entitlement.
 - **Storage read rate.** There is no trustworthy public figure. Step B1 measures
   it. Record the phone's storage tier beside the result, since base-capacity
-  units can ship fewer NAND chips (see `CLAUDE.md`).
+  units can ship fewer NAND chips (see `AGENTS.md`).
 - **NAND part and supplier.** One uncited source names Kioxia. The TechInsights
   teardown that would confirm it is paywalled. The plan doesn't need it, because
   B1 measures the rate directly.
@@ -431,7 +431,7 @@ Steps:
      The phone's deficit is entirely in `io` — **199.92** against 150.18 —
      which is the direction Track B step 1 predicted from storage. The second
      half of the binding constraint therefore looks *better* on the phone than
-     on the host, and `cb1-wait`, named in `CLAUDE.md` as the most likely place
+     on the host, and `cb1-wait`, named in `AGENTS.md` as the most likely place
      for the next win on the Mac, is a smaller problem here.
    - ⚠️ **These figures are not comparable with the Mac rows**, for two reasons
      that are both about workload rather than the device. The prompt was an
@@ -518,7 +518,7 @@ Steps:
      Top-P 0.95): a 1-ULP logit difference near a tie flips one draw, and the
      sequences diverge permanently after it. The Mac does the same to itself —
      HEAD after the 0.8.0 merge generated 527 / 665 / 597 on the same machine and
-     artifact, which `CLAUDE.md` records as a changed routing workload, not a
+     artifact, which `AGENTS.md` records as a changed routing workload, not a
      regression. The standing lesson is
      [METH-01](experiments/summaries/09-validation-and-measurement-lessons.md#meth-01):
      numerical equivalence is a distributional claim, not a bit-identity claim,
@@ -546,7 +546,7 @@ below makes that deferral structural rather than a matter of remembering to.
 0. **Mac-side instrumentation — DONE 2026-08-10.** `ExpertIOCounters` counts
    bytes on the `pread` path and hits/misses in the cache planner; the CLI
    prints an `[expert-io …]` footer line and the HUD shows decode bytes/token
-   and hit rate. First measured values are in `CLAUDE.md` and `MEASUREMENTS.md`.
+   and hit rate. First measured values are in `AGENTS.md` and `MEASUREMENTS.md`.
    Two follow-ups this exposed: the CLI footer does not print the per-phase
    `cb1`/`io`/`cb2` split the runtime already tracks, which is what would show
    whether decode time is actually going into reads; and **prefill runs at 0.0%
@@ -558,7 +558,7 @@ below makes that deferral structural rather than a matter of remembering to.
    GPU execution by construction — so the two waits that were being computed and
    discarded were added with them. Predicted 0 bytes/token; measured bytes/token
    came back identical to the digit against the previous session, confirming it.
-   Findings are in `CLAUDE.md`; the two that change this plan are quoted above.
+   Findings are in `AGENTS.md`; the two that change this plan are quoted above.
 1. **Device I/O probe — DONE 2026-09-16, iPhone 17 (iOS 26.6).** Sustained random
    reads at the production 3,358,720 B slot size, one read in flight, over a
    12.01 GiB corpus of incompressible bytes shaped like the 30 installed layer
@@ -728,7 +728,7 @@ below makes that deferral structural rather than a matter of remembering to.
        the reads that remain are the scattered ones), and `cb1-wait` does not
        shrink with bytes at all.
      - **So the next win on the phone is attention, not bytes.** At 32 slots
-       `cb1-wait` is **39% of the long case's wall**. `CLAUDE.md` already names
+       `cb1-wait` is **39% of the long case's wall**. `AGENTS.md` already names
        it as the most likely place for the next win on the Mac; shrinking the
        byte half has now made it the dominant term here too.
      - **Trace replay over-predicts live gain** by 2–5 hit-rate points, worth
@@ -748,7 +748,7 @@ below makes that deferral structural rather than a matter of remembering to.
        macOS, because CACHE-03 measured 32 as actively harmful on the 8 GB Mac
        and the cost is real — slots are per layer, so 16 → 32 is **+1.61 GB**.
        A named constant in `Configuration/` rather than an `#if os(iOS)` at call
-       sites, per `Infrastructure/CLAUDE.md`.
+       sites, per `Infrastructure/AGENTS.md`.
        - ⚠️ **The default alone was not enough.** `HarnessSettings` hardcoded its
          own `expertCacheSlots = 16`, which silently overrode the new default and
          would have held every device run at 16 while the runtime claimed
@@ -935,7 +935,7 @@ memory invariant.
 
 ## Related
 
-- `CLAUDE.md` — the goal, measured facts, working agreements.
+- `AGENTS.md` — the goal, measured facts, working agreements.
 - `MEASUREMENTS.md` — append-only run log. iOS rows go here, kept separate from
   Mac rows; they are not comparable.
 - `docs/EXTERNAL_PRIOR_ART.md` — currently a stub. Nothing on iOS recorded yet.

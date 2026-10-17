@@ -7,7 +7,7 @@ Swift-side dispatch wrappers for the shaders in `../Metal/`. This directory owns
 - Subdirectories mirror `../Metal/` one-to-one. A wrapper lives in the subdirectory matching the shader it dispatches.
 - The wrapper is the only place the shader's argument order is written down on the Swift side. It is duplicated by hand from the `.metal` source and is not compiler-checked — when either side changes, change both in the same commit.
 - Pipeline state comes from the lock-guarded cache in `MetalContext`. Do not construct pipelines ad hoc, and do not cache an `MTLComputePipelineState` in a wrapper's own storage.
-- Wrappers encode into a command buffer supplied by the caller; they do not create, commit, or wait on command buffers. Scheduling is the runtime's job (see `../Runtime/CLAUDE.md`).
+- Wrappers encode into a command buffer supplied by the caller; they do not create, commit, or wait on command buffers. Scheduling is the runtime's job (see `../Runtime/AGENTS.md`).
 - Prefer adding a parameter to an existing wrapper over forking a near-duplicate. The decode and prefill variants are genuinely different paths and stay separate: single-token decode uses the custom affine INT4/INT8 GEMV kernels, prefill uses staged-affine MPP `matmul2d` once rows justify it.
 
 ## Ownership hazard

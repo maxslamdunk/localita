@@ -3,7 +3,7 @@
 > **Superseded — do not quote these numbers.** They were taken on an 8 GB M2
 > MacBook Air and a 24 GB M5 Pro, neither of which is this project's validation
 > host (M1 MacBook Air, 8 GB). The accepted values live in the measured-facts
-> table in `CLAUDE.md`; per-run history lives in `MEASUREMENTS.md`. Kept for the
+> table in `AGENTS.md`; per-run history lives in `MEASUREMENTS.md`. Kept for the
 > record only.
 
 This page records TurboFieldfare measurements on an 8 GB M2 MacBook Air and a

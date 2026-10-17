@@ -137,7 +137,7 @@ This repository also builds upstream's macOS app, command-line tool and
 loopback OpenAI-compatible server, which share the runtime with the iPhone
 app. They serve as the development and reference host here. See
 [upstream's README](docs/UPSTREAM_README.md) for how to use them, and
-[`CLAUDE.md`](CLAUDE.md) for how the project is developed and measured.
+[`AGENTS.md`](AGENTS.md) for how the project is developed and measured.
 
 ```bash
 swift build -c release

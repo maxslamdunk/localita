@@ -49,8 +49,11 @@ __pycache__/
 *.pyc
 .venv/
 
-# Claude Code local overrides
-.claude/settings.local.json
+# Tool-specific agent setup stays local. AGENTS.md is the shared guide; Claude
+# Code users put `@AGENTS.md` in their own CLAUDE.md.
+CLAUDE.md
+CLAUDE.local.md
+.claude/
 
 # Compiled standalone probes (sources are tracked)
 Scripts/probes/*

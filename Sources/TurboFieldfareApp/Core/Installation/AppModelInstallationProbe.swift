@@ -20,7 +20,7 @@ public enum AppModelInstallationProbe {
     /// found, on the device, by hand.
     ///
     /// A named constant rather than an `#if` at the call site, per
-    /// `Infrastructure/CLAUDE.md`. What it relaxes is narrow: schema version
+    /// `Infrastructure/AGENTS.md`. What it relaxes is narrow: schema version
     /// and manifest digest are still enforced on both platforms, and the app
     /// loads with `.fullSha256`, so every byte is still hashed on first touch.
     /// Nothing is trusted here that was not trusted before.

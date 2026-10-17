@@ -2,7 +2,7 @@
 
 `.metal` files here are bundle resources, compiled into one `MTLLibrary` at startup by `MetalContext`. Edit a shader, rebuild the Swift target — there is no Xcode metallib step.
 
-Before a shader change is claimed, it needs a kernel test against the CPU reference and a pass of the device kernel suites on the iPhone (Apple10 — the Mac is Apple7, so a Mac pass alone does not cover the target). A performance change also needs a written prediction, per the root `CLAUDE.md`. Plan mode is not required.
+Before a shader change is claimed, it needs a kernel test against the CPU reference and a pass of the device kernel suites on the iPhone (Apple10 — the Mac is Apple7, so a Mac pass alone does not cover the target). A performance change also needs a written prediction, per the root `AGENTS.md`. Plan mode is not required.
 
 ## Directory-local conventions
 

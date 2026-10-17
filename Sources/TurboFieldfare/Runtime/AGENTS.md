@@ -21,7 +21,7 @@ Two things follow, and both get violated by well-meaning refactors:
 
 ## Where bytes/token and decode time are set
 
-Most of what decides how many bytes are read, and when, lives here. A performance change needs a written prediction before the run that scores it (root `CLAUDE.md`), stating the bytes/token delta and the time delta separately — they do not always move together.
+Most of what decides how many bytes are read, and when, lives here. A performance change needs a written prediction before the run that scores it (root `AGENTS.md`), stating the bytes/token delta and the time delta separately — they do not always move together.
 
 - Expert-cache slot count, eviction policy, and admission — a hit is a read that did not happen.
 - Read planning in `ModelExpertIO`: coalescing, tile width, and speculative reads. The early expert read raises bytes/token and still cuts `io`, because it reads during storage-idle time; a speculative read is judged on time, with its bytes counted as a cost.

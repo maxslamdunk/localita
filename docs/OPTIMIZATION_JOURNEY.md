@@ -3,7 +3,7 @@
 > **Upstream narrative, background reading.** A prose retelling of work that
 > `docs/experiments/summaries/` covers more densely and with measurements. Use
 > the summaries as the working reference for prior art; treat any number here as
-> illustrative and check it against `CLAUDE.md`.
+> illustrative and check it against `AGENTS.md`.
 
 TurboFieldfare runs Gemma 4 26B-A4B on an 8 GB Apple Silicon machine. Its
 text installation, without the optional image pack, is about 14.3 GB. The model
