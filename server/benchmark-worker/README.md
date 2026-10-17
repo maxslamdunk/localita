@@ -55,5 +55,6 @@ npx wrangler d1 execute turbo-fieldfare-bench --remote \
 ## Export
 
 `./export.sh` writes every stored result to `benchmark-submissions/submissions.jsonl` at the
-repo root, one `{"receivedAt", "report"}` object per line, oldest first. Review it and
+repo root, one `{"receivedAt", "report"}` object per line, oldest first, without each
+report's `submissionID` (the removal key; see the privacy page). Review it and
 commit it.

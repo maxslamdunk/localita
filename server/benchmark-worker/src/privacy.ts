@@ -87,7 +87,7 @@ The server uses your IP address only to limit how
 many reports one network can send per minute; it does not store or log it.
 Cloudflare processes the request as the hosting provider (see
 <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's privacy policy</a>).
-Accepted reports are published in the project's public
+Accepted reports, without their report ID, are published in the project's public
 source repository, so that anyone can compare how iPhones run the model.</p>
 
 <p><strong>Apple's own reports.</strong> If you allow it in your iPhone's settings
@@ -101,7 +101,9 @@ feedback you send. The app adds nothing to these.</p>
 <p>Results are kept for as long as the project publishes benchmark results.
 Because a report holds nothing that identifies you, the developer cannot tell
 which results are yours. After you send a run, its result screen shows its report
-ID. Email that ID to the address below and the result will be deleted from the database and left out of every later
+ID. Only your iPhone and the database hold that ID; it is never published, so
+only you can ask for that result's removal. Email the ID to the address below and
+the result will be deleted from the database and left out of every later
 publication. Copies already published remain
 in the repository's history.</p>
 <p>Deleting chats or benchmark runs in the app, or deleting the app, removes them
