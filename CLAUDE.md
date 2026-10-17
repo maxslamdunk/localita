@@ -7,7 +7,7 @@ TurboFieldfare is a Swift + Metal inference runtime for Gemma 4 26B-A4B (26B tot
 This repo is the **iOS port**, a separate repository derived from
 [`drumih/turbo-fieldfare`](https://github.com/drumih/turbo-fieldfare) (Apache-2.0),
 with upstream history kept and `upstream` wired fetch-only. `docs/IOS_PORT.md`
-is the plan and its history. Much of `docs/` and all of `README.md` describe the
+is the plan and its history. Much of `docs/` and all of `docs/UPSTREAM_README.md` describe the
 upstream Mac project; the [Document map](#document-map) says what each one is
 true of.
 
@@ -469,7 +469,7 @@ demand.
 | `docs/EXTERNAL_PRIOR_ART.md` | current, thin | Outside techniques. |
 | `docs/experiments/CLAUDE_MD_ARCHIVE_2026-10-03.md` | history | The Mac storage investigation as it was told in this file. |
 | `docs/BENCHMARKS.md` | other hardware | Never quote it. |
-| `docs/OPTIMIZATION_JOURNEY.md`, `README.md`, `CONTRIBUTING.md`, `docs/OPENAI_SERVER.md` | upstream | The upstream Mac project. |
+| `docs/OPTIMIZATION_JOURNEY.md`, `docs/UPSTREAM_README.md`, `CONTRIBUTING.md`, `docs/OPENAI_SERVER.md` | upstream | The upstream Mac project. |
 
 ### Which prior-art summary to read
 
