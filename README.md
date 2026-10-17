@@ -18,6 +18,12 @@ leave it, and once the model is downloaded the app works without a connection.
 > from source (see [Build it](#build-it)). It has been developed and tested on
 > one phone, an iPhone 17.
 
+<p align="center">
+  <img src="docs/assets/localita-chat.png" alt="A chat in Localita: Gemma 4 explains pointwise and uniform convergence, with rendered math" width="250">
+  <img src="docs/assets/localita-history.png" alt="The chat list, opened from the side, with a search field and past conversations" width="250">
+  <img src="docs/assets/localita-models.png" alt="The Models screen: Gemma 4, SuperGemma 4 and a community QAT build, with image support installed" width="250">
+</p>
+
 ## What it does
 
 - **Chat with Gemma 4**, with your conversations kept on the phone. Replies
