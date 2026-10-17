@@ -85,16 +85,11 @@ struct ResponseBlocksView: View {
                 .accessibilityHidden(true)
         case .paragraph:
             // A table written without outer pipes — `Name | Role | Level` over
-            // `--- | --- | ---` — opens as a paragraph and stays one. The
-            // splitter classifies a line by its first byte, and that byte is
-            // `N`, not `|`. GFM allows the form and `MarkdownTable` already
-            // reads it; only the classification missed it.
-            //
-            // Retried here rather than fixed in the splitter because a block's
-            // kind is fixed when it opens, and at that moment the delimiter row
-            // which is the only proof this is a table has not arrived. Teaching
-            // `kind()` to look ahead would also have to reclassify mid-stream,
-            // which the splitter has no mechanism for.
+            // `--- | --- | ---` — opens as a paragraph, because the splitter
+            // classifies a line by its first byte. It becomes `.table` once
+            // its delimiter row ends. This retry covers a delimiter row that is
+            // the answer's last line and has no newline, which the splitter
+            // never commits.
             if let table = pipelessTable(block, isOpen: isOpen) {
                 MarkdownTableView(table: table, renderCell: renderedText)
             } else {

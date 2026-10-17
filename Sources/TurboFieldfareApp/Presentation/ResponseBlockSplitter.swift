@@ -4,12 +4,13 @@ import Foundation
 /// answer is still arriving, and names the trailing block that is still being
 /// written.
 ///
-/// Blank lines are almost the only splitter. The exceptions are a fence line,
-/// and the end of an ATX heading or a thematic break, which are one line each.
-/// Everything else stays with the block above it: `Title` followed
-/// by `---` is a setext heading, a `|` row that follows a paragraph line
-/// belongs to that paragraph, a list item that follows another keeps its
-/// ordinal from the list it is in — and a progressive render is only worth
+/// Blank lines are almost the only splitter. The exceptions are a fence line;
+/// the end of an ATX heading or a thematic break, which are one line each; a
+/// table's delimiter row, which splits a paragraph above the header line; and
+/// a heading, rule, quote, list or display equation under a table, which ends
+/// it, as GFM ends one. Everything else stays with the block above it: `Title`
+/// followed by `---` is a setext heading, a list item that follows another
+/// keeps its ordinal from the list it is in — and a progressive render is only worth
 /// having if a completed block looks exactly like the final one. A fenced
 /// block therefore absorbs the blank lines inside it, and a list absorbs the
 /// blank lines between its items, because the parser reads both as one block.
@@ -95,6 +96,12 @@ public enum ResponseBlockSplitter {
         /// block and no line inside it opens anything.
         var innerFenceMarker: UInt8 = 0
         var innerFenceLength = 0
+        /// First byte of the block's newest line, and where the block ended
+        /// before that line. A delimiter row makes the line above it a table
+        /// header, and these are where the table starts and the prose above
+        /// it ends.
+        var lastLineStart = 0
+        var previousLineEnd = 0
     }
 
     public struct Split: Equatable {
@@ -303,6 +310,36 @@ public enum ResponseBlockSplitter {
             return
         }
 
+        // A delimiter row under a header turns the header line into a table,
+        // as GFM reads it, even inside a paragraph: the lines above it stay
+        // prose. Left as one paragraph, the table check met the header where
+        // it wanted the delimiter, and iOS showed the table as source.
+        if terminated, current.kind == .paragraph,
+           isDelimiterCandidate(bytes, content),
+           MarkdownTable.isHeader(
+            text(bytes, current.lastLineStart..<current.contentEnd),
+            delimiter: text(bytes, content)) {
+            if current.lastLineStart > current.start {
+                completed.append(Block(
+                    start: current.start,
+                    end: current.previousLineEnd,
+                    kind: .paragraph,
+                    fence: nil))
+                current.start = current.lastLineStart
+            }
+            current.kind = .table
+        } else if terminated, current.kind == .table,
+                  interruptsTable(kind(bytes, content: content, indent: indent)) {
+            // GFM ends a table at the start of another block; without this a
+            // `## Next` directly under the table was drawn as its last row.
+            completed.append(block(from: current))
+            open(bytes, content: content, lineEnd: lineEnd, indent: indent,
+                 terminated: terminated, state: &state, completed: &completed)
+            return
+        }
+
+        current.previousLineEnd = current.contentEnd
+        current.lastLineStart = content.lowerBound
         current.contentEnd = content.upperBound
         state.current = current
     }
@@ -346,6 +383,8 @@ public enum ResponseBlockSplitter {
             start: content.lowerBound,
             contentEnd: content.upperBound,
             kind: kind(bytes, content: content, indent: indent))
+        current.lastLineStart = content.lowerBound
+        current.previousLineEnd = content.lowerBound
         if current.kind == .fencedCode, let fence = FenceLine.run(bytes, in: content) {
             current.fenceMarker = fence.marker
             current.fenceLength = fence.length
@@ -431,6 +470,38 @@ public enum ResponseBlockSplitter {
         }
     }
 
+    /// Kinds that start a block of their own under a table. A fence is not
+    /// listed because it already interrupts any block.
+    private static func interruptsTable(_ kind: Kind) -> Bool {
+        switch kind {
+        case .heading, .thematicBreak, .quote, .list, .displayMath: true
+        default: false
+        }
+    }
+
+    /// The byte-level half of the delimiter-row test, which rules out
+    /// ordinary prose before any string is built: only `|`, `:`, `-` and
+    /// spaces, with at least one dash and one pipe. A pipe is required so
+    /// that `Title` over `---` stays a setext heading.
+    private static func isDelimiterCandidate(
+        _ bytes: UnsafeBufferPointer<UInt8>,
+        _ content: Range<Int>
+    ) -> Bool {
+        var dash = false
+        var pipe = false
+        for index in content {
+            switch bytes[index] {
+            case UInt8(ascii: "-"): dash = true
+            case UInt8(ascii: "|"): pipe = true
+            case UInt8(ascii: ":"), UInt8(ascii: " "), UInt8(ascii: "\t"),
+                 UInt8(ascii: "\r"):
+                break
+            default: return false
+            }
+        }
+        return dash && pipe
+    }
+
     private static func isThematicBreak(
         _ bytes: UnsafeBufferPointer<UInt8>,
         _ content: Range<Int>
@@ -456,6 +527,13 @@ public enum ResponseBlockSplitter {
     }
 
     // MARK: - Bytes
+
+    private static func text(
+        _ bytes: UnsafeBufferPointer<UInt8>,
+        _ range: Range<Int>
+    ) -> String {
+        String(decoding: UnsafeBufferPointer(rebasing: bytes[range]), as: UTF8.self)
+    }
 
     private static func newlineIndex(
         _ bytes: UnsafeBufferPointer<UInt8>,

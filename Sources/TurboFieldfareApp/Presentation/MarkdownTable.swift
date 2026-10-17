@@ -65,6 +65,17 @@ public struct MarkdownTable: Equatable {
             rows: lines.dropFirst(2).map { cells(of: $0) })
     }
 
+    /// Whether `delimiter` is a delimiter row for `header`: GFM's width rule,
+    /// the same one `parse` applies. The splitter asks this when a row of
+    /// dashes arrives under a line, to tell a table from a setext heading.
+    static func isHeader(_ header: String, delimiter: String) -> Bool {
+        guard header.contains("|"),
+              let alignments = alignmentRow(
+                delimiter.trimmingCharacters(in: .whitespaces)) else { return false }
+        let headers = cells(of: header.trimmingCharacters(in: .whitespaces))
+        return !headers.isEmpty && alignments.count == headers.count
+    }
+
     /// Splits on unescaped pipes.
     ///
     /// A `\|` is content — it is how a pipe gets *inside* a cell — and the
