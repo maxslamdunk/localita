@@ -13,7 +13,7 @@ import TurboFieldfareAppCore
 /// setting restored and the chat it wrote deleted.
 @MainActor
 enum BackgroundGenerationCheck {
-    static let isRequested = ProcessInfo.processInfo.arguments.contains("--background-generation-check")
+    static let isRequested = LaunchArguments.all.contains("--background-generation-check")
 
     private static let prompt = "Write a detailed essay of about 700 words on the history of the "
         + "bicycle, from the draisine to modern carbon racing bikes."

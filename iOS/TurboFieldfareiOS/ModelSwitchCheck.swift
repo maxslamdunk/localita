@@ -16,7 +16,7 @@ import TurboFieldfareAppCore
 /// the chat it wrote deleted.
 @MainActor
 enum ModelSwitchCheck {
-    static let isRequested = ProcessInfo.processInfo.arguments.contains("--model-switch-check")
+    static let isRequested = LaunchArguments.all.contains("--model-switch-check")
 
     private static let prompt = "In one short sentence: why is the sky blue?"
     private static let followUp = "And in one short sentence: why are sunsets red?"

@@ -18,7 +18,7 @@ import TurboFieldfareAppCore
 /// lock when it activates, and this store has to have let go of it by then.
 enum MockChats {
     static func applyLaunchArguments(modelDirectory: URL) {
-        let arguments = ProcessInfo.processInfo.arguments
+        let arguments = LaunchArguments.all
         let seeds = arguments.contains("--seed-mock-chats")
         let removes = arguments.contains("--remove-mock-chats")
         guard seeds || removes else { return }

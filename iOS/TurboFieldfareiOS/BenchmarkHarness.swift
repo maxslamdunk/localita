@@ -59,7 +59,7 @@ enum ModelLocation {
     /// real model; the app has no Delete for models yet. Applied before
     /// `--select-model-dir`, so the two together start a test afresh.
     static func applyLaunchArguments() {
-        let arguments = ProcessInfo.processInfo.arguments
+        let arguments = LaunchArguments.all
         if let flag = arguments.firstIndex(of: "--remove-test-model-dir"),
            arguments.indices.contains(flag + 1) {
             removeTestFolder(arguments[flag + 1])
@@ -87,7 +87,7 @@ enum ModelLocation {
     /// and lets the harness benchmark the downloaded copy. A name with a path
     /// separator is ignored rather than allowed to escape the folder.
     private static var launchArgumentFolderName: String? {
-        let arguments = ProcessInfo.processInfo.arguments
+        let arguments = LaunchArguments.all
         if let flag = arguments.firstIndex(of: "--model-dir"),
            arguments.indices.contains(flag + 1),
            isValidFolderName(arguments[flag + 1]) {
@@ -328,7 +328,7 @@ struct HarnessSettings {
 
     static func fromLaunchArguments() -> HarnessSettings {
         var settings = HarnessSettings()
-        let args = ProcessInfo.processInfo.arguments
+        let args = LaunchArguments.all
         func value(_ flag: String) -> String? {
             guard let index = args.firstIndex(of: flag), index + 1 < args.count else { return nil }
             return args[index + 1]

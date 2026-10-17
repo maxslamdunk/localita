@@ -13,7 +13,7 @@ struct TurboFieldfareiOSApp: App {
     /// benchmark run must not have a chat screen in front of it, and the chat
     /// screen keeps the harness reachable by hand through its own sheet.
     private static let isBenchmarkRun =
-        ProcessInfo.processInfo.arguments.contains("--autorun")
+        LaunchArguments.all.contains("--autorun")
 
     @State private var model = ChatSession.makeModel()
     @State private var network = DownloadNetwork()
@@ -264,7 +264,7 @@ struct HarnessView: View {
     @StateObject private var harness = Harness()
     /// Set by `--autorun`, so `devicectl device process launch` can drive a run
     /// without anyone touching the screen.
-    private let autorun = ProcessInfo.processInfo.arguments.contains("--autorun")
+    private let autorun = LaunchArguments.all.contains("--autorun")
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {

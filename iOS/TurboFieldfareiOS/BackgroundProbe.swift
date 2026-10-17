@@ -31,7 +31,7 @@ import TurboFieldfare
 /// Each line is fsynced to `Documents/decode-background-probe-<stamp>.log`.
 @MainActor
 final class BackgroundProbe: NSObject, ObservableObject {
-    static let isRequested = ProcessInfo.processInfo.arguments.contains("--background-probe")
+    static let isRequested = LaunchArguments.all.contains("--background-probe")
 
     @Published private(set) var lines: [String] = []
     @Published private(set) var beating = false
@@ -42,7 +42,7 @@ final class BackgroundProbe: NSObject, ObservableObject {
         didSet { UIDevice.current.isProximityMonitoringEnabled = usesProximity }
     }
 
-    private static let arguments = ProcessInfo.processInfo.arguments
+    private static let arguments = LaunchArguments.all
     /// `--pip-controls-style N`: the private `controlsStyle` of the PiP window.
     /// 0 leaves iOS's controls, 1 hides the playback controls, 2 hides all of them.
     private static let pipControlsStyle: Int = {

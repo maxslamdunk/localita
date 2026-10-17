@@ -691,6 +691,9 @@ struct SettingsView: View {
            !model.hasPartialModelDownload {
             return (reason, .orange)
         }
+        if !model.isModelInstalled, let warning = DeviceMemory.warning {
+            return (warning, .orange)
+        }
         return nil
     }
 

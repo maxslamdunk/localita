@@ -105,8 +105,9 @@ struct WelcomeView: View {
                      + "uses Wi-Fi only unless you allow mobile data, keeps going "
                      + "in the background, and picks up where it left off if it "
                      + "stops.",
-                 note: "Needs " + MetricFormat.storage(gemma.requiredFreeBytes)
-                     + " of free storage."),
+                 note: ["Needs " + MetricFormat.storage(gemma.requiredFreeBytes)
+                        + " of free storage.", DeviceMemory.warning]
+                     .compactMap { $0 }.joined(separator: "\n\n")),
             Page(symbol: "gauge.with.dots.needle.33percent",
                  title: "Slower than a cloud chatbot, and that's the trade",
                  text: "Replies come at roughly reading pace and slow down a little "
