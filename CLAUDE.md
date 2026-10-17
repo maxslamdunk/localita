@@ -191,7 +191,7 @@ one of them, it is lost.
 4. If kernels changed, run the device kernel suites.
 5. If the change is performance-relevant, A/B it on the phone.
 6. Set `AboutPanelPresentation.fallbackShortVersion` to at least upstream's latest release.
-   CI's `check_app_version.rb` fails otherwise.
+   CI's `check_app_version.rb` warns while it is behind; the warning means a merge is due.
 7. Keep our `AGENTS.md`, and carry over any rule from upstream's that applies
    here.
 
@@ -255,8 +255,11 @@ ruby Scripts/check_swiftui_macros.rb --self-test
 CI (`.github/workflows/ci.yml`) runs two jobs. One builds on the oldest
 supported Xcode, 26.3 on `macos-26`. The other, on `xcode-27`, runs the SwiftUI
 macro checks, release and debug builds, `Scripts/test.sh`, and the symlink,
-Markdown-link and app-version checks. CI never loads the model. The iOS app is
-not built in CI, so build it yourself after touching shared code.
+Markdown-link and app-version checks; the app-version check only warns. CI never
+loads the model. Pushes that touch only `server/`, `benchmark-results-*/`,
+`validation-results-*/` or `benchmark-submissions/` skip CI, unless they change
+Markdown. The iOS app is not built in CI, so build it yourself after touching
+shared code.
 
 ### Which tests to run
 

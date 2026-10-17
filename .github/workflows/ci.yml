@@ -1,9 +1,20 @@
 name: CI
 
+# Changes that cannot reach the Mac build or tests skip CI: the results
+# Worker (it has its own node tests), benchmark and validation results, and
+# exported submissions. Markdown anywhere still runs, for the link check.
+# Later patterns override earlier ones; keep the two lists the same.
 on:
   push:
     branches:
       - main
+    paths:
+      - '**'
+      - '!server/**'
+      - '!benchmark-results-*/**'
+      - '!validation-results-*/**'
+      - '!benchmark-submissions/**'
+      - '**/*.md'
   pull_request:
     types:
       - opened
@@ -11,6 +22,13 @@ on:
       - reopened
       - ready_for_review
       - converted_to_draft
+    paths:
+      - '**'
+      - '!server/**'
+      - '!benchmark-results-*/**'
+      - '!validation-results-*/**'
+      - '!benchmark-submissions/**'
+      - '**/*.md'
 
 permissions:
   contents: read
@@ -71,7 +89,12 @@ jobs:
         run: ruby Scripts/check_tracked_symlinks.rb
       - name: Check Markdown links
         run: ruby Scripts/check_markdown_links.rb
-      - name: Check the app version against the latest release
+      # Upstream's releases set this version, so in this repo falling behind
+      # means an upstream merge is due, not that this push broke anything.
+      # It warns instead of failing.
+      - name: Check the app version against upstream's latest release
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: ruby Scripts/check_app_version.rb
+        run: |
+          ruby Scripts/check_app_version.rb ||
+            echo "::warning title=Behind upstream::The app version is behind drumih/turbo-fieldfare's latest release; merge upstream and update fallbackShortVersion."
