@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { handle } from "../src/index.ts";
 import type { Deps, Row } from "../src/index.ts";
+import { APP_NAME } from "../src/privacy.ts";
 import { MAX_BODY_BYTES } from "../src/validate.ts";
 
 const body = readFileSync(new URL("fixtures/report-format2.json", import.meta.url), "utf8");
@@ -62,4 +63,13 @@ test("what is not a report is turned away before it is read", async () => {
   assert.equal((await handle(new Request("https://bench.test/v1/results"), deps)).status, 405);
   assert.equal((await handle(new Request("https://bench.test/other"), deps)).status, 404);
   assert.equal(deps.rows.size, 0);
+});
+
+test("the privacy policy is served as a page", async () => {
+  const response = await handle(new Request("https://bench.test/privacy"), memory(false));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("content-type"), "text/html; charset=utf-8");
+  const page = await response.text();
+  assert.ok(page.includes(`<title>${APP_NAME} Privacy Policy</title>`));
+  assert.match(page, /maximvoronin8@gmail\.com/);
 });

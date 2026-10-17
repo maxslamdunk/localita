@@ -4,6 +4,10 @@ Receives the in-app benchmark's results. The app sends one `report.json` (format
 `POST /v1/results`. The Worker checks it (`src/validate.ts`) and stores it as one row in a
 D1 database. Nothing about the sender is stored: no address, no request log.
 
+`GET /privacy` serves the app's privacy policy (`src/privacy.ts`), which the App Store
+listing and the app's Settings link to. A change to what the app or this Worker collects
+changes that page in the same commit.
+
 | Reply | Meaning |
 | --- | --- |
 | 201 | Stored. |
@@ -36,6 +40,16 @@ npx wrangler login                              # opens a browser
 npx wrangler d1 create turbo-fieldfare-bench    # put the printed ID in wrangler.toml
 npm run migrate:remote
 npm run deploy                                  # prints the workers.dev URL
+```
+
+## Remove a result
+
+The privacy policy promises removal to anyone who emails a report ID, which the app shows
+on a sent run's screen. Delete the row; the next export leaves it out.
+
+```bash
+npx wrangler d1 execute turbo-fieldfare-bench --remote \
+  --command "DELETE FROM submissions WHERE submission_id = '<report ID>'"
 ```
 
 ## Export

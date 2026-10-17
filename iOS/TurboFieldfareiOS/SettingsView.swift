@@ -453,8 +453,10 @@ struct SettingsView: View {
                 showWelcome()
                 dismiss()
             }
+            Link("Privacy Policy", destination: PrivacyPolicy.url)
         } footer: {
-            Text("What the app is, the download, and what to expect from it.")
+            Text("What the app is, the download, and what to expect from it. The "
+                 + "privacy policy says what leaves the phone, and when.")
         }
     }
 

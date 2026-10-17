@@ -505,12 +505,27 @@ private struct BenchmarkResultView: View {
             if let sentAt = report.sentAt {
                 LabeledContent("Sent", value: sentAt.formatted(date: .abbreviated,
                                                                time: .shortened))
+                // The only way to name a sent result, which holds nothing
+                // about its sender, when asking for it to be removed.
+                if let submissionID = report.submissionID {
+                    LabeledContent("Report ID") {
+                        Text(submissionID)
+                            .font(.caption.monospaced())
+                            .textSelection(.enabled)
+                    }
+                }
+                Link("Privacy Policy", destination: PrivacyPolicy.url)
             } else {
                 Button("Send to the Project…") { isSending = true }
             }
         } footer: {
-            Text("Results from many iPhones show what to tune for each. You see "
-                 + "exactly what is sent before it goes.")
+            if report.sentAt == nil {
+                Text("Results from many iPhones show what to tune for each. You see "
+                     + "exactly what is sent before it goes.")
+            } else {
+                Text("To have this result removed, email its report ID to the address "
+                     + "in the privacy policy.")
+            }
         }
     }
 }
@@ -553,6 +568,7 @@ private struct BenchmarkSendSheet: View {
                     Text("Results are stored on Cloudflare for the TurboFieldfare project "
                          + "and published in its public GitHub repository.")
                         .foregroundStyle(.secondary)
+                    Link("Privacy Policy", destination: PrivacyPolicy.url)
                 } header: {
                     Text("What is sent")
                 }

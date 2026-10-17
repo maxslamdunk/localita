@@ -5,6 +5,7 @@
 // memory and writes nothing, and the Worker logs nothing (observability is
 // off in `wrangler.toml`).
 
+import { PRIVACY_HTML } from "./privacy.ts";
 import { Invalid, MAX_BODY_BYTES, validateReport } from "./validate.ts";
 import type { Accepted } from "./validate.ts";
 
@@ -62,6 +63,11 @@ export async function handle(request: Request, deps: Deps): Promise<Response> {
   if (url.pathname === "/" && request.method === "GET") {
     return new Response("TurboFieldfare benchmark results. The app sends them to "
       + "POST /v1/results.\n", { headers: { "content-type": "text/plain" } });
+  }
+  if (url.pathname === "/privacy" && request.method === "GET") {
+    return new Response(PRIVACY_HTML, {
+      headers: { "content-type": "text/html; charset=utf-8" },
+    });
   }
   if (url.pathname !== "/v1/results") return reply(404, { error: "not found" });
   if (request.method !== "POST") {
