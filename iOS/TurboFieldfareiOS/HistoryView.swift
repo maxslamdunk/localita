@@ -27,11 +27,27 @@ struct HistoryView: View {
     let seamThumb: SeamThumb
 
     @State private var search = ""
+    /// The search field is out in place of its button. It stays out while it
+    /// has text or the keyboard, and goes back into the button otherwise.
+    @State private var isSearchOpen = false
+    @FocusState private var isSearchFocused: Bool
+    @Namespace private var searchGlass
     @State private var renameTarget: ConversationMeta?
     @State private var renameText = ""
     @State private var deleteTarget: ConversationMeta?
     /// Where the list's visible part ends under the two bars, for the blur.
     @State private var scrollEdges = ScrollEdges()
+    /// The top bar's bottom edge, and the search field's top edge while it is
+    /// out: the top blur starts at whichever is showing.
+    @State private var topBarBottom: CGFloat = 0
+    @State private var searchFieldTop: CGFloat = 0
+    /// The logo row's height, which the top bar keeps with the field out.
+    @State private var logoRowHeight: CGFloat?
+    /// Grows with the text size, as the name beside it does.
+    @ScaledMetric(relativeTo: .title3) private var logoHeight: CGFloat = 58
+    /// The search field's height, as the old always-shown field measured: a
+    /// line of body text and 9 pt above and below.
+    @ScaledMetric(relativeTo: .body) private var searchFieldHeight: CGFloat = 40
 
     var body: some View {
         Group {
@@ -42,14 +58,24 @@ struct HistoryView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // A tap anywhere a row or button does not take, such as the space
+        // under the last chat, puts the search's keyboard away.
+        .contentShape(Rectangle())
+        .onTapGesture { isSearchFocused = false }
         // Bars rather than rows around the list, so the chats scroll on
         // under the glass search field and the buttons to the edges of the
-        // screen. The system's edge effect fades them there, and each row
-        // also blurs by itself (`EdgeBlur`), since the fade alone only shades.
-        .safeAreaBar(edge: .top, spacing: 0) {
-            searchField.onGeometryChange(for: CGFloat.self) {
+        // screen. At the bottom the system's edge effect fades them, and each
+        // row also blurs by itself (`EdgeBlur`), since the fade alone only
+        // shades. At the top `EdgeBlur` does both, from the search field's
+        // top edge when it is out: the system's fade would start at the bar's
+        // bottom, under the field, and reach only partway up the logo. The top
+        // is an inset rather than a bar because a bar's content resized
+        // without animation, and the search button's move into the field
+        // jumped with it.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            topBar.onGeometryChange(for: CGFloat.self) {
                 $0.frame(in: .global).maxY
-            } action: { scrollEdges.top = $0 }
+            } action: { topBarBottom = $0 }
         }
         .safeAreaBar(edge: .bottom, spacing: 0) {
             bottomBar.onGeometryChange(for: CGFloat.self) {
@@ -57,6 +83,7 @@ struct HistoryView: View {
             } action: { scrollEdges.bottom = $0 }
         }
         .scrollEdgeEffectStyle(.soft, for: .all)
+        .scrollEdgeEffectHidden(true, for: .top)
         .background(Color(uiColor: .systemBackground))
         .alert("Rename Chat", isPresented: isRenaming, presenting: renameTarget) { target in
             TextField("Name", text: $renameText)
@@ -123,33 +150,154 @@ struct HistoryView: View {
         .padding(.bottom, 8)
     }
 
-    private var searchField: some View {
+    private var blurEdges: ScrollEdges {
+        var edges = scrollEdges
+        edges.top = isSearchOpen ? searchFieldTop : topBarBottom
+        return edges
+    }
+
+    /// The logo and name, with the search button beside them. The button
+    /// grows into the search field below and shrinks back into itself.
+    ///
+    /// It is one glass shape that moves between two empty slots, the
+    /// button's and the field's, rather than two shapes that morph: two
+    /// glass effects sharing a `glassEffectID` swapped in a single frame here.
+    ///
+    /// The bar keeps the logo row's height, and the field's slot hangs out
+    /// of it, over the chats. Counted in the bar's height, it made the bar
+    /// taller, and the list moved down and back each time the field opened
+    /// and closed.
+    private var topBar: some View {
+        VStack(spacing: 0) {
+            logoRow
+            if isSearchOpen {
+                Color.clear
+                    .frame(height: searchFieldHeight)
+                    .matchedGeometryEffect(id: Self.searchSlot, in: searchGlass,
+                                           isSource: true)
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.frame(in: .global).minY
+                    } action: { searchFieldTop = $0 }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+            }
+        }
+        // Taller content than this overflows the frame rather than growing it.
+        .frame(height: logoRowHeight, alignment: .top)
+        .overlay {
+            searchControl.matchedGeometryEffect(id: Self.searchSlot, in: searchGlass,
+                                                isSource: false)
+        }
+        .onChange(of: isSearchFocused) { _, focused in
+            if !focused && search.isEmpty { closeSearch() }
+        }
+    }
+
+    private var logoRow: some View {
+        HStack {
+            brandHeader
+            Spacer(minLength: 8)
+            Color.clear
+                .frame(width: Self.searchButtonSize, height: Self.searchButtonSize)
+                .matchedGeometryEffect(id: Self.searchSlot, in: searchGlass,
+                                       isSource: !isSearchOpen)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, -10)
+        // The logo row, beside the button, puts the keyboard away too.
+        .contentShape(Rectangle())
+        .onTapGesture { isSearchFocused = false }
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+            logoRowHeight = $0
+        }
+    }
+
+    /// The logo and the app's name. The logo is a template image, so it takes
+    /// the text color: black in light mode, white in dark.
+    private var brandHeader: some View {
         HStack(spacing: 8) {
+            Image("Logo")
+                .resizable()
+                .scaledToFit()
+                .frame(height: logoHeight)
+            Text(AppName.display)
+                .font(.title3.bold())
+        }
+        .foregroundStyle(.primary)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(AppName.display)
+        .accessibilityAddTraits(.isHeader)
+    }
+
+    /// The glass, in whichever slot is showing: the button, or the field.
+    /// One magnifying glass slides between the button's centre and the
+    /// field's leading edge; the field fades in beside it.
+    private var searchControl: some View {
+        HStack(spacing: isSearchOpen ? 8 : 0) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
+                // Body size in the field, title 3 (20 over 17) as the button.
+                .scaleEffect(isSearchOpen ? 1 : 20 / 17)
+                .opacity(isSearchOpen ? 0.6 : 1)
+                .accessibilityHidden(true)
+            // Kept in the hierarchy while shut, at no width, so it can take
+            // focus before the glass starts to move.
             TextField("Search Chats", text: $search)
+                .focused($isSearchFocused)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.search)
                 .accessibilityIdentifier(.historySearch)
-            if !search.isEmpty {
-                Button {
-                    search = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+                .frame(width: isSearchOpen ? nil : 0)
+                .opacity(isSearchOpen ? 1 : 0)
+                .allowsHitTesting(isSearchOpen)
+                .accessibilityHidden(!isSearchOpen)
+            if isSearchOpen {
+                if !search.isEmpty {
+                    Button {
+                        search = ""
+                        closeSearch()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
+                    .accessibilityIdentifier(.historySearchClear)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Clear search")
-                .accessibilityIdentifier(.historySearchClear)
             }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, maxHeight: .infinity,
+               alignment: isSearchOpen ? .leading : .center)
+        .overlay {
+            if !isSearchOpen {
+                Button(action: openSearch) {
+                    Color.clear.contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Search Chats")
+            }
+        }
         .glassEffect(.regular.interactive(), in: .capsule)
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 4)
+    }
+
+    private static let searchSlot = "search"
+    private static let searchButtonSize: CGFloat = 44
+    /// A spring that settles without overshooting the field's edges.
+    private static let searchMorph: Animation = .spring(duration: 0.45, bounce: 0.12)
+
+    private func openSearch() {
+        // Focus first, then move. Bringing the keyboard up holds the main
+        // thread for 40-70 ms on this phone; started together, that pause
+        // landed in the move's first frames and made it stutter. Here it
+        // comes before the glass moves, and the move then runs at 120 Hz.
+        isSearchFocused = true
+        Task { withAnimation(Self.searchMorph) { isSearchOpen = true } }
+    }
+
+    private func closeSearch() {
+        isSearchFocused = false
+        withAnimation(Self.searchMorph) { isSearchOpen = false }
     }
 
     private var isRenaming: Binding<Bool> {
@@ -187,13 +335,13 @@ struct HistoryView: View {
             LazyVStack(alignment: .leading, spacing: 0) {
                 notices
                     .padding(.horizontal, 20)
-                    .modifier(EdgeBlur(edges: scrollEdges))
+                    .modifier(EdgeBlur(edges: blurEdges))
 
                 ForEach(visibleSections, id: \.group) { section in
                     Section {
                         ForEach(section.entries, id: \.id) { entry in
                             row(entry)
-                                .modifier(EdgeBlur(edges: scrollEdges))
+                                .modifier(EdgeBlur(edges: blurEdges))
                         }
                     } header: {
                         Text(section.group.rawValue)
@@ -203,7 +351,7 @@ struct HistoryView: View {
                             .padding(.horizontal, 20)
                             .padding(.top, 14)
                             .padding(.bottom, 4)
-                            .modifier(EdgeBlur(edges: scrollEdges))
+                            .modifier(EdgeBlur(edges: blurEdges))
                     }
                 }
             }
@@ -259,6 +407,13 @@ struct HistoryView: View {
         .contentShape(.interaction, shape)
         .contentShape(.contextMenuPreview, shape)
         .onTapGesture {
+            // With the search focused and empty, the tap was meant to put the
+            // keyboard away: nothing has been searched for. With text, the
+            // rows are its results, and a tap opens one.
+            if isSearchFocused && search.isEmpty {
+                isSearchFocused = false
+                return
+            }
             // Opens the chat whichever model wrote it. The model in use
             // continues it; the composer is where another one is picked.
             model.openConversation(id: entry.id)
@@ -297,7 +452,7 @@ struct HistoryView: View {
     }
 }
 
-/// Where the search field ends above and the buttons begin below, on screen.
+/// Where the search field begins above and the buttons begin below, on screen.
 /// Measured from the bars themselves: the scroll view's own insets include
 /// the status bar and home indicator, which put the blur's start in the
 /// wrong place.
@@ -306,25 +461,35 @@ private struct ScrollEdges: Equatable {
     var bottom: CGFloat = .infinity
 }
 
-/// Blurs a piece of the chat list by how far it has gone under either bar:
-/// none at the bar's edge, rising to full over `distance`. Each row blurs as a
-/// whole, so the blur moves with the row as it scrolls.
+/// Blurs a piece of the chat list by how far it has gone under either bar.
+/// Each row blurs as a whole, so the blur moves with the row as it scrolls.
+///
+/// At the top it runs from the search field's top edge to the top of the
+/// screen, and the row also fades there, in place of the system's edge
+/// effect: none at the field, rising to `maxFade` at the screen's edge. It
+/// never goes fully clear, so the chats stay visible up to the top, as on the
+/// chat screen. At the bottom it rises from the buttons' top edge over
+/// `distance`, with no fade, which the system's edge effect does there.
 private struct EdgeBlur: ViewModifier {
     let edges: ScrollEdges
 
-    private static let distance: CGFloat = 120
-    private static let radius: CGFloat = 2
+    nonisolated private static let distance: CGFloat = 120
+    nonisolated private static let radius: CGFloat = 2
+    nonisolated private static let maxFade: CGFloat = 0.9
 
     func body(content: Content) -> some View {
         content.visualEffect { [edges] content, proxy in
             let frame = proxy.frame(in: .global)
-            // Under the search field, eased in, so the blur begins gently.
-            let top = min(max(edges.top - frame.minY, 0) / Self.distance, 1)
-            // Under the buttons, straight from their top edge. Eased in as
-            // well, it showed only some 40 pt below the New Chat button.
+            // From the search field's top (0) to the screen's (1).
+            let top = edges.top > 0
+                ? min(max(edges.top - frame.minY, 0) / edges.top, 1) : 0
+            // Under the buttons, straight from their top edge. Eased in, it
+            // showed only some 40 pt below the New Chat button.
             let bottom = min(max(frame.maxY - edges.bottom, 0) / Self.distance, 1)
+            // Eased in at the top, so the blur begins gently.
             let t = max(top * top * (3 - 2 * top), bottom)
             return content.blur(radius: Self.radius * t)
+                .opacity(1 - Self.maxFade * top)
         }
     }
 }
