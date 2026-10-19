@@ -4,7 +4,7 @@ import TurboFieldfareAppCore
 
 /// Test chats for looking at the chat list, written by launch argument.
 ///
-/// `--seed-mock-chats` writes twenty short conversations, one question and one
+/// `--seed-mock-chats` writes thirty short conversations, one question and one
 /// answer each, spread from minutes to weeks ago so every day group shows.
 /// `--remove-mock-chats` deletes them again. Nothing else in the store is
 /// touched: the mock chats have fixed IDs, and only those are written or
@@ -29,7 +29,7 @@ enum MockChats {
                                     sourceSnapshotHash: "mock",
                                     templateIdentity: GFTokenizer.chatTemplateIdentity,
                                     imageProcessingVersion: VisionImageProcessing.version)
-        // Blocks launch for the few hundred milliseconds twenty small writes
+        // Blocks launch for the few hundred milliseconds thirty small writes
         // take, which is what keeps the lock handover ordered.
         let done = DispatchSemaphore(value: 0)
         Task.detached {
@@ -146,5 +146,35 @@ enum MockChats {
         Chat(hoursAgo: 1_400, title: "Difference between weather and climate",
              question: "What's the difference between weather and climate?",
              answer: "Weather is what the atmosphere does over hours and days. Climate is the long-run pattern of weather in a place, usually averaged over thirty years or more."),
+        Chat(hoursAgo: 0.6, title: "Regex for a UK postcode",
+             question: "What's a simple regex for a UK postcode?",
+             answer: "`^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$`, matched case-insensitively. It accepts every real format, and a few strings that aren't real postcodes; check against the official list if that matters."),
+        Chat(hoursAgo: 10, title: "Cold brew ratio",
+             question: "What coffee-to-water ratio should I use for cold brew?",
+             answer: "Start at 1:8 by weight, coarsely ground, steeped 14 to 18 hours in the fridge. That makes a concentrate; dilute it about one to one with water or milk to taste."),
+        Chat(hoursAgo: 40, title: "Polite way to decline a meeting",
+             question: "How do I politely decline a meeting I don't need to attend?",
+             answer: "Keep it short and offer an alternative: \u{201C}Thanks for including me. I don't think I'm needed for this one, but I'm happy to read the notes and follow up on anything for me.\u{201D}"),
+        Chat(hoursAgo: 64, title: "Why do onions make you cry",
+             question: "Why do onions make you cry?",
+             answer: "Cutting an onion breaks its cells, and an enzyme turns sulphur compounds into a gas, syn-propanethial-S-oxide. It reaches your eyes and irritates them, so they make tears to wash it away. A sharp knife and a cold onion both help."),
+        Chat(hoursAgo: 90, title: "Python list vs tuple",
+             question: "When should I use a tuple instead of a list in Python?",
+             answer: "Use a tuple for a fixed group of values that belong together, like a coordinate or a database row, and a list for a collection that grows or changes. Tuples are immutable, so they can be dictionary keys."),
+        Chat(hoursAgo: 180, title: "Train vs plane from Amsterdam to Paris",
+             question: "Is the train or the plane better from Amsterdam to Paris?",
+             answer: "Usually the train: about three and a half hours centre to centre, with no airport transfers or security queues. Door to door the plane is rarely faster, and the train emits far less."),
+        Chat(hoursAgo: 290, title: "How compound interest works",
+             question: "Explain compound interest with a simple example.",
+             answer: "You earn interest on your interest. 1,000 at 5% a year becomes 1,050 after one year, then 1,102.50 after two, because the second year's 5% is on 1,050. After 14 years it has roughly doubled."),
+        Chat(hoursAgo: 460, title: "Fixing a squeaky door hinge",
+             question: "How do I stop a door hinge from squeaking?",
+             answer: "Lift the hinge pin out, clean it, coat it lightly with petroleum jelly or a silicone lubricant, and tap it back in. Swing the door a few times to spread it. Avoid cooking oil, which goes sticky."),
+        Chat(hoursAgo: 720, title: "Books like The Martian",
+             question: "I loved The Martian. What should I read next?",
+             answer: "Project Hail Mary by the same author is the obvious next one. Then try Seveneves by Neal Stephenson, The Expanse series starting with Leviathan Wakes, or Red Mars by Kim Stanley Robinson for slower, deeper science."),
+        Chat(hoursAgo: 1_200, title: "What a VPN does",
+             question: "What does a VPN actually do?",
+             answer: "It encrypts your traffic to a server the VPN runs and sends it on from there. Your network provider sees only that you talk to the VPN, and websites see the VPN's address instead of yours. It does not make you anonymous to the VPN itself."),
     ]
 }
