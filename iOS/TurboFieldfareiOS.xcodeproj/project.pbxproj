@@ -320,6 +320,7 @@
 		FE00AA00BB00CC00DD00EE0E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = Localita;
 				CODE_SIGN_ENTITLEMENTS = TurboFieldfare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -351,6 +352,7 @@
 		FE00AA00BB00CC00DD00EE0F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = Localita;
 				CODE_SIGN_ENTITLEMENTS = TurboFieldfare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
