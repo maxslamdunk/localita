@@ -87,6 +87,9 @@ private final class DrawerController: UIViewController, UIGestureRecognizerDeleg
     private var laidOutSize = CGSize.zero
     /// Counts settles, so only the latest one lets the frame rate go.
     private var settles = 0
+    /// Whether a keyboard is up, which with the panel open is its search's.
+    private var isKeyboardShown = false
+    private var keyboardObservers: [NSObjectProtocol] = []
 
     /// Room around the screen for the glow, the shadow and the thumb, which
     /// reach past its edge.
@@ -121,6 +124,11 @@ private final class DrawerController: UIViewController, UIGestureRecognizerDeleg
         for host in [drawerHost, seamHost, mainHost] as [UIViewController] {
             addChild(host)
         }
+        // The panel stays put under the keyboard: its search is the only
+        // thing in it that brings one up, and scrolling the list puts it
+        // away. Following it lifted New Chat, Settings and their fade.
+        drawerHost.safeAreaRegions = .container
+        mainHost.safeAreaRegions = keyboardRegions(isOpen: isOpen)
         panel.addSubview(drawerHost.view)
         shade.backgroundColor = .black
         shade.isUserInteractionEnabled = false
@@ -152,6 +160,17 @@ private final class DrawerController: UIViewController, UIGestureRecognizerDeleg
 
         pan.delegate = self
         view.addGestureRecognizer(pan)
+        let center = NotificationCenter.default
+        keyboardObservers = [
+            center.addObserver(forName: UIResponder.keyboardWillShowNotification,
+                               object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.isKeyboardShown = true }
+            },
+            center.addObserver(forName: UIResponder.keyboardWillHideNotification,
+                               object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.isKeyboardShown = false }
+            },
+        ]
         haptics.prepare()
         updateInteraction()
     }
@@ -218,7 +237,9 @@ private final class DrawerController: UIViewController, UIGestureRecognizerDeleg
             // like a catch engaging. A drag released short of the midpoint
             // changes nothing and so does not click.
             haptics.impactOccurred(intensity: 0.6)
-            if open { dismissKeyboard() }
+            // Either way, since the keyboard belongs to the side being left.
+            dismissKeyboard()
+            mainHost.safeAreaRegions = keyboardRegions(isOpen: open)
         }
         frameRate.hold()
         settles += 1
@@ -242,8 +263,15 @@ private final class DrawerController: UIViewController, UIGestureRecognizerDeleg
         mainHost.view.accessibilityElementsHidden = isOpen
     }
 
+    /// A tap on the strip of chat closes the panel, or with the search's
+    /// keyboard up only puts the keyboard away: leaving the panel is the
+    /// bigger step, and a tap meant for the keyboard should not take it.
     @objc private func handleTap() {
-        settle(open: false, velocity: 0)
+        if isKeyboardShown {
+            dismissKeyboard()
+        } else {
+            settle(open: false, velocity: 0)
+        }
     }
 
     // MARK: - Dragging
@@ -291,6 +319,13 @@ private final class DrawerController: UIViewController, UIGestureRecognizerDeleg
         // Where a flick would carry the panel, so a quick short swipe counts.
         let projected = offset + velocity * 0.2
         settle(open: projected > panelWidth / 2, velocity: velocity)
+    }
+
+    /// The chat screen follows the keyboard only while it is in front. With
+    /// the panel open, the keyboard is the panel's search, and the composer
+    /// on the strip of chat still showing rose with it.
+    private func keyboardRegions(isOpen: Bool) -> SafeAreaRegions {
+        isOpen ? .container : .all
     }
 
     private func dismissKeyboard() {
