@@ -52,6 +52,10 @@ public enum AppModelVerification: String, CaseIterable, Sendable, Identifiable {
 public struct AppRuntimeOptions: Equatable, Sendable {
     public static let allowedSlotCounts = RuntimeConfiguration.allowedExpertCacheSlots
     public static let allowedPrefillChunkTokens = RuntimeConfiguration.allowedPrefillChunkTokens
+    /// Early expert reads per layer the app offers: off, one (the default) or
+    /// two. Two measured slower on the iPhone 17 and faster on the M1; it is
+    /// offered for other devices, whose storage may serve reads differently.
+    public static let allowedEarlyExpertReads = [0, 1, 2]
 
     public var expertCacheSlots: Int
     public var expertCachePolicy: AppExpertCachePolicy
@@ -60,6 +64,11 @@ public struct AppRuntimeOptions: Equatable, Sendable {
     public var rdadvisePolicy: AppRDAdvicePolicy
     public var modelVerification: AppModelVerification
     public var visionResidencyPolicy: VisionResidencyPolicy
+    /// 0 turns the early expert read off; 1 or 2 is how many of the next
+    /// layer's experts it reads (`RuntimeConfiguration.earlyExpertReadsPerLayer`).
+    public var earlyExpertReads: Int
+    /// `F_NOCACHE` on routed-expert reads (`RuntimeConfiguration.expertReadsBypassFileCache`).
+    public var expertReadsBypassFileCache: Bool
 
     /// `expertCacheSlots` defaults to the platform's production constant rather
     /// than a literal, so a caller that does not name it gets 16 on macOS and
@@ -75,7 +84,9 @@ public struct AppRuntimeOptions: Equatable, Sendable {
                 prefillChunkTokens: Int = 128,
                 rdadvisePolicy: AppRDAdvicePolicy = .off,
                 modelVerification: AppModelVerification = .fullSha256,
-                visionResidencyPolicy: VisionResidencyPolicy = .onDemand) {
+                visionResidencyPolicy: VisionResidencyPolicy = .onDemand,
+                earlyExpertReads: Int = 1,
+                expertReadsBypassFileCache: Bool = PreadExpertStreamer.readsBypassFileCacheByDefault) {
         self.expertCacheSlots = expertCacheSlots
         self.expertCachePolicy = expertCachePolicy
         self.prefillEnabled = prefillEnabled
@@ -83,6 +94,8 @@ public struct AppRuntimeOptions: Equatable, Sendable {
         self.rdadvisePolicy = rdadvisePolicy
         self.modelVerification = modelVerification
         self.visionResidencyPolicy = visionResidencyPolicy
+        self.earlyExpertReads = earlyExpertReads
+        self.expertReadsBypassFileCache = expertReadsBypassFileCache
     }
 
     public func validate() throws {
@@ -93,6 +106,10 @@ public struct AppRuntimeOptions: Equatable, Sendable {
         guard Self.allowedPrefillChunkTokens.contains(prefillChunkTokens) else {
             throw AppInferenceError.invalidRequest(
                 "prefill chunk size must be one of \(Self.allowedPrefillChunkTokens)")
+        }
+        guard Self.allowedEarlyExpertReads.contains(earlyExpertReads) else {
+            throw AppInferenceError.invalidRequest(
+                "early expert reads must be one of \(Self.allowedEarlyExpertReads)")
         }
         // Refused here rather than inside the first prefill chunk, which is
         // after the model load and, on an image turn, after every attachment
@@ -133,7 +150,10 @@ public struct AppRuntimeOptions: Equatable, Sendable {
             rdadvisePolicy: rdadvisePolicy.runtimeValue,
             prefillEnabled: prefillEnabled,
             prefillChunkTokens: prefillChunkTokens,
-            forceLogitsHead: forceLogitsHead)
+            forceLogitsHead: forceLogitsHead,
+            earlyExpertRead: earlyExpertReads > 0,
+            earlyExpertReadsPerLayer: max(earlyExpertReads, 1),
+            expertReadsBypassFileCache: expertReadsBypassFileCache)
     }
 }
 
@@ -145,6 +165,8 @@ public struct AppLoadedRuntimeKey: Equatable, Sendable {
     public var rdadvisePolicy: AppRDAdvicePolicy
     public var modelVerification: AppModelVerification
     public var visionResidencyPolicy: VisionResidencyPolicy
+    public var earlyExpertReads: Int
+    public var expertReadsBypassFileCache: Bool
     public var forceLogitsHead: Bool
 
     public init(modelDirectory: URL,
@@ -158,6 +180,8 @@ public struct AppLoadedRuntimeKey: Equatable, Sendable {
         self.rdadvisePolicy = options.rdadvisePolicy
         self.modelVerification = options.modelVerification
         self.visionResidencyPolicy = options.visionResidencyPolicy
+        self.earlyExpertReads = options.earlyExpertReads
+        self.expertReadsBypassFileCache = options.expertReadsBypassFileCache
         self.forceLogitsHead = forceLogitsHead
     }
 
@@ -177,6 +201,8 @@ public struct AppLoadedRuntimeKey: Equatable, Sendable {
             prefillChunkTokens: prefillChunkTokens,
             rdadvisePolicy: rdadvisePolicy,
             modelVerification: modelVerification,
-            visionResidencyPolicy: visionResidencyPolicy)
+            visionResidencyPolicy: visionResidencyPolicy,
+            earlyExpertReads: earlyExpertReads,
+            expertReadsBypassFileCache: expertReadsBypassFileCache)
     }
 }

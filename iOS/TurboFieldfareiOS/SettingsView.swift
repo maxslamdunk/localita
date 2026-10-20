@@ -72,6 +72,7 @@ struct SettingsView: View {
                 Tab("Generation", systemImage: "slider.horizontal.3", value: Page.generation) {
                     Form {
                         memorySection
+                        expertReadsSection
                         generationSection
                         backgroundSection
                         welcomeSection
@@ -276,7 +277,7 @@ struct SettingsView: View {
                       + "memory. More slots mean fewer reads from storage, so "
                       + "faster replies, but more RAM, which can make the rest of "
                       + "the phone sluggish while a reply is written.") {
-                Picker("Expert slots", selection: $model.runtimeOptions.expertCacheSlots) {
+                Picker("Expert slots", selection: slotsBinding) {
                     ForEach(Self.slotOptions, id: \.slots) { option in
                         Text(option.label).tag(option.slots)
                     }
@@ -287,15 +288,59 @@ struct SettingsView: View {
                 }
                 .accessibilityIdentifier(.inspectorSlots)
             }
+        } header: {
+            Text("Memory")
+        } footer: {
+            Text("Both apply after the model reloads.")
+        }
+        .disabled(model.isRunning || model.loadState.isLoading)
+    }
+
+    /// Through the setter, as on the Mac, so a change is saved at once and
+    /// the context is clamped to what the new slot count leaves room for.
+    private var slotsBinding: Binding<Int> {
+        Binding { model.runtimeOptions.expertCacheSlots } set: { model.setExpertCacheSlots($0) }
+    }
+
+    /// How experts are read from storage. The defaults are what measured
+    /// fastest on the iPhone 17; the choices are here for other phones, whose
+    /// storage may not behave the same. On the iPhone 17, one early read gave
+    /// about +17–20% tok/s and two lost 15–26% against one
+    /// (`results/benchmark-results-2026-10-08-ios-early-read-x2/`); skipping
+    /// the file cache gave +6 to +8% where GPU speed matched
+    /// (`results/benchmark-results-2026-10-03-ios-expert-read-nocache/`).
+    /// The in-app benchmark ignores both and runs the defaults.
+    private var expertReadsSection: some View {
+        Section {
+            described("While storage would otherwise sit idle, read the experts "
+                      + "the next layer will probably need. Faster on the iPhone "
+                      + "17 with one; two was slower there, but may help a phone "
+                      + "with faster storage.") {
+                Picker("Early reads", selection: Binding {
+                    model.runtimeOptions.earlyExpertReads
+                } set: { model.setEarlyExpertReads($0) }) {
+                    Text("Off").tag(0)
+                    Text("1 · default").tag(1)
+                    Text("2").tag(2)
+                }
+            }
+
+            described("Read experts straight from storage instead of through the "
+                      + "system's file cache, which has no room to help while the "
+                      + "model is loaded. On by default; faster on the iPhone 17.") {
+                Toggle("Skip file cache", isOn: Binding {
+                    model.runtimeOptions.expertReadsBypassFileCache
+                } set: { model.setExpertReadsBypassFileCache($0) })
+            }
 
             if model.hasStaleLoadedRuntime {
                 Button("Reload Model to Apply") { model.perform(.reload) }
                     .disabled(!model.canReloadModel)
             }
         } header: {
-            Text("Memory")
+            Text("Expert reads")
         } footer: {
-            Text("Both apply after the model reloads.")
+            Text("Both apply after the model reloads. The benchmark always runs the defaults.")
         }
         .disabled(model.isRunning || model.loadState.isLoading)
     }

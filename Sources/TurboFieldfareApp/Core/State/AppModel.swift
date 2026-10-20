@@ -289,7 +289,9 @@ public final class AppModel {
             expertCacheSlots: settings.expertCacheSlots,
             prefillEnabled: settings.prefillEnabled,
             rdadvisePolicy: settings.rdadvisePolicy,
-            visionResidencyPolicy: .onDemand)
+            visionResidencyPolicy: .onDemand,
+            earlyExpertReads: settings.earlyExpertReads,
+            expertReadsBypassFileCache: settings.expertReadsBypassFileCache)
         let admitted = Self.admittedContext(settings.contextTokens,
                                             hostMemoryBytes: hostMemoryBytes,
                                             expertCacheSlots: settings.expertCacheSlots)
@@ -1127,6 +1129,21 @@ public final class AppModel {
         persistSettings()
     }
 
+    /// Early expert reads per layer: 0 (off), 1 or 2. Applies after a reload.
+    public func setEarlyExpertReads(_ reads: Int) {
+        guard runtimeOptions.earlyExpertReads != reads,
+              AppRuntimeOptions.allowedEarlyExpertReads.contains(reads) else { return }
+        runtimeOptions.earlyExpertReads = reads
+        persistSettings()
+    }
+
+    /// `F_NOCACHE` on expert reads. Applies after a reload.
+    public func setExpertReadsBypassFileCache(_ bypass: Bool) {
+        guard runtimeOptions.expertReadsBypassFileCache != bypass else { return }
+        runtimeOptions.expertReadsBypassFileCache = bypass
+        persistSettings()
+    }
+
     /// Changes the context, and redraws a stored conversation against it.
     ///
     /// Continuability is a function of the conversation's size and the context
@@ -1165,6 +1182,8 @@ public final class AppModel {
         topPEnabled = defaults.topPEnabled
         topP = defaults.topP
         runtimeOptions.expertCacheSlots = defaults.expertCacheSlots
+        runtimeOptions.earlyExpertReads = defaults.earlyExpertReads
+        runtimeOptions.expertReadsBypassFileCache = defaults.expertReadsBypassFileCache
         // Through the setter, so a stored conversation on screen is redrawn
         // against the restored context. It saves the settings when the
         // context changes and not otherwise, so the save below is still needed.
@@ -2308,7 +2327,9 @@ public final class AppModel {
             // image tower. Reading the persisted value here would let a
             // `keepReady` written by an older build resurrect ~1 GB of resident
             // tower on a machine with no control that shows or clears it.
-            visionResidencyPolicy: .onDemand)
+            visionResidencyPolicy: .onDemand,
+            earlyExpertReads: settings.earlyExpertReads,
+            expertReadsBypassFileCache: settings.expertReadsBypassFileCache)
         // Clamped for the same reason as `init`: another model directory can
         // carry a context this Mac cannot back, and adopting it would leave
         // the app on a setting the loader refuses. Assigned before the notice
@@ -2351,7 +2372,9 @@ public final class AppModel {
             visionResidencyPolicy: runtimeOptions.visionResidencyPolicy,
             rdadvisePolicy: runtimeOptions.rdadvisePolicy,
             loadModelOnLaunch: loadModelOnLaunch,
-            backgroundGeneration: backgroundGeneration)
+            backgroundGeneration: backgroundGeneration,
+            earlyExpertReads: runtimeOptions.earlyExpertReads,
+            expertReadsBypassFileCache: runtimeOptions.expertReadsBypassFileCache)
         let modelDirectory = URL(fileURLWithPath: modelPathText, isDirectory: true)
         do {
             try MacAppSettingsFileStore.save(settings, forModelDirectory: modelDirectory)

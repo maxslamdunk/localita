@@ -126,6 +126,27 @@ import TurboFieldfare
         #expect(settings.version == 2)
     }
 
+    /// A file from before the expert-read settings decodes to the defaults,
+    /// and chosen values survive a round trip.
+    @Test func expertReadSettingsAreAdditive() throws {
+        let json = """
+        {"version":3,"contextTokens":8192,"expertCacheSlots":16,\
+        "temperature":0.2,"topKEnabled":true,"topK":64,"topPEnabled":true,\
+        "topP":0.95,"prefillEnabled":true}
+        """
+        let old = try JSONDecoder().decode(MacAppSettings.self, from: Data(json.utf8))
+        #expect(old.earlyExpertReads == 1)
+        #expect(old.expertReadsBypassFileCache == PreadExpertStreamer.readsBypassFileCacheByDefault)
+
+        let chosen = MacAppSettings(earlyExpertReads: 2, expertReadsBypassFileCache: false)
+        let decoded = try JSONDecoder().decode(
+            MacAppSettings.self, from: JSONEncoder().encode(chosen))
+        #expect(decoded.earlyExpertReads == 2)
+        #expect(!decoded.expertReadsBypassFileCache)
+        #expect(decoded.isValid())
+        #expect(!MacAppSettings(earlyExpertReads: 5).isValid())
+    }
+
     @Test(arguments: [true, false])
     func sidebarVisibleRoundTrips(_ visible: Bool) throws {
         let initial = MacAppSettings(sidebarVisible: visible)

@@ -452,7 +452,8 @@ actor RealInferenceSession {
                 device: context.device,
                 streamingMode: .pread(slotCount: runtimeConfiguration.expertCacheSlots),
                 expertCachePolicy: runtimeConfiguration.modelExpertCachePolicy,
-                integrityPolicy: key.options.modelVerification.runtimeValue)
+                integrityPolicy: key.options.modelVerification.runtimeValue,
+                expertReadsBypassFileCache: runtimeConfiguration.expertReadsBypassFileCache)
             try Task.checkCancellation()
 
             onState(.loading(.preparingRunner))

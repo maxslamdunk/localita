@@ -130,4 +130,42 @@ import TurboFieldfare
         }
     }
 
+
+    /// Off, one or two early reads, and `F_NOCACHE`, reach the runtime, and
+    /// changing either makes a loaded session stale, so it needs a reload.
+    @Test(arguments: [(0, false), (1, true), (2, false)])
+    func expertReadChoicesMapToRuntime(_ reads: Int, _ bypass: Bool) throws {
+        let options = AppRuntimeOptions(earlyExpertReads: reads,
+                                        expertReadsBypassFileCache: bypass)
+        let runtime = try options.resolvedRuntimeConfiguration(forceLogitsHead: false)
+        #expect(runtime.earlyExpertRead == (reads > 0))
+        #expect(runtime.earlyExpertReadsPerLayer == max(reads, 1))
+        #expect(runtime.expertReadsBypassFileCache == bypass)
+
+        let directory = URL(fileURLWithPath: "/tmp/model.gturbo")
+        let key = AppLoadedRuntimeKey(modelDirectory: directory, maxContextTokens: 4_096,
+                                      options: options)
+        #expect(key.options(prefillEnabled: true, prefillChunkTokens: 128) == options)
+        var changed = options
+        changed.earlyExpertReads = (reads + 1) % 3
+        #expect(AppLoadedRuntimeKey(modelDirectory: directory, maxContextTokens: 4_096,
+                                    options: changed) != key)
+        changed = options
+        changed.expertReadsBypassFileCache.toggle()
+        #expect(AppLoadedRuntimeKey(modelDirectory: directory, maxContextTokens: 4_096,
+                                    options: changed) != key)
+    }
+
+    @Test func expertReadDefaultsMatchProduction() {
+        let options = AppRuntimeOptions()
+        #expect(options.earlyExpertReads == 1)
+        #expect(options.expertReadsBypassFileCache
+            == PreadExpertStreamer.readsBypassFileCacheByDefault)
+    }
+
+    @Test func threeEarlyReadsAreRefused() {
+        #expect(throws: AppInferenceError.self) {
+            try AppRuntimeOptions(earlyExpertReads: 3).validate()
+        }
+    }
 }
