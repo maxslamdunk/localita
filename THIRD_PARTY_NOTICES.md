@@ -57,3 +57,15 @@ No copyleft or custom non-commercial license was found in this resolved graph.
 The dependency license files remain authoritative. For binary distribution,
 collect their license and NOTICE files from the exact revisions in
 `Package.resolved`; do not treat this summary as a substitute for that bundle.
+
+## In the iPhone app
+
+The iPhone app shows that bundle itself, under Settings → Generation →
+Acknowledgements. [`Scripts/generate_acknowledgements.rb`](Scripts/generate_acknowledgements.rb)
+writes it to `iOS/TurboFieldfareiOS/Acknowledgements.json` from the checkouts
+at the `Package.resolved` revisions. It covers the packages compiled into the
+iOS binary and the math fonts SwiftMath bundles (SIL OFL 1.1 and GUST Font
+License). swift-nio, swift-asn1, swift-atomics and swift-system are resolved
+but not in the app. Rerun the script after any dependency change; with
+`--check` it fails while the JSON is stale, and it fails on any new package
+until it is marked as linked or not.

@@ -454,9 +454,11 @@ struct SettingsView: View {
                 dismiss()
             }
             Link("Privacy Policy", destination: PrivacyPolicy.url)
+            NavigationLink("Acknowledgements") { AcknowledgementsView() }
         } footer: {
             Text("What the app is, the download, and what to expect from it. The "
-                 + "privacy policy says what leaves the phone, and when.")
+                 + "privacy policy says what leaves the phone, and when. The "
+                 + "acknowledgements list the open-source code inside the app.")
         }
     }
 
