@@ -107,4 +107,13 @@ extension PreadExpertStreamerTests {
     #expect(NextLayerExpertPrefetcher.readsPerLayer(environment: [key: "9"]) == 1)
     #expect(NextLayerExpertPrefetcher.readsPerLayer(environment: [key: "two"]) == 1)
   }
+
+  /// The configuration's count applies unless the environment names a valid one.
+  @Test func earlyReadsPerLayerDefaultsToTheConfiguration() {
+    let key = NextLayerExpertPrefetcher.readsEnvironmentKey
+    #expect(NextLayerExpertPrefetcher.readsPerLayer(environment: [:], byDefault: 2) == 2)
+    #expect(NextLayerExpertPrefetcher.readsPerLayer(environment: [key: "0"], byDefault: 2) == 2)
+    #expect(NextLayerExpertPrefetcher.readsPerLayer(environment: [key: "1"], byDefault: 2) == 1)
+    #expect(RuntimeConfiguration().earlyExpertReadsPerLayer == 1)
+  }
 }

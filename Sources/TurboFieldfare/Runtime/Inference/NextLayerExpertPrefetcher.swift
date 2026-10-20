@@ -59,11 +59,13 @@ final class NextLayerExpertPrefetcher: @unchecked Sendable {
 
     init?(environment: [String: String] = ProcessInfo.processInfo.environment,
           enabledByDefault: Bool,
+          readsPerLayerByDefault: Int = 1,
           model: Model, config: ArchConfig, device: MTLDevice) throws {
         guard Self.isEnabled(environment: environment, enabledByDefault: enabledByDefault)
         else { return nil }
         let streamer = try model.routedExpertStreamer(layer: 0)
-        staging = try (0..<Self.readsPerLayer(environment: environment)).map { _ in
+        staging = try (0..<Self.readsPerLayer(environment: environment,
+                                              byDefault: readsPerLayerByDefault)).map { _ in
             try streamer.makeStagingBuffer()
         }
         switch environment[NextLayerGuessWeights.environmentKey] {
@@ -97,11 +99,12 @@ final class NextLayerExpertPrefetcher: @unchecked Sendable {
     }
 
     /// `TURBO_FIELDFARE_EARLY_EXPERT_READS` when it is a whole number from 1
-    /// to `maxReadsPerLayer`, otherwise 1.
-    static func readsPerLayer(environment: [String: String]) -> Int {
+    /// to `maxReadsPerLayer`, otherwise `byDefault` (the configuration's
+    /// `earlyExpertReadsPerLayer`), clamped to that range.
+    static func readsPerLayer(environment: [String: String], byDefault: Int = 1) -> Int {
         guard let value = environment[readsEnvironmentKey].flatMap({ Int($0) }),
               (1...maxReadsPerLayer).contains(value)
-        else { return 1 }
+        else { return min(max(byDefault, 1), maxReadsPerLayer) }
         return value
     }
 

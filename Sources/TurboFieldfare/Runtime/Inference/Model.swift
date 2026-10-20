@@ -32,6 +32,9 @@ public struct Model {
     public let streamingMode: ExpertStreamingMode
     public let expertCachePolicy: ExpertCachePolicy
     public let integrityPolicy: ModelIntegrityPolicy
+    /// Whether routed-expert reads set `F_NOCACHE` unless the environment
+    /// says otherwise (`PreadExpertStreamer.readsBypassFileCache`).
+    public let expertReadsBypassFileCache: Bool
     public var modelID: String { manifest.modelID }
     public var sourceSnapshotHash: String? { manifest.sourceSnapshotHash }
     public var sharedExpertWeightBits: Int { manifest.quant?.sharedExpert.weightBits ?? 8 }
@@ -67,6 +70,7 @@ public struct Model {
          streamingMode: ExpertStreamingMode,
          expertCachePolicy: ExpertCachePolicy,
          integrityPolicy: ModelIntegrityPolicy,
+         expertReadsBypassFileCache: Bool,
          residentBuffer: ResidentBuffer,
          residentIndex: ResidentIndex,
          packedExpertsLayout: PackedExpertsLayout,
@@ -78,6 +82,7 @@ public struct Model {
         self.streamingMode = streamingMode
         self.expertCachePolicy = expertCachePolicy
         self.integrityPolicy = integrityPolicy
+        self.expertReadsBypassFileCache = expertReadsBypassFileCache
         self.residentBuffer = residentBuffer
         self.residentIndex = residentIndex
         self.packedExpertsLayout = packedExpertsLayout
@@ -322,7 +327,8 @@ public struct Model {
             slotCount: slotCount,
             cachePolicy: expertCachePolicy,
             counters: expertIOCounters,
-            fileDescriptor: layerFD)
+            fileDescriptor: layerFD,
+            bypassFileCacheByDefault: expertReadsBypassFileCache)
         streamersBox.layerVerified[L] = true
     }
 
@@ -344,6 +350,7 @@ extension Model {
                             streamingMode: ExpertStreamingMode = .pread(slotCount: 16),
                             expertCachePolicy: ExpertCachePolicy = PreadExpertStreamer.cachePolicyDefault,
                             integrityPolicy: ModelIntegrityPolicy? = nil,
+                            expertReadsBypassFileCache: Bool = PreadExpertStreamer.readsBypassFileCacheByDefault,
                             loadStats: UnsafeMutablePointer<ModelLoadStats>? = nil) throws -> Model {
         var stats = ModelLoadStats()
         defer {
@@ -481,6 +488,7 @@ extension Model {
             streamingMode: streamingMode,
             expertCachePolicy: expertCachePolicy,
             integrityPolicy: resolvedIntegrityPolicy,
+            expertReadsBypassFileCache: expertReadsBypassFileCache,
             residentBuffer: residentBuffer,
             residentIndex: residentIndex,
             packedExpertsLayout: layout,

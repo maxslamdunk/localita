@@ -100,6 +100,18 @@ public struct RuntimeConfiguration: Sendable, Equatable {
     /// 11.1 MB guess file. See
     /// `results/benchmark-results-2026-10-03-ios-fitted-guess/results.md`.
     public let earlyExpertRead: Bool
+    /// How many of the next layer's likeliest uncached experts the early read
+    /// fetches, 1 to `NextLayerExpertPrefetcher.maxReadsPerLayer`. **1 on both
+    /// platforms.** On the M1 two beat one by +11.5 / +13.7 / +14.8%
+    /// (`results/benchmark-results-2026-10-07-early-read-v3/`); on the iPhone 17
+    /// two lost −25.9 / −14.6 / −20.7%, because the phone's storage serves one
+    /// read at a time (`results/benchmark-results-2026-10-08-ios-early-read-x2/`).
+    /// `TURBO_FIELDFARE_EARLY_EXPERT_READS` overrides it.
+    public let earlyExpertReadsPerLayer: Int
+    /// Whether routed-expert reads skip the OS file cache (`F_NOCACHE`). **On
+    /// on iOS, off on macOS** (`PreadExpertStreamer.readsBypassFileCacheByDefault`).
+    /// `TURBO_FIELDFARE_EXPERT_READ_NOCACHE` overrides it.
+    public let expertReadsBypassFileCache: Bool
 
     public init(expertCacheSlots: Int = RuntimeConfiguration.productionExpertCacheSlots,
                 expertCachePolicy: RuntimeExpertCachePolicy = .lfu,
@@ -108,11 +120,15 @@ public struct RuntimeConfiguration: Sendable, Equatable {
                 prefillChunkTokens: Int = 128,
                 prefillAttentionPath: RuntimePrefillAttentionPath = .fullTensorOps2DPreferred,
                 forceLogitsHead: Bool = false,
-                earlyExpertRead: Bool = true) {
+                earlyExpertRead: Bool = true,
+                earlyExpertReadsPerLayer: Int = 1,
+                expertReadsBypassFileCache: Bool = PreadExpertStreamer.readsBypassFileCacheByDefault) {
         precondition(Self.allowedExpertCacheSlots.contains(expertCacheSlots),
                      "unsupported expert-cache slot count")
         precondition(Self.allowedPrefillChunkTokens.contains(prefillChunkTokens),
                      "unsupported prefill chunk size")
+        precondition((1...NextLayerExpertPrefetcher.maxReadsPerLayer).contains(earlyExpertReadsPerLayer),
+                     "unsupported early expert read count")
         self.expertCacheSlots = expertCacheSlots
         self.expertCachePolicy = expertCachePolicy
         self.rdadvisePolicy = rdadvisePolicy
@@ -121,6 +137,8 @@ public struct RuntimeConfiguration: Sendable, Equatable {
         self.prefillAttentionPath = prefillAttentionPath
         self.headPath = forceLogitsHead ? .logits : .fusedRows
         self.earlyExpertRead = earlyExpertRead
+        self.earlyExpertReadsPerLayer = earlyExpertReadsPerLayer
+        self.expertReadsBypassFileCache = expertReadsBypassFileCache
     }
 
     public static var production: RuntimeConfiguration {

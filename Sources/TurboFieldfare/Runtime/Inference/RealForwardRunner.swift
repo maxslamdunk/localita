@@ -402,6 +402,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
         self.routingTrace = trace
         self.earlyExpertReads = try NextLayerExpertPrefetcher(
             enabledByDefault: runtimeConfiguration.earlyExpertRead,
+            readsPerLayerByDefault: runtimeConfiguration.earlyExpertReadsPerLayer,
             model: model, config: cfg, device: ctx.device)
     }
 

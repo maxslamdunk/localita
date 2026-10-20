@@ -676,7 +676,8 @@ final class Harness: ObservableObject {
             device: context.device,
             streamingMode: .pread(slotCount: runtime.expertCacheSlots),
             expertCachePolicy: runtime.modelExpertCachePolicy,
-            integrityPolicy: integrityPolicy)
+            integrityPolicy: integrityPolicy,
+            expertReadsBypassFileCache: runtime.expertReadsBypassFileCache)
         emit("model-loaded",
              "policy=\(integrityPolicy == .fullSha256 ? "fullSha256" : "trustedReceipt") "
                 + "ms=\((DispatchTime.now().uptimeNanoseconds - loadStarted) / 1_000_000)")
@@ -703,7 +704,7 @@ final class Harness: ObservableObject {
             + "earlyExpertGuess=\(runner.earlyExpertReadDescription) "
             + "earlyExpertReads=\(runner.earlyExpertReadsPerLayer) "
             + "expertReadNoCache="
-            + "\(PreadExpertStreamer.readsBypassFileCache(environment: ProcessInfo.processInfo.environment)) "
+            + "\(PreadExpertStreamer.readsBypassFileCache(environment: ProcessInfo.processInfo.environment, enabledByDefault: runtime.expertReadsBypassFileCache)) "
             + "expertCacheAging="
             + "\(PreadExpertStreamer.usesCountAging(environment: ProcessInfo.processInfo.environment))"
             + (session.map { " session=\($0.joined(separator: ","))" } ?? ""))

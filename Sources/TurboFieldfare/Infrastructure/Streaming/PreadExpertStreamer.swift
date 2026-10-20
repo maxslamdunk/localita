@@ -135,7 +135,8 @@ public final class PreadExpertStreamer: @unchecked Sendable {
                  cachePolicy: ExpertCachePolicy = .lfu,
                  counters: ExpertIOCounters = ExpertIOCounters(),
                  fileDescriptor: Int32?,
-                 agesUseCounts: Bool? = nil) throws {
+                 agesUseCounts: Bool? = nil,
+                 bypassFileCacheByDefault: Bool = PreadExpertStreamer.readsBypassFileCacheByDefault) throws {
         precondition(slotCount > 0, "slotCount must be positive")
         self.layout = layout
         self.slotCount = slotCount
@@ -153,7 +154,8 @@ public final class PreadExpertStreamer: @unchecked Sendable {
         self.fd = openedFD
         // Expert reads skip the OS file cache on iOS by default; see
         // `readsBypassFileCache(environment:)`.
-        if Self.readsBypassFileCache(environment: ProcessInfo.processInfo.environment) {
+        if Self.readsBypassFileCache(environment: ProcessInfo.processInfo.environment,
+                                     enabledByDefault: bypassFileCacheByDefault) {
             _ = fcntl(openedFD, F_NOCACHE, 1)
         }
         var closeFDOnFailure = true
@@ -488,7 +490,8 @@ public final class PreadExpertStreamer: @unchecked Sendable {
     /// file cache serves under 1% of misses and skipping it made every read
     /// 0.50–0.67 ms faster (`results/benchmark-results-2026-10-03-ios-expert-read-nocache/`).
     /// Off by default on macOS, where it measured neutral (IO-03).
-    /// `TURBO_FIELDFARE_EXPERT_READ_NOCACHE=1` or `=0` overrides either default.
+    /// `RuntimeConfiguration.expertReadsBypassFileCache` sets it per load, and
+    /// `TURBO_FIELDFARE_EXPERT_READ_NOCACHE=1` or `=0` overrides either.
     public static func readsBypassFileCache(
         environment: [String: String],
         enabledByDefault: Bool = readsBypassFileCacheByDefault

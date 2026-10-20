@@ -196,7 +196,8 @@ public func run(args: Args,
             device: context.device,
             streamingMode: .pread(slotCount: runtime.expertCacheSlots),
             expertCachePolicy: runtime.modelExpertCachePolicy,
-            integrityPolicy: .fullSha256)
+            integrityPolicy: .fullSha256,
+            expertReadsBypassFileCache: runtime.expertReadsBypassFileCache)
         let runner = try RealForwardRunner(
             model: model,
             context: context,
