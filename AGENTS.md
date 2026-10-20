@@ -257,13 +257,17 @@ ruby Scripts/check_markdown_links.rb
 ruby Scripts/check_swiftui_macros.rb --self-test
 ```
 
-CI (`.github/workflows/ci.yml`) runs two jobs. One builds on the oldest
-supported Xcode, 26.3 on `macos-26`. The other, on `xcode-27`, runs the SwiftUI
-macro checks, release and debug builds, `Scripts/test.sh`, and the symlink,
-Markdown-link and app-version checks; the app-version check only warns. CI never
-loads the model. Pushes that touch only `server/`, `results/` or
-`benchmark-submissions/` skip CI, unless they change Markdown. The iOS app is
-not built in CI, so build it yourself after touching shared code.
+CI (`.github/workflows/ci.yml`) runs three jobs. One builds on the oldest
+supported Xcode, 26.3 on `macos-26`. One, on `macos-26`, builds the iOS app and
+the device kernel test bundle, unsigned (`xcodebuild build-for-testing`). The
+third, on `xcode-27`, runs the SwiftUI macro checks, release and debug builds,
+`Scripts/test.sh`, and the symlink, Markdown-link, acknowledgements and
+app-version checks; the app-version check only warns. CI never loads the model
+and never runs anything on a phone, so the device kernel suites stay manual.
+Pushes that touch only `server/`, `results/` or `benchmark-submissions/` skip
+CI, unless they change Markdown. After a dependency change, rerun
+`ruby Scripts/generate_acknowledgements.rb`; the acknowledgements check fails
+until you do.
 
 ### Which tests to run
 

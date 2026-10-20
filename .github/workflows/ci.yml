@@ -64,6 +64,25 @@ jobs:
       - name: Build debug and test state compatibility
         run: Scripts/test.sh --filter 'StoredStateTests|AppModelTests|DecodeServiceLaunchPolicyTests'
 
+  # The package jobs never compile iOS/, nor the shared code for iOS. This
+  # builds the app and the device kernel test bundle, unsigned, so an iOS-only
+  # compile break fails here instead of at the next install. Running the
+  # kernel suites still needs the phone.
+  build-ios:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Report the toolchain
+        run: xcodebuild -version
+      - name: Build the iOS app and device tests
+        run: |
+          xcodebuild build-for-testing \
+            -project iOS/TurboFieldfareiOS.xcodeproj \
+            -scheme TurboFieldfareiOS \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO
+
   test:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     # macos-26's default SDK does not exercise the new State macro.
@@ -87,6 +106,9 @@ jobs:
         run: ruby Scripts/check_tracked_symlinks.rb
       - name: Check Markdown links
         run: ruby Scripts/check_markdown_links.rb
+      # Reads the package checkouts the build above left in .build/checkouts.
+      - name: Check the iOS acknowledgements against Package.resolved
+        run: ruby Scripts/generate_acknowledgements.rb --check
       # Upstream's releases set this version, so in this repo falling behind
       # means an upstream merge is due, not that this push broke anything.
       # It warns instead of failing.
