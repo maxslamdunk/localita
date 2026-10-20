@@ -214,8 +214,12 @@ struct HistoryView: View {
 
     /// The logo and the app's name. The logo is a template image, so it takes
     /// the text color: black in light mode, white in dark.
+    ///
+    /// The name sits a little further from the logo than 8 points: there its
+    /// L lay on the strip of the panel the chat screen covers last as it
+    /// shuts, and showed in the closing gap.
     private var brandHeader: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 14) {
             Image("Logo")
                 .resizable()
                 .scaledToFit()
