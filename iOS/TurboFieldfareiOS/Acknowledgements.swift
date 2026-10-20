@@ -43,8 +43,16 @@ struct Acknowledgement: Decodable, Identifiable {
 /// Settings → Generation → Acknowledgements: the open-source code inside the
 /// app and its licenses, which Apache-2.0 and MIT ask a binary to carry.
 struct AcknowledgementsView: View {
+    static let sourceURL = URL(string: "https://github.com/maxslamdunk/localita")!
+
     var body: some View {
         Form {
+            Section {
+                Text("Localita is open source under the Apache 2.0 license.")
+                Link(destination: Self.sourceURL) {
+                    Label("Source Code", systemImage: "arrow.up.right.square")
+                }
+            }
             Section {
                 ForEach(Acknowledgement.all) { entry in
                     NavigationLink {
@@ -61,7 +69,7 @@ struct AcknowledgementsView: View {
                     }
                 }
             } header: {
-                Text("Open Source")
+                Text("Built Into the App")
             } footer: {
                 Text("The open-source code built into the app, and its licenses. "
                      + "Models are downloaded separately and are not part of the "
