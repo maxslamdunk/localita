@@ -469,6 +469,8 @@ demand.
 | Document | Status | Read it for |
 | --- | --- | --- |
 | `docs/IOS_PORT.md` | current, this project | The port plan, its tracks and history, and the repo layout. |
+| `docs/HOW_IT_WORKS.md` | current, this project | The plain-language explainer for readers of the repo. Update its numbers when the README's change. |
+| `docs/WHAT_LOCALITA_ADDS.md` | current, this project | What came from upstream and what this repository added. |
 | `MEASUREMENTS.md` | current, append-only | Every real-model run. |
 | `results/` (benchmark, research and validation folders) | current, this project | Predictions, results and logs per experiment. |
 | `docs/experiments/summaries/` | current, prior art | What was tried; see the table below. |

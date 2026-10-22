@@ -80,12 +80,47 @@ bit over half of it.
 The runtime is written for this one model in Swift and Metal, with its own GPU
 kernels. It does not use MLX or llama.cpp. For the details:
 
+- [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md): how the engine works, in
+  plain terms, with the numbers.
 - [`docs/SYSTEM_DESIGN.md`](docs/SYSTEM_DESIGN.md): how the runtime works,
   with a code map.
 - [`docs/IOS_PORT.md`](docs/IOS_PORT.md): how it was brought to the iPhone,
   and what was tried along the way.
 - [`docs/experiments/summaries/`](docs/experiments/summaries/): optimizations
   tried, kept or dropped, and why.
+
+## What this project adds
+
+Localita is built on [TurboFieldfare](https://github.com/drumih/turbo-fieldfare)
+by drumih, which runs this model on 8 GB Macs. The engine is upstream's: the
+idea of streaming experts from storage, the model format, the installer and
+the Metal kernels. This repository, by Maxim Voronin, brought it to the
+iPhone and made it faster there:
+
+- **The port.** Probes on the phone measured what Apple does not publish:
+  where iOS kills the app (from 5.60 GB with the increased-memory-limit
+  entitlement), how fast its storage reads experts (1.650 GB/s, one read at a
+  time), and whether the kernels hold on the iPhone's newer GPU (179 tests
+  pass). The first run on the phone was already 17–23% faster than the 8 GB
+  M1 Mac.
+- **42–47% faster since that first run**, from 4.4 to 6.3 tokens/s on the
+  short prompt. The largest gains are new here:
+  - an early read that guesses the expert the next layer will need and reads
+    it while storage is idle (+17–20%);
+  - expert-cache counts that age across chats (+23% over a session of 11
+    prompts);
+  - expert-slot and prefill settings chosen for the phone.
+
+  Each change was predicted before it was measured, and checked to leave the
+  generated text byte-identical.
+- **The iPhone app.** Chat, replies that continue in Picture in Picture when
+  you leave the app, the 15 GB model download, community model builds, image
+  input on the phone, and the benchmark.
+- **The early read, offered back upstream** as two pull requests. On an 8 GB
+  M1 MacBook Air it is worth 21–25%.
+
+[`docs/WHAT_LOCALITA_ADDS.md`](docs/WHAT_LOCALITA_ADDS.md) has the full
+account, with the source of every number.
 
 ## Privacy
 
@@ -151,7 +186,8 @@ Localita is derived from
 [drumih](https://github.com/drumih), the Swift and Metal runtime that runs
 Gemma 4 26B-A4B on 8 GB Macs by streaming its experts from storage. This
 repository keeps its history and continues to merge from it. The iPhone app,
-the port and the work measured here are new.
+the port and the work measured here are new (see
+[What this project adds](#what-this-project-adds)).
 
 The source is licensed under the [Apache License 2.0](LICENSE), like
 upstream's. The model weights are not part of this repository. The app
