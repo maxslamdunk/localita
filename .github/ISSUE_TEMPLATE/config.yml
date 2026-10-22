@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/drumih/turbo-fieldfare/security/advisories/new
+    url: https://github.com/maxslamdunk/localita/security/advisories/new
     about: Report suspected security vulnerabilities privately.
+  - name: Benchmark result from your iPhone
+    url: https://github.com/maxslamdunk/localita#what-it-does
+    about: Run the benchmark in the app and tap Send. Accepted results are published in benchmark-submissions/.

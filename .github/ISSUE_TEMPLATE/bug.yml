@@ -1,38 +1,55 @@
 name: Bug report
-description: Report reproducible incorrect behavior or a crash.
+description: Report something that goes wrong in the app or the engine.
 title: "[Bug]: "
 labels:
   - bug
 body:
   - type: markdown
     attributes:
-      value: Do not include credentials, private paths, or model weights.
+      value: Leave out credentials, private paths, model weights, and chat text you would not want to be public.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where does it happen?
+      options:
+        - iPhone app
+        - Mac app, command-line tool or server
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and memory
+      placeholder: iPhone 17, 8 GB
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: iOS or macOS version
+      placeholder: iOS 26.6
+    validations:
+      required: true
   - type: input
     id: commit
     attributes:
       label: Commit
-      description: Commit SHA or release where the problem occurs.
+      description: The commit SHA you built.
     validations:
       required: true
   - type: input
-    id: hardware
+    id: model
     attributes:
-      label: Mac hardware and memory
-      placeholder: M2 MacBook Air, 8 GB
-    validations:
-      required: true
-  - type: input
-    id: environment
-    attributes:
-      label: macOS and Swift versions
-      placeholder: macOS 26.x, Swift 6.2
+      label: Model build
+      description: Which model is installed, from the app's Models screen, or the Hugging Face link you added.
+      placeholder: Gemma 4, with image support
     validations:
       required: true
   - type: textarea
     id: reproduction
     attributes:
-      label: Reproduction steps
-      description: Include the smallest command, prompt, or interaction that reproduces the issue.
+      label: Steps to reproduce
+      description: The smallest set of steps, prompt or command that shows the problem.
     validations:
       required: true
   - type: textarea
@@ -45,16 +62,6 @@ body:
     id: observed
     attributes:
       label: Observed behavior
-      description: Include sanitized logs or diagnostics when useful.
-    validations:
-      required: true
-  - type: dropdown
-    id: model
-    attributes:
-      label: Does this require the installed model?
-      options:
-        - "Yes"
-        - "No"
-        - Unsure
+      description: Include screenshots, or logs with personal details removed, when they help.
     validations:
       required: true

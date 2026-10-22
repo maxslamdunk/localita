@@ -1,5 +1,5 @@
 name: Feature proposal
-description: Propose a focused runtime, platform, or tooling improvement.
+description: Propose a focused improvement to the app, the engine or the tooling.
 title: "[Feature]: "
 labels:
   - enhancement
@@ -8,28 +8,26 @@ body:
     id: problem
     attributes:
       label: Problem
-      description: Describe the concrete limitation or use case.
+      description: The concrete limitation or use case.
     validations:
       required: true
   - type: textarea
     id: proposal
     attributes:
       label: Proposed change
-      description: Describe the smallest useful implementation and affected surfaces.
+      description: The smallest useful version of it, and what it touches.
     validations:
       required: true
   - type: textarea
     id: evidence
     attributes:
       label: Evidence or measurements
-      description: Include profiler data, benchmark results, or primary references when applicable.
+      description: For a speed idea, a rough estimate of the gain, and any measurements or references. AGENTS.md describes where the time goes on the phone.
   - type: textarea
     id: memory
     attributes:
-      label: Bounded-memory behavior
-      description: Explain how the proposal remains valid on an 8 GB Mac without loading full shards or tensors.
-    validations:
-      required: true
+      label: Memory
+      description: For an engine change, how it stays inside the phone's memory budget (about 4.3 GB for the app) without loading whole shards or tensors.
   - type: textarea
     id: alternatives
     attributes:

@@ -2,38 +2,44 @@
 
 ## Supported versions
 
-Security fixes are applied to the latest version of the `main` branch. Older
-commits, forks, experimental branches, and modified model packages are not
-supported.
-
-TurboFieldfare is a research project. It is not intended for production,
-multi-user, or security-critical deployments.
+Security fixes go to the latest `main`. Older commits, forks, other branches
+and modified model packages are not supported.
 
 ## Reporting a vulnerability
 
-Do not open a public issue for a suspected security vulnerability. Use
-[GitHub private vulnerability reporting](https://github.com/drumih/turbo-fieldfare/security/advisories/new)
-instead.
+Don't open a public issue for a suspected vulnerability. Report it privately
+through
+[GitHub private vulnerability reporting](https://github.com/maxslamdunk/localita/security/advisories/new).
 
 Include:
 
-- a description of the vulnerability;
-- the affected commit or version;
-- reproduction steps or a minimal proof of concept;
-- the expected and observed behavior;
-- the potential security impact; and
-- a suggested mitigation, if known.
+- what the vulnerability is;
+- the affected commit;
+- the steps to reproduce it, or a minimal proof of concept;
+- what you expected and what happened;
+- the impact you think it has; and
+- a fix, if you have one in mind.
 
-Do not include personal data, credentials, access tokens, or copyrighted model
-weights in the report.
+Leave out personal data, credentials, access tokens and model weights.
 
-Reports are especially useful when they involve unsafe model-package handling,
-path traversal, buffer or offset safety, malformed remote data, verification
-bypasses, command-line injection, credential exposure, or unexpected file
-access. Model quality problems, incorrect generated text, expected high
-resource use, and performance regressions are not normally security
-vulnerabilities.
+Reports are most useful when they involve:
 
-Please allow the issue to be investigated and a fix to be prepared before
-publishing vulnerability details. Credit can be included in the eventual
-advisory unless the reporter prefers to remain anonymous.
+- **the model download:** a Hugging Face link or checkpoint that gets past
+  the app's layout check, or files written outside the app's own storage;
+- **the model files:** malformed `.gturbo` data, offsets or sizes that lead to
+  out-of-bounds reads or writes;
+- **benchmark results:** the Send screen sending more than it shows, or the
+  submission Worker ([`server/benchmark-worker/`](server/benchmark-worker/))
+  accepting or publishing data it should not;
+- **the Mac side:** the loopback server exposed beyond `127.0.0.1`, or
+  model-produced tool calls running without the client's approval.
+
+Wrong or poor answers from the model, high memory or battery use, and slow
+speed are not security problems. Report them as bugs.
+
+Please give the problem time to be fixed before publishing details. You will be
+credited in the advisory unless you'd rather not be.
+
+A vulnerability in the shared engine probably affects upstream as well.
+Report it to [TurboFieldfare](https://github.com/drumih/turbo-fieldfare/security/advisories/new)
+too, or say in your report that you haven't, and it will be passed on.
