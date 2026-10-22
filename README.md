@@ -23,6 +23,7 @@
   <a href="#how-fast-is-it">Speed</a> ·
   <a href="#how-it-fits-on-a-phone">How it works</a> ·
   <a href="#what-this-project-adds">What this project adds</a> ·
+  <a href="#whats-next">What's next</a> ·
   <a href="#privacy">Privacy</a> ·
   <a href="#build-it">Build it</a> ·
   <a href="#credits-and-license">Credits</a>
@@ -150,6 +151,28 @@ and [#188](https://github.com/drumih/turbo-fieldfare/pull/188).
 
 [`docs/WHAT_LOCALITA_ADDS.md`](docs/WHAT_LOCALITA_ADDS.md) has the details and
 the source of every number.
+
+## What's next
+
+Localita has been tuned on one phone, an iPhone 17. Other iPhones differ in
+memory, storage speed and GPU, so their best settings are probably different.
+The plan is **settings presets for each iPhone model**, built from
+measurements on those phones.
+
+You can help with that:
+
+- **Run the benchmark** (Settings › Benchmark) and tap **Send**. It takes
+  about 10–15 minutes and gives a baseline for your phone. Results from
+  iPhones other than the iPhone 17 are the most useful.
+- **Try the settings.** Change the expert slots (Settings › Memory) or the
+  early reads (Settings › Expert reads), and watch the speed the chat shows
+  while a reply is being written. If something is clearly faster on your
+  phone, say so in [Discussions](https://github.com/maxslamdunk/localita/discussions):
+  which iPhone, which iOS, the settings, and the speeds before and after.
+
+For a fair comparison, ask the same question in a new chat each time, let the
+phone cool between tries, and try each setting twice. Runs vary by about 8%,
+so only a difference of 10–15% or more is likely to be real.
 
 ## Privacy
 

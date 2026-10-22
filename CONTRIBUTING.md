@@ -76,6 +76,11 @@ To share how your iPhone runs the model, run the benchmark in the app and tap
 **Send**. You don't need to open an issue. Accepted results are published in
 [`benchmark-submissions/`](benchmark-submissions/).
 
+If you find settings that are clearly faster on your iPhone, say so in
+[Discussions](https://github.com/maxslamdunk/localita/discussions). They
+help choose the presets for each iPhone model; see
+[What's next](README.md#whats-next).
+
 ## Pull requests
 
 Keep each pull request to one change, and add a focused test for any change in
