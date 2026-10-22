@@ -1,20 +1,40 @@
-# Localita
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/localita-icon-dark.png">
+    <img src="docs/assets/localita-icon.png" alt="Localita app icon" width="128" height="128">
+  </picture>
+</p>
 
-**A 26-billion-parameter AI model that runs entirely on your iPhone.**
+<h1 align="center">Localita</h1>
+
+<p align="center">
+  <strong>A 26-billion-parameter AI model that runs entirely on your iPhone.</strong>
+</p>
+
+<p align="center">
+  <img alt="iOS 26 or later" src="https://img.shields.io/badge/iOS-26%2B-000000?logo=apple&logoColor=white">
+  <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white">
+  <img alt="Metal 4" src="https://img.shields.io/badge/Metal-4-5E5CE6">
+  <a href="LICENSE"><img alt="Apache 2.0 license" src="https://img.shields.io/badge/License-Apache%202.0-2ea44f"></a>
+</p>
+
+<p align="center">
+  <a href="#what-it-does">What it does</a> ·
+  <a href="#how-fast-is-it">Speed</a> ·
+  <a href="#how-it-fits-on-a-phone">How it works</a> ·
+  <a href="#what-this-project-adds">What this project adds</a> ·
+  <a href="#privacy">Privacy</a> ·
+  <a href="#build-it">Build it</a> ·
+  <a href="#credits-and-license">Credits</a>
+</p>
 
 Localita is an offline chat app for iPhone built around Google's
 [Gemma 4 26B-A4B](https://ai.google.dev/gemma/docs/core/model_card_4). The
 model runs on the phone itself. What you type and the photos you share never
 leave it, and once the model is downloaded the app works without a connection.
 
-<p>
-  <img alt="iOS 26 or later" src="https://img.shields.io/badge/iOS-26%2B-000000?logo=apple&logoColor=white">
-  <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white">
-  <img alt="Metal" src="https://img.shields.io/badge/Metal-4-5E5CE6">
-  <a href="LICENSE"><img alt="Apache 2.0 license" src="https://img.shields.io/badge/License-Apache%202.0-2ea44f"></a>
-</p>
-
-> **Status:** not yet on TestFlight or the App Store. For now you build it
+> [!NOTE]
+> Localita is not on TestFlight or the App Store yet. For now, you build it
 > from source (see [Build it](#build-it)). It has been developed and tested on
 > one phone, an iPhone 17.
 
@@ -26,8 +46,8 @@ leave it, and once the model is downloaded the app works without a connection.
 
 ## What it does
 
-- **Chat with Gemma 4**, with your conversations kept on the phone. Replies
-  render Markdown, code, tables and math.
+- **Chat with Gemma 4.** Your conversations stay on the phone. Replies render
+  Markdown, code, tables and math.
 - **Ask about photos.** An optional image pack (about 1.1 GB) lets the model
   read pictures you attach.
 - **Keeps going when you switch apps.** Leave mid-reply and it continues in a
@@ -35,16 +55,18 @@ leave it, and once the model is downloaded the app works without a connection.
   when you unlock. You can turn this off in Settings.
 - **One download, about 15 GB.** It uses Wi-Fi unless you allow mobile data,
   continues in the background, and resumes if it stops.
-- **Other Gemma 4 26B-A4B builds.** Besides Google's model, you can install
+- **Other builds of the model.** Besides Google's model, you can install
   SuperGemma 4 (a community edit) or paste a Hugging Face link to another
-  build with the same layout, such as the QAT and LM Studio versions. The app
-  checks the layout before downloading and pins the exact revision it checked.
-- **Sampling controls:** temperature, top-K and top-P.
-- **A built-in benchmark** that runs three standard prompts and keeps the
+  Gemma 4 26B-A4B build with the same layout, such as the QAT and LM Studio
+  versions. The app checks the layout before downloading and pins the exact
+  revision it checked.
+- **Settings for the model and the engine.** Temperature, top-K and top-P,
+  the context length, the expert cache's size and the early reads.
+- **A built-in benchmark.** It runs three standard prompts and keeps the
   results on the phone. You can send a result to the project with one tap,
   after seeing exactly what will be sent (see [Privacy](#privacy)).
 
-## How fast is it
+## How fast is it?
 
 Measured on an iPhone 17 (8 GB) with iOS 26.6, using the app's own benchmark
 at default settings, on 2026-10-13, with the phone cool (`nominal`) on every
@@ -52,7 +74,7 @@ case. Source: [`results/validation-results-2026-10-13-ios-in-app-benchmark/`](re
 second run.
 
 | Prompt | Prompt length | Reply speed | Time before the reply starts | App memory, peak |
-| --- | --- | --- | --- | --- |
+| --- | ---: | ---: | ---: | ---: |
 | Short question | 61 tokens | 6.3 tokens/s | 11.5 s | 3.1 GB |
 | Medium review | 430 tokens | 5.6 tokens/s | 11.5 s | 3.2 GB |
 | Long synthesis | 3,015 tokens | 5.2 tokens/s | 68 s | 3.4 GB |
@@ -71,11 +93,11 @@ does not fit in the memory an iPhone gives an app.
 
 So Localita keeps only the parts every token needs in memory, about 1.35 GB
 of shared weights plus the conversation's attention cache, and reads the
-experts each token picks from storage as it goes. A cache of recently used
-experts in each layer catches about three quarters of them. While storage
-would otherwise sit idle, the app reads ahead the expert it predicts the next
-layer will want. Reading experts is still the largest part of each token, a
-bit over half of it.
+experts each token picks from storage as it goes. A small cache in each layer
+holds the experts it uses most and catches about three quarters of them, and
+the app reads ahead while storage would otherwise sit idle
+([the early read](#the-early-read)). Reading experts is still the largest
+part of each token, a bit over half of it.
 
 The runtime is written for this one model in Swift and Metal, with its own GPU
 kernels. It does not use MLX or llama.cpp. For the details:
@@ -92,35 +114,42 @@ kernels. It does not use MLX or llama.cpp. For the details:
 ## What this project adds
 
 Localita is built on [TurboFieldfare](https://github.com/drumih/turbo-fieldfare)
-by drumih, which runs this model on 8 GB Macs. The engine is upstream's: the
-idea of streaming experts from storage, the model format, the installer and
-the Metal kernels. This repository brought it to the iPhone and made it
-faster there:
+by drumih, which runs this model on 8 GB Macs and provides the engine: expert
+streaming, the model format, the installer and the Metal kernels. This
+repository adds:
 
-- **The port.** Probes on the phone measured what Apple does not publish:
-  where iOS kills the app (from 5.60 GB with the increased-memory-limit
-  entitlement), how fast its storage reads experts (1.650 GB/s, one read at a
-  time), and whether the kernels hold on the iPhone's newer GPU (179 tests
-  pass). The first run on the phone was already 17–23% faster than the 8 GB
-  M1 Mac.
-- **42–47% faster since that first run**, from 4.4 to 6.3 tokens/s on the
-  short prompt. The largest gains are new here:
-  - an early read that guesses the expert the next layer will need and reads
-    it while storage is idle (+17–20%);
-  - expert-cache counts that age across chats (+23% over a session of 11
-    prompts);
-  - expert-slot and prefill settings chosen for the phone.
+- **The port to the iPhone**, built on measurements of the phone's memory
+  limit, storage speed and GPU.
+- **The iPhone app**: chat, Picture in Picture when you leave the app, the
+  model download, community builds, image input and the benchmark.
+- **The early read** ([below](#the-early-read)): 17–20% faster on the phone.
+- **Expert-cache counts that age**, so the cache follows the current chat
+  rather than earlier ones: 23% faster over a session of 11 prompts.
+- **Expert reads that skip the OS file cache**: 4–8% faster.
+- **24 expert slots per layer** on the phone instead of 16: 21–37% faster.
+- **1,024-token prefill chunks** on the phone instead of 256: 71% less read
+  for a long prompt.
+- **The measurements**: per-phase timers, GPU timestamps and read latencies
+  printed on every run, and a log of every run
+  ([`MEASUREMENTS.md`](MEASUREMENTS.md)).
 
-  Each change was predicted before it was measured, and checked to leave the
-  generated text byte-identical.
-- **The iPhone app.** Chat, replies that continue in Picture in Picture when
-  you leave the app, the 15 GB model download, community model builds, image
-  input on the phone, and the benchmark.
-- **The early read, offered back upstream** as two pull requests. On an 8 GB
-  M1 MacBook Air it is worth 21–25%.
+Since its first run on the phone, the app has become 42–47% faster.
 
-[`docs/WHAT_LOCALITA_ADDS.md`](docs/WHAT_LOCALITA_ADDS.md) has the full
-account, with the source of every number.
+### The early read
+
+In every layer, storage sits idle for about 2 ms while the GPU works. The
+early read uses that gap to read the expert the next layer will most likely
+need. The guess comes from a copy of the next layer's router, refitted on
+recorded routing and run on the current layer's input. It is right 68–75% of
+the time. A right guess saves a read, and a wrong one costs little because
+storage was idle. The phone reads 11–18% more bytes per token and is 17–20%
+faster, with identical output. On an 8 GB M1 MacBook Air it is 21–25% faster,
+and it is offered back upstream as
+[drumih/turbo-fieldfare#187](https://github.com/drumih/turbo-fieldfare/pull/187)
+and [#188](https://github.com/drumih/turbo-fieldfare/pull/188).
+
+[`docs/WHAT_LOCALITA_ADDS.md`](docs/WHAT_LOCALITA_ADDS.md) has the details and
+the source of every number.
 
 ## Privacy
 
@@ -141,8 +170,8 @@ The full policy is at
 You need:
 
 - A Mac with Xcode 26.
-- An iPhone with **8 GB of memory** on iOS 26. Only the iPhone 17 has been
-  tested. Phones with less memory are untested.
+- An iPhone with at least **8 GB of memory**, on iOS 26: an iPhone 15 Pro or
+  later. Only the iPhone 17 has been tested.
 - About 16 GB of free space on the phone. The app shows the exact figure
   before it downloads.
 - An Apple Account for signing. A free one works, but the app then stops
@@ -151,14 +180,17 @@ You need:
 Steps:
 
 1. Open `iOS/TurboFieldfareiOS.xcodeproj` in Xcode.
-2. Under **Signing & Capabilities**, choose your own team, and change the
-   bundle identifier to one of your own. Keep the **Increased Memory Limit**
-   capability: without it, iOS gives the app too little memory to run the
-   model.
-3. Select your iPhone and run the `TurboFieldfareiOS` scheme with the
-   **Release** configuration, which is what every number here was measured
-   with.
+2. In the `TurboFieldfareiOS` target's **Signing & Capabilities**, choose your
+   own team, and change the bundle identifier to one of your own. Keep the
+   **Increased Memory Limit** capability: without it, iOS gives the app too
+   little memory to run the model.
+3. Select your iPhone and run the `TurboFieldfareiOS` scheme. It builds the
+   **Release** configuration, which every number here was measured with.
 4. In the app, download Gemma 4.
+
+The first time, the phone may ask you to turn on Developer Mode (Settings ›
+Privacy & Security), and with a free account, to trust your certificate
+(Settings › General › VPN & Device Management).
 
 When you install a new build later, install it over the existing app. If you
 delete the app, the downloaded model goes with it.
