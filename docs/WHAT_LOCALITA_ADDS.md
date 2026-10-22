@@ -5,8 +5,7 @@ by [drumih](https://github.com/drumih), and keeps its history. This page says
 what came from there and what this repository added on top, so that credit
 goes to the right place.
 
-The work here is by Maxim Voronin ([@maxslamdunk](https://github.com/maxslamdunk)),
-from 2026-08-10 on.
+The work here began on 2026-08-10.
 
 ## What upstream built
 

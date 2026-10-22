@@ -94,8 +94,8 @@ kernels. It does not use MLX or llama.cpp. For the details:
 Localita is built on [TurboFieldfare](https://github.com/drumih/turbo-fieldfare)
 by drumih, which runs this model on 8 GB Macs. The engine is upstream's: the
 idea of streaming experts from storage, the model format, the installer and
-the Metal kernels. This repository, by Maxim Voronin, brought it to the
-iPhone and made it faster there:
+the Metal kernels. This repository brought it to the iPhone and made it
+faster there:
 
 - **The port.** Probes on the phone measured what Apple does not publish:
   where iOS kills the app (from 5.60 GB with the increased-memory-limit
