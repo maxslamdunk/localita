@@ -886,7 +886,8 @@ two options at no cost.
 
 | Remote | Points at | Use |
 | --- | --- | --- |
-| `origin` | `maxslamdunk/localita` (private; `turbo-fieldfare-ios` until 2026-10-17) | Everything. |
+| `origin` | `maxslamdunk/localita` (public since 2026-10-24) | `main`, and branches fine to show. |
+| `private` | `maxslamdunk/localita-private` (private) | The repository until 2026-10-24, named `turbo-fieldfare-ios` until 2026-10-17 and `localita` until 2026-10-22. It keeps the older branches and PRs, and branches not ready to be public. |
 | `upstream` | `drumih/turbo-fieldfare` | Fetch only; push URL is set to `DISABLED`. |
 
 - `git fetch upstream && git merge upstream/main` pulls upstream work in for

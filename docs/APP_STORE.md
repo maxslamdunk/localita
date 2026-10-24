@@ -37,8 +37,7 @@ Review. Internal testers need none of them.
 
 **Privacy Policy URL:** <https://localita.maxslamdunk.workers.dev/privacy>
 
-**Marketing URL:** leave empty until the repository is public, then
-<https://github.com/maxslamdunk/localita>.
+**Marketing URL:** <https://github.com/maxslamdunk/localita>
 
 **What to Test** (first build)
 
