@@ -193,8 +193,10 @@ The full policy is at
 You need:
 
 - A Mac with Xcode 26.
-- An iPhone with at least **8 GB of memory**, on iOS 26: an iPhone 15 Pro or
-  later. Only the iPhone 17 has been tested.
+- An iPhone on iOS 26. Only the iPhone 17 (8 GB of memory) has been tested.
+  Other 8 GB iPhones, the iPhone 15 Pro and later, should work. On a 6 GB
+  iPhone nobody knows yet: it may work, more slowly, with 16 expert slots in
+  Settings › Memory. If you try, please say how it went.
 - About 16 GB of free space on the phone. The app shows the exact figure
   before it downloads.
 - An Apple Account for signing. A free one works, but the app then stops

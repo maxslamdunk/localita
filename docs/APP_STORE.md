@@ -30,8 +30,10 @@ Review. Internal testers need none of them.
 > entirely on your iPhone. Chats and photos never leave the phone, and once
 > the model is downloaded the app works offline.
 >
-> It needs an iPhone with 8 GB of memory (iPhone 15 Pro or later) and about
-> 16 GB of free storage. The model is a one-time download of about 15 GB.
+> It has been tested on an iPhone with 8 GB of memory (iPhone 15 Pro or
+> later). It may also work, more slowly, on a 6 GB iPhone with fewer expert
+> slots in Settings; if you try one, please tell us how it went. It needs
+> about 16 GB of free storage for a one-time download of about 15 GB.
 
 **Feedback Email:** maximvoronin8@gmail.com
 
@@ -60,9 +62,11 @@ Review. Internal testers need none of them.
 > Localita is an offline chat app. The AI model runs on the device.
 >
 > On first launch the app downloads the model from Hugging Face, a one-time
-> download of about 15 GB, about 20 minutes at 100 Mbit/s. It
-> needs an iPhone with 8 GB of memory (iPhone 15 Pro, iPhone 16 or iPhone 17
-> families) and about 16 GB of free storage. The increased-memory-limit
+> download of about 15 GB, about 20 minutes at 100 Mbit/s, and
+> needs about 16 GB of free storage. Please review it on an iPhone with 8 GB
+> of memory (iPhone 15 Pro, iPhone 16 or iPhone 17 families), where it has
+> been tested. On a 6 GB iPhone it warns that it is untested there and
+> suggests fewer expert slots. The increased-memory-limit
 > entitlement is needed because the model's resident weights and cache take
 > about 3.3 GB.
 >
@@ -124,7 +128,9 @@ trademarks in keywords. The description may name the model, as below.
 > keeping everything on the phone.
 >
 > REQUIREMENTS
-> • An iPhone with 8 GB of memory: iPhone 15 Pro or later.
+> • Tested on an iPhone with 8 GB of memory: iPhone 15 Pro or later.
+> • On a 6 GB iPhone it is untested. It may work, more slowly, with fewer
+>   expert slots in Settings.
 > • About 16 GB of free storage for the one-time download of about 15 GB.
 >
 > OPEN SOURCE
