@@ -490,14 +490,37 @@ private final class DragFrameRate {
     }
 }
 
-/// The radius of the display's own corners. There is no public API for it,
-/// so it is read from UIKit's private key, and falls back to square corners if
-/// that ever disappears. `ConcentricRectangle`, the public route, drew square
-/// corners here.
+/// The radius of the display's own corners. UIKit has it only under a private
+/// key, which App Review can reject, and `ConcentricRectangle`, the public
+/// route, drew square corners here. So it comes from a table keyed by the
+/// screen's size in pixels, which no two radii share. The radii are what the
+/// private key returned in the iOS 26.5 simulators, in points at the standard
+/// zoom; the 11s and minis, not run, take Xcode's `DeviceCornerRadius`, which
+/// agreed wherever both were read. Display Zoom shows fewer points on the
+/// same glass, so the radius scales with the width in points. A size not in
+/// the table is a phone newer than it, and gets the newest phones' radius.
 @MainActor
 private let displayCornerRadius: CGFloat = {
-    let screen = UIApplication.shared.connectedScenes
-        .compactMap { ($0 as? UIWindowScene)?.screen }
+    guard let screen = UIApplication.shared.connectedScenes
+        .compactMap({ ($0 as? UIWindowScene)?.screen })
         .first
-    return (screen?.value(forKey: "_displayCornerRadius") as? CGFloat) ?? 0
+    else { return 0 }
+    let byPixels: [String: (radius: CGFloat, width: CGFloat)] = [
+        "750x1334": (0, 375),           // SE (2nd, 3rd)
+        "828x1792": (41.5, 414),        // 11
+        "1125x2436": (39, 375),         // 11 Pro
+        "1242x2688": (39, 414),         // 11 Pro Max
+        "1080x2340": (44, 375),         // 12 mini, 13 mini
+        "1170x2532": (47.33, 390),      // 12, 12 Pro, 13, 13 Pro, 14, 16e, 17e
+        "1284x2778": (53.33, 428),      // 12 Pro Max, 13 Pro Max, 14 Plus
+        "1179x2556": (55, 393),         // 14 Pro, 15, 15 Pro, 16
+        "1290x2796": (55, 430),         // 14 Pro Max, 15 Plus, 15 Pro Max, 16 Plus
+        "1206x2622": (62, 402),         // 16 Pro, 17, 17 Pro
+        "1320x2868": (62, 440),         // 16 Pro Max, 17 Pro Max
+        "1260x2736": (62, 420),         // Air
+    ]
+    let pixels = screen.nativeBounds.size
+    let key = "\(Int(min(pixels.width, pixels.height)))x\(Int(max(pixels.width, pixels.height)))"
+    guard let entry = byPixels[key] else { return 62 }
+    return entry.radius * min(screen.bounds.width, screen.bounds.height) / entry.width
 }()
