@@ -232,8 +232,10 @@ These are real constraints, not conventions.
   If a check fails, stop and tell the user. Never kill processes, and never
   delete or reinstall the model.
 - **Phone: never delete the app.** The model lives in its data container.
-  Install over it. Free-team signing expires weekly; re-sign and install over.
-  With Airplane Mode on, free-team apps refuse to launch.
+  Install over it. Since 2026-10-24 the app is signed by the paid team, which
+  kept the free team's ID (`PTWLHQ5QZX`), so builds still install over it and
+  development profiles last a year instead of a week. With Airplane Mode on,
+  free-team apps refused to launch; whether paid-team builds do is untested.
 - **Bounded memory.** No install, load, test, or benchmark path may put a whole
   model, shard, expert, or source tensor into Swift heap memory.
   `model_weights.bin` is mmapped read-only and wrapped in `MTLBuffer`s without
