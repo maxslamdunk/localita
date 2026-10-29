@@ -161,7 +161,7 @@ measurements on those phones.
 
 You can help with that:
 
-- **Run the benchmark** (Settings › Benchmark) and tap **Send**. It takes
+- **Run the benchmark** (Settings › Models › Benchmark) and tap **Send**. It takes
   about 10–15 minutes and gives a baseline for your phone. Results from
   iPhones other than the iPhone 17 are the most useful.
 - **Try the settings.** Change the expert slots (Settings › Memory) or the

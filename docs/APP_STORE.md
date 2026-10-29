@@ -50,7 +50,8 @@ Review. Internal testers need none of them.
 > - Chatting, including long replies and a photo (after installing image
 >   support in Settings → Models).
 > - Switching apps mid-reply: the reply should continue in a small Picture in
->   Picture window.
+>   Picture window. This needs Start PiP Automatically on in the iPhone's
+>   Settings → General → Picture in Picture (it is on unless you turned it off).
 > - Settings → Models → Benchmark, if you have 15 minutes with the phone on a
 >   table. Sending the result is optional.
 >
@@ -89,7 +90,7 @@ only Apple sees.
 | Secondary category | | Utilities |
 | Price | | Free |
 | Copyright | | 2026 Maxim Voronin |
-| Support URL | | The repository once public, or a support page on the Worker. It must load for the reviewer, so not the private repository. |
+| Support URL | | <https://github.com/maxslamdunk/localita> |
 | Keywords | 100 | `offline,private,local,llm,ai chat,chatbot,on-device,no internet,assistant,ai model` |
 
 Keywords leave out "Gemma" and "Google": Apple rejects other companies'
