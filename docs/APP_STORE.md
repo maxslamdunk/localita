@@ -24,6 +24,9 @@ and the policy at <https://localita.maxslamdunk.workers.dev/privacy>
 These are needed before external testers can join, and they go to Beta App
 Review. Internal testers need none of them.
 
+**Public link:** <https://testflight.apple.com/join/2CPVFQuU>, no tester
+limit. Build 1.0 (2) passed Beta App Review by 2026-10-30.
+
 **Beta App Description**
 
 > Localita runs Google's Gemma 4 26B-A4B, a 26-billion-parameter AI model,

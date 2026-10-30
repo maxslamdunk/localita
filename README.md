@@ -35,9 +35,11 @@ model runs on the phone itself. What you type and the photos you share never
 leave it, and once the model is downloaded the app works without a connection.
 
 > [!NOTE]
-> Localita is not on TestFlight or the App Store yet. For now, you build it
-> from source (see [Build it](#build-it)). It has been developed and tested on
-> one phone, an iPhone 17.
+> Localita is in public beta on TestFlight:
+> **[join the beta](https://testflight.apple.com/join/2CPVFQuU)** from an
+> iPhone with TestFlight installed. It is not on the App Store yet. It has been
+> developed and tested on one phone, an iPhone 17 (see
+> [Build it](#build-it) for what it needs, or to build it yourself).
 
 <p align="center">
   <img src="docs/assets/localita-chat.png" alt="A chat in Localita: Gemma 4 explains pointwise and uniform convergence, with rendered math" width="250">
@@ -190,7 +192,8 @@ The full policy is at
 
 ## Build it
 
-You need:
+To use the app, [join the TestFlight beta](https://testflight.apple.com/join/2CPVFQuU).
+It needs the same iPhone and free space as below. To build it yourself, you need:
 
 - A Mac with Xcode 26.
 - An iPhone on iOS 26. Only the iPhone 17 (8 GB of memory) has been tested.
