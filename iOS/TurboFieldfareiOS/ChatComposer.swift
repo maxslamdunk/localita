@@ -204,20 +204,31 @@ struct ChatComposer: View {
     // flag at send time. Deliberately left enabled during a run — it changes
     // the token sequence a turn pins, so taking effect mid-turn is the
     // behaviour to avoid, not the behaviour to offer.
+    //
+    // The word is there because the icon alone did not say what this does: a
+    // tester asked what the brain meant.
     private var thinkingButton: some View {
         Button {
             model.enableThinking.toggle()
         } label: {
-            Image(systemName: "brain")
-                .font(.system(size: 16))
-                .foregroundStyle(model.enableThinking ? .primary : .secondary)
-                .frame(width: Self.smallControl, height: Self.smallControl)
-                .background(model.enableThinking
-                            ? Color.primary.opacity(0.22) : Self.controlFill,
-                            in: .circle)
+            HStack(spacing: 5) {
+                Image(systemName: "brain")
+                Text("Think")
+            }
+            .font(.system(size: 14))
+            .foregroundStyle(model.enableThinking ? .primary : .secondary)
+            .padding(.horizontal, 11)
+            .frame(height: Self.smallControl)
+            .background(model.enableThinking
+                        ? Color.primary.opacity(0.22) : Self.controlFill,
+                        in: .capsule)
+            .contentShape(.capsule)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Reasoning")
+        // A narrow row takes the room from the model pill, whose menu shows
+        // the name in full, and not from this word.
+        .fixedSize()
+        .accessibilityLabel("Think")
         .accessibilityValue(model.enableThinking ? "On" : "Off")
         .accessibilityIdentifier(.composerThinking)
     }
