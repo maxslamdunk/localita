@@ -23,6 +23,8 @@ struct ChatTranscriptView: View {
     let thinkingBlocks: StreamingBlocks
 
     @State private var follow = TranscriptScrollFollow()
+    /// Only the live turn has reasoning to show, so one is enough.
+    @State private var reasoningDisclosure = ReasoningDisclosure()
 
     private static let bottomAnchor = "transcript.bottom"
 
@@ -80,12 +82,18 @@ struct ChatTranscriptView: View {
             .onChange(of: model.isTranscriptTurnInFlight) { _, inFlight in
                 if inFlight {
                     follow.beginRun()
+                    reasoningDisclosure.beginRun()
                     scrollToBottom(proxy)
                 }
             }
             .onChange(of: model.outputText) { _, text in
                 blocks.update(text)
                 if follow.isFollowing { scrollToBottom(proxy) }
+            }
+            .onChange(of: model.outputResponsePlainText.isEmpty) { _, isEmpty in
+                if !isEmpty {
+                    reasoningDisclosure.answerStarted(readerIsFollowing: follow.isFollowing)
+                }
             }
             // Reasoning can run for many seconds before the first visible token,
             // and during that stretch `outputText` never changes — so without
@@ -101,10 +109,12 @@ struct ChatTranscriptView: View {
                 blocks.update(model.outputText)
                 thinkingBlocks.reset()
                 thinkingBlocks.update(model.thinkingText)
+                reasoningDisclosure.sync(hasAnswer: !model.outputResponsePlainText.isEmpty)
             }
             .onAppear {
                 blocks.update(model.outputText)
                 thinkingBlocks.update(model.thinkingText)
+                reasoningDisclosure.sync(hasAnswer: !model.outputResponsePlainText.isEmpty)
             }
         }
     }
@@ -180,7 +190,8 @@ struct ChatTranscriptView: View {
                 reasoning(thinking,
                           split: thinkingSplit,
                           streaming: thinkingStreaming,
-                          isTerminal: isTerminal)
+                          isTerminal: isTerminal,
+                          isStillReasoning: !isTerminal && response.isEmpty)
             }
 
             if let responseSplit {
@@ -220,7 +231,8 @@ struct ChatTranscriptView: View {
     }
 
     /// Reasoning: the same markdown and LaTeX an answer gets, in grey, behind
-    /// a rule that says where it stops.
+    /// a rule that says where it stops, under a header that folds it away.
+    /// `ReasoningDisclosure` decides when it is open.
     ///
     /// The grey comes from the renderer rather than a `.foregroundStyle` over
     /// the top, because a typeset equation is a bitmap by the time SwiftUI sees
@@ -229,19 +241,46 @@ struct ChatTranscriptView: View {
     private func reasoning(_ text: String,
                            split: ResponseBlockSplitter.Split?,
                            streaming: StreamingBlocks?,
-                           isTerminal: Bool) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Rectangle()
-                .fill(Color(uiColor: .separator))
-                .frame(width: 2)
-            ResponseBlocksView(response: text,
-                               split: split ?? ResponseBlockSplitter.split(text),
-                               blocks: streaming,
-                               isTerminal: isTerminal,
-                               isReasoning: true)
+                           isTerminal: Bool,
+                           isStillReasoning: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            reasoningHeader(isStillReasoning: isStillReasoning)
+            if reasoningDisclosure.isOpen {
+                HStack(alignment: .top, spacing: 10) {
+                    Rectangle()
+                        .fill(Color(uiColor: .separator))
+                        .frame(width: 2)
+                    ResponseBlocksView(response: text,
+                                       split: split ?? ResponseBlockSplitter.split(text),
+                                       blocks: streaming,
+                                       isTerminal: isTerminal,
+                                       isReasoning: true)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func reasoningHeader(isStillReasoning: Bool) -> some View {
+        Button {
+            reasoningDisclosure.toggle()
+        } label: {
+            HStack(spacing: 4) {
+                Text(isStillReasoning ? "Thinking…" : "Thought process")
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .rotationEffect(reasoningDisclosure.isOpen ? .degrees(90) : .zero)
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .frame(minHeight: 32)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityValue(reasoningDisclosure.isOpen ? "Shown" : "Hidden")
+        .accessibilityHint(reasoningDisclosure.isOpen ? "Hides the reasoning"
+                                                      : "Shows the reasoning")
     }
 
     private var prefillNotice: some View {
