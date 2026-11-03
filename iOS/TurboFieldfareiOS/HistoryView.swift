@@ -44,7 +44,7 @@ struct HistoryView: View {
     /// The logo row's height, which the top bar keeps with the field out.
     @State private var logoRowHeight: CGFloat?
     /// Grows with the text size, as the name beside it does.
-    @ScaledMetric(relativeTo: .title3) private var logoHeight: CGFloat = 52
+    @ScaledMetric(relativeTo: .title3) private var logoHeight: CGFloat = 42
     /// The search field's height, as the old always-shown field measured: a
     /// line of body text and 9 pt above and below.
     @ScaledMetric(relativeTo: .body) private var searchFieldHeight: CGFloat = 40
@@ -215,11 +215,12 @@ struct HistoryView: View {
     /// The logo and the app's name. The logo is a template image, so it takes
     /// the text color: black in light mode, white in dark.
     ///
-    /// The name sits a little further from the logo than 8 points: there its
-    /// L lay on the strip of the panel the chat screen covers last as it
-    /// shuts, and showed in the closing gap.
+    /// The name sits well clear of the logo. The chat screen covers last the
+    /// strip of the panel a quarter of its width in, about 76 points on a
+    /// phone, because the panel slides at a quarter of the screen's speed. A
+    /// name starting there showed its L in the closing gap.
     private var brandHeader: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 30) {
             Image("Logo")
                 .resizable()
                 .scaledToFit()
