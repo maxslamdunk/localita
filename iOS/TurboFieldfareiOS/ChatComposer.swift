@@ -33,6 +33,10 @@ struct ChatComposer: View {
     /// so a step smaller than the round controls either side of them.
     private static let smallControl: CGFloat = 35
     private static let controlFill = Color.primary.opacity(0.08)
+    /// The one solid shape in the row. A UIKit colour, because `Color.primary`
+    /// on this glass drew as a pale grey (201 on light, 62 on dark), close to
+    /// the toggle's on state, and a tester could not tell Send was ready.
+    private static let solidFill = Color(uiColor: .label)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -401,7 +405,7 @@ struct ChatComposer: View {
                                  : Color(uiColor: .tertiaryLabel))
                 .padding(.horizontal, 16)
                 .frame(height: Self.control)
-                .background(enabled ? Color.primary : Self.controlFill,
+                .background(enabled ? Self.solidFill : Self.controlFill,
                             in: .capsule)
         }
         .buttonStyle(.plain)
@@ -420,7 +424,7 @@ struct ChatComposer: View {
                                  ? Color(uiColor: .systemBackground)
                                  : Color(uiColor: .tertiaryLabel))
                 .frame(width: Self.control, height: Self.control)
-                .background(model.canRun ? Color.primary : Self.controlFill,
+                .background(model.canRun ? Self.solidFill : Self.controlFill,
                             in: .circle)
         }
         // The primary action, so the one solid shape in the row, in the
@@ -441,7 +445,7 @@ struct ChatComposer: View {
                 .font(.headline)
                 .foregroundStyle(Color(uiColor: .systemBackground))
                 .frame(width: Self.control, height: Self.control)
-                .background(Color.primary, in: .circle)
+                .background(Self.solidFill, in: .circle)
         }
         .buttonStyle(.plain)
         .disabled(!model.canCancel)
