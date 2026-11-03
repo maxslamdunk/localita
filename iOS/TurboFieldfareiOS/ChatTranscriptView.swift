@@ -194,17 +194,21 @@ struct ChatTranscriptView: View {
                           isStillReasoning: !isTerminal && response.isEmpty)
             }
 
-            if let responseSplit {
-                ResponseBlocksView(response: response,
-                                   split: responseSplit,
-                                   blocks: streaming,
-                                   isTerminal: isTerminal)
-            } else if !response.isEmpty {
-                // A frozen turn is split once, on the pass that draws it. Only
-                // the live answer is worth keeping resumable scan state for.
-                ResponseBlocksView(response: response,
-                                   split: ResponseBlockSplitter.split(response))
+            Group {
+                if let responseSplit {
+                    ResponseBlocksView(response: response,
+                                       split: responseSplit,
+                                       blocks: streaming,
+                                       isTerminal: isTerminal)
+                } else if !response.isEmpty {
+                    // A frozen turn is split once, on the pass that draws it.
+                    // Only the live answer is worth keeping resumable scan
+                    // state for.
+                    ResponseBlocksView(response: response,
+                                       split: ResponseBlockSplitter.split(response))
+                }
             }
+            .environment(\.quotingModel, model)
 
             // Once the answer is complete: a half-streamed answer copied now
             // would be missing its end without saying so.

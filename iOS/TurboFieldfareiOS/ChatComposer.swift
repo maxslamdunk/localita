@@ -57,6 +57,7 @@ struct ChatComposer: View {
         .padding(12)
         .contentShape(.rect(cornerRadius: 26))
         .onTapGesture { isFocused = true }
+        .onChange(of: model.composerFocusRequests) { _, _ in isFocused = true }
         // Layout first, glass last: applied before the padding, it would take
         // the untouched frame instead.
         // `.regular`, chosen on the device over `.clear`. The API offers only

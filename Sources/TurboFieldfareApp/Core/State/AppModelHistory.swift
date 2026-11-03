@@ -602,6 +602,24 @@ extension AppModel {
         openConversation(id: id)
     }
 
+    /// Puts words from an answer in the message box as a markdown quote, with
+    /// the cursor on its own line below for the question.
+    ///
+    /// Ordinary prompt text: the runtime and the stored turn never know it was
+    /// a quote. Words already in the box stay, above it.
+    public func quoteInComposer(_ selection: String) {
+        let lines = selection
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: .newlines)
+        guard lines != [""] else { return }
+        let quote = lines
+            .map { $0.isEmpty ? ">" : "> \($0)" }
+            .joined(separator: "\n")
+        let before = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
+        promptText = (before.isEmpty ? "" : before + "\n\n") + quote + "\n\n"
+        composerFocusRequests &+= 1
+    }
+
     /// Reads a stored conversation off disk and puts it on screen.
     ///
     /// One loader for both the chat that can be continued and the one that

@@ -26,6 +26,10 @@ public final class AppModel {
 
     public var modelPathText: String
     public var promptText: String = ""
+    /// Counts the times something has asked the message box to take the
+    /// keyboard. A count rather than a flag, so a second request while the box
+    /// already holds focus still reads as a change.
+    public internal(set) var composerFocusRequests = 0
     public private(set) var imageAttachments: [StagedImage] = []
     public private(set) var imageAttachmentError: String?
     private var visionAvailabilityAttachmentError: String?

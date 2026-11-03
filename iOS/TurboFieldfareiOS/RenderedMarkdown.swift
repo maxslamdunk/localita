@@ -1,4 +1,5 @@
 import SwiftUI
+import TurboFieldfareAppCore
 import TurboFieldfareAppPresentation
 import TurboFieldfareRichText
 import UIKit
@@ -19,8 +20,11 @@ import UIKit
 struct MarkdownText: UIViewRepresentable {
     let attributed: NSAttributedString
 
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
     func makeUIView(context: Context) -> UITextView {
         let view = UITextView()
+        view.delegate = context.coordinator
         view.isEditable = false
         view.isScrollEnabled = false
         view.backgroundColor = .clear
@@ -37,6 +41,7 @@ struct MarkdownText: UIViewRepresentable {
     }
 
     func updateUIView(_ view: UITextView, context: Context) {
+        context.coordinator.quotingModel = context.environment.quotingModel
         // A streaming block hands over a new string every tick; an equal one is
         // a no-op worth skipping, since assigning resets the selection.
         guard view.attributedText != attributed else { return }
@@ -53,6 +58,41 @@ struct MarkdownText: UIViewRepresentable {
         let fitted = uiView.sizeThatFits(
             CGSize(width: width, height: .greatestFiniteMagnitude))
         return CGSize(width: width, height: ceil(fitted.height))
+    }
+
+    /// Adds "Ask about this" to the selection menu.
+    ///
+    /// Only a `UITextView` takes a custom item, so fenced code, which is a
+    /// SwiftUI `Text`, keeps the plain menu. `TranscriptPlainText` because a
+    /// typeset equation is a single placeholder character in the view's string.
+    final class Coordinator: NSObject, UITextViewDelegate {
+        var quotingModel: AppModel?
+
+        func textView(_ textView: UITextView,
+                      editMenuForTextIn range: NSRange,
+                      suggestedActions: [UIMenuElement]) -> UIMenu? {
+            guard let quotingModel, range.length > 0 else { return nil }
+            let selected = textView.attributedText.attributedSubstring(from: range)
+            let ask = UIAction(title: "Ask about this",
+                               image: UIImage(systemName: "text.quote")) { _ in
+                quotingModel.quoteInComposer(TranscriptPlainText.string(of: selected))
+            }
+            return UIMenu(children: [ask] + suggestedActions)
+        }
+    }
+}
+
+extension EnvironmentValues {
+    /// Where "Ask about this" sends a selection, or nil for text that does not
+    /// offer it. Set on answers and left off reasoning. A reference rather than
+    /// a closure, which would count as new on every streaming tick.
+    var quotingModel: AppModel? {
+        get { self[QuotingModelKey.self] }
+        set { self[QuotingModelKey.self] = newValue }
+    }
+
+    private struct QuotingModelKey: EnvironmentKey {
+        static let defaultValue: AppModel? = nil
     }
 }
 
