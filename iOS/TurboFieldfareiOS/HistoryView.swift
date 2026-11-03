@@ -44,7 +44,7 @@ struct HistoryView: View {
     /// The logo row's height, which the top bar keeps with the field out.
     @State private var logoRowHeight: CGFloat?
     /// Grows with the text size, as the name beside it does.
-    @ScaledMetric(relativeTo: .title3) private var logoHeight: CGFloat = 58
+    @ScaledMetric(relativeTo: .title3) private var logoHeight: CGFloat = 52
     /// The search field's height, as the old always-shown field measured: a
     /// line of body text and 9 pt above and below.
     @ScaledMetric(relativeTo: .body) private var searchFieldHeight: CGFloat = 40
