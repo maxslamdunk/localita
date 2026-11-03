@@ -33,6 +33,8 @@ struct TurboFieldfareiOSApp: App {
                                 await ModelSwitchCheck.run(model)
                             } else if BackgroundGenerationCheck.isRequested {
                                 await BackgroundGenerationCheck.run(model)
+                            } else if let draft = ComposerDraftStore().load() {
+                                await model.restoreComposerDraft(draft)
                             }
                         }
                 }
@@ -130,6 +132,9 @@ enum Suspension {
             // Control Center or taking a call also stops the reply.
             if !model.backgroundGeneration, model.canCancel { model.cancel() }
         case .background:
+            // Nothing is delivered when iOS ends a suspended app, so this is
+            // the last moment the message box can be kept.
+            ComposerDraftStore().save(model.composerDraft)
             pauseDownloads(model, network: network)
             if model.backgroundGeneration && model.isTurnInFlight {
                 continueOrStop(model, network: network)

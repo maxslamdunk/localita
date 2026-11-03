@@ -577,6 +577,31 @@ extension AppModel {
             renderID: UUID())))
     }
 
+    /// The message box as it should be kept, or nil when it holds nothing worth
+    /// keeping. Pictures in the box are not part of it.
+    public var composerDraft: ComposerDraft? {
+        guard !promptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        return ComposerDraft(text: promptText,
+                             conversationID: screen.conversationID ?? storedConversationID)
+    }
+
+    /// Puts a kept draft back after a launch, along with the chat it belongs to.
+    ///
+    /// The words go in first and the chat follows, since the sidebar has to be
+    /// listed before a row can be opened. A chat deleted since leaves the words
+    /// in a new chat, which is better than dropping them.
+    public func restoreComposerDraft(_ draft: ComposerDraft) async {
+        guard promptText.isEmpty else { return }
+        promptText = draft.text
+        guard let id = draft.conversationID else { return }
+        await refreshHistory()
+        // The listing takes a moment, and a row tapped during it is the user's.
+        guard screen.conversationID == nil, storedConversationID == nil else { return }
+        openConversation(id: id)
+    }
+
     /// Reads a stored conversation off disk and puts it on screen.
     ///
     /// One loader for both the chat that can be continued and the one that
