@@ -397,6 +397,11 @@ struct HarnessSettings {
         if args.contains("--prefill-profile") {
             setenv(RealForwardRunner.prefillProfileEnvironmentKey, "1", 1)
         }
+        // Keeps prefill's routed experts on the thread-per-row kernels. See
+        // `PrefillGroupedRoutedMoE.tensorOpsEnvironmentKey`.
+        if args.contains("--no-routed-tensorops") {
+            setenv("TURBO_FIELDFARE_PREFILL_ROUTED_TENSOROPS", "0", 1)
+        }
         return settings
     }
 }
