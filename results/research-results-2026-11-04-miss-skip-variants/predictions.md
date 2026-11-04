@@ -191,3 +191,36 @@ one does, the likeliest is `cum:<T>`.
 
 Each run's tok/s on the Mac is not a measurement and will not be quoted.
 Only reads and KL decide.
+
+## Addendum 1: more points on the `miss` curve
+
+Written 2026-11-04, after five of the seven runs were scored (`excess.py`)
+and before the runs below.
+
+`cum0.85` scored excess 0.67 [0.40, 1.12] at a read cut of −34.1%. That point
+lies on the chord from `miss05` (−10.2%, 0.0044) to `miss08` (−39.1%,
+0.0246). If the curve is convex between them, as those two points suggest,
+the chord overstates the `miss` KL at −34%, and so understates `cum0.85`'s
+excess. `cum0.80` (−44.9%) and `miss08+early0.30` (−44.0%) sit on the chord
+from `miss08` to `miss10` and have the same bias, likely smaller.
+
+Three `miss` runs close those gaps: `miss:0.07`, `miss:0.075` and
+`miss:0.085`. From the 2026-10-04 offline replay, they should land near −30%,
+−35% and −46%.
+
+Predictions:
+
+- **Read cuts:** `miss07` −24 to −34%, `miss075` −30 to −38%, `miss085`
+  −42 to −52%.
+- **The curve is convex.** Each new point's KL lies below the old chord at its
+  own cut.
+- **`cum0.85`'s excess, rescored on the denser curve, rises to 0.8–1.0.**
+  It stays at or below 1, because its read cut and KL are already measured:
+  only the baseline moves.
+- **`cum0.80` and `miss08+early0.30` move by less than 0.1.**
+- **The `early` runs are not rescored.** Their cuts (−7% and −10%) fall below
+  `miss05`, where there is still only the chord from no skip, which
+  understates their excess.
+
+Falsified if `cum0.85` stays below 0.8 on the denser curve, with its interval
+below 1. The rank rule would then be cheaper per read than `miss` there.
