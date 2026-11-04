@@ -743,6 +743,11 @@ final class Harness: ObservableObject {
             + (session.map { " session=\($0.joined(separator: ","))" } ?? ""))
 
         if let endpointCount = settings.scoreEndpoints {
+            let vocab = model.config.vocabSize
+            guard let logits = context.device.makeBuffer(
+                length: vocab * MemoryLayout<Float16>.stride, options: .storageModeShared) else {
+                throw ModelError.residentBufferWrapFailed
+            }
             for encoded in cases {
                 let endpoints = PrefillEndpointScoring.endpoints(
                     tokenCount: encoded.promptIds.count, count: endpointCount)
@@ -753,8 +758,8 @@ final class Harness: ObservableObject {
                     tokens: encoded.promptIds,
                     endpoints: endpoints,
                     config: runtimeConfiguration(chunkTokens: encoded.chunkTokens).prefillConfig,
-                    logits: scratch.logits,
-                    vocab: model.config.vocabSize) { score in
+                    logits: logits,
+                    vocab: vocab) { score in
                     let top = zip(score.topIDs, score.topLogProbs)
                         .map { "\($0):\(String(format: "%.6f", $1))" }
                         .joined(separator: ",")
