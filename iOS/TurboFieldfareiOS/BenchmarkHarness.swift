@@ -312,6 +312,11 @@ struct HarnessSettings {
     /// `--prefill-chunk-tokens 128` must pin 128 rather than silently becoming
     /// `auto`.
     var prefillChunkExplicit = false
+    /// `--trust-install`: load with `.sizeCheckTrustedReceipt` even though
+    /// the receipt's path cannot match on iOS, so no layer file is hashed on
+    /// first touch. For measuring what that hashing costs; the model must be
+    /// one already verified on this device.
+    var trustInstall = false
     /// The next-layer early read is on by default (`RuntimeConfiguration`).
     /// `--early-expert-read` forces it on and `--no-early-expert-read` turns
     /// it off, through this environment variable, which the runtime reads
@@ -346,6 +351,7 @@ struct HarnessSettings {
             settings.prefillChunkTokens = v
             settings.prefillChunkExplicit = true
         }
+        if args.contains("--trust-install") { settings.trustInstall = true }
         if args.contains("--early-expert-read") {
             setenv(earlyExpertReadEnvironmentKey, "next-layer", 1)
         }
@@ -660,20 +666,25 @@ final class Harness: ObservableObject {
         // that falls back here has SHA-256 of 12.01 GiB smeared through its
         // `io` figures, so its timings are NOT comparable with MEASUREMENTS.md.
         var integrityPolicy: ModelIntegrityPolicy = .fullSha256
-        do {
-            let receipt = try VerifiedInstallReceiptReader.load(directoryURL: modelURL)
-            let actualPath = modelURL.standardizedFileURL.path
-            if receipt.modelDirectoryPath == actualPath {
-                integrityPolicy = .sizeCheckTrustedReceipt
-            } else {
-                emit("receipt-path-mismatch",
-                     "receipt names \(receipt.modelDirectoryPath) but the model is at "
-                        + "\(actualPath) — falling back to fullSha256, so io timings "
-                        + "from this run are contaminated")
+        if settings.trustInstall {
+            integrityPolicy = .sizeCheckTrustedReceipt
+            emit("trust-install", "skipping SHA-256 of the layer files (--trust-install)")
+        } else {
+            do {
+                let receipt = try VerifiedInstallReceiptReader.load(directoryURL: modelURL)
+                let actualPath = modelURL.standardizedFileURL.path
+                if receipt.modelDirectoryPath == actualPath {
+                    integrityPolicy = .sizeCheckTrustedReceipt
+                } else {
+                    emit("receipt-path-mismatch",
+                         "receipt names \(receipt.modelDirectoryPath) but the model is at "
+                            + "\(actualPath) — falling back to fullSha256, so io timings "
+                            + "from this run are contaminated")
+                }
+            } catch {
+                emit("no-install-receipt", "\(String(describing: error)) — falling back to "
+                    + "fullSha256, so io timings from this run are contaminated")
             }
-        } catch {
-            emit("no-install-receipt", "\(String(describing: error)) — falling back to "
-                + "fullSha256, so io timings from this run are contaminated")
         }
         let loadStarted = DispatchTime.now().uptimeNanoseconds
         let model = try Model.load(
