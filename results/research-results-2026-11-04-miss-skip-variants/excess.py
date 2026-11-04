@@ -19,8 +19,12 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 LOGS = os.path.join(HERE, "logs")
 OLD = os.path.join(HERE, "..", "research-results-2026-10-04-lossy-experts", "logs")
-CURVE = ["miss05", "miss08", "miss10"]
-RUNS = ["miss08", "cum0.85", "cum0.80", "early0.10", "early0.30", "miss08+early0.30", "bias05+miss08"]
+CURVE = [(OLD, "miss05"), (OLD, "miss08"), (OLD, "miss10")]
+if os.environ.get("DENSE"):
+    CURVE = sorted(CURVE + [(LOGS, "miss07"), (LOGS, "miss075"), (LOGS, "miss085")],
+                   key=lambda c: float("0." + c[1][4:]))
+RUNS = ["miss08", "cum0.85", "cum0.80", "early0.10", "early0.30", "miss08+early0.30", "bias05+miss08",
+        "miss07", "miss075", "miss085"]
 
 
 def fg(path):
@@ -37,10 +41,10 @@ def per_seq(path):
 
 def main():
     ref_fg = fg(os.path.join(OLD, "ref.txt"))
-    cuts = [0.0] + [1 - fg(os.path.join(OLD, c + ".txt")) / ref_fg for c in CURVE]
-    curve = [None] + [per_seq(os.path.join(OLD, c + ".pos"))[1] for c in CURVE]
+    cuts = [0.0] + [1 - fg(os.path.join(d, c + ".txt")) / ref_fg for d, c in CURVE]
+    curve = [None] + [per_seq(os.path.join(d, c + ".pos"))[1] for d, c in CURVE]
     curve[0] = np.zeros_like(curve[1])
-    print("# miss curve: " + ", ".join("%s −%.1f%%" % (c, 100 * x) for c, x in zip(CURVE, cuts[1:])))
+    print("# miss curve: " + ", ".join("%s −%.1f%%" % (c, 100 * x) for (_, c), x in zip(CURVE, cuts[1:])))
     print("%-18s %9s %8s %16s %8s %8s %18s" % (
         "run", "fg reads", "cut", "KL [95% CI]", "top1", "missKL", "excess [95% CI]"))
     rng = np.random.default_rng(0)

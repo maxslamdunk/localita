@@ -1,0 +1,19 @@
+# 2026-11-04 20:05:11 commit fa5cc90
+# label=ref sequences=sequences.json max-tokens=128 ref=ref env: 
+# System-wide memory free percentage: 33%; thermal: 
+# score: slots=24 prefill-chunk=256 lossy=off skip=off early=gemma-4-26b-a4b-it-4bit.bin@b18242445534d452b7efb9c7d1c358884ef56637ad6003c187e5bced50dc3dcd
+seq 0: prompt 56 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0400; decode fg reads/tok 33.76, MiB/tok 201.04, 0.23 s/tok
+seq 1: prompt 39 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.1856; decode fg reads/tok 47.19, MiB/tok 244.04, 0.22 s/tok
+seq 2: prompt 47 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0533; decode fg reads/tok 30.45, MiB/tok 190.42, 0.16 s/tok
+seq 3: prompt 205 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.3841; decode fg reads/tok 34.98, MiB/tok 204.95, 0.19 s/tok
+seq 4: prompt 89 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0492; decode fg reads/tok 49.74, MiB/tok 252.21, 0.22 s/tok
+seq 5: prompt 111 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0431; decode fg reads/tok 44.61, MiB/tok 235.80, 0.21 s/tok
+seq 6: prompt 56 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0524; decode fg reads/tok 42.47, MiB/tok 228.94, 0.20 s/tok
+seq 7: prompt 79 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0761; decode fg reads/tok 47.96, MiB/tok 246.51, 0.24 s/tok
+seq 8: prompt 37 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0786; decode fg reads/tok 41.02, MiB/tok 224.27, 0.20 s/tok
+seq 9: prompt 54 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0416; decode fg reads/tok 22.51, MiB/tok 165.00, 0.15 s/tok
+seq 10: prompt 37 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0887; decode fg reads/tok 20.61, MiB/tok 158.92, 0.14 s/tok
+seq 11: prompt 49 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0359; decode fg reads/tok 40.69, MiB/tok 223.21, 0.21 s/tok
+reference: 1536 positions, NLL 0.0940
+decode: 1524 forwards, fg reads/tok 38.00, early reads/tok 29.00, MiB/tok 214.61, hit 76.2%, 0.197 s/tok; prefill MiB 75507.3
+# done 20:11:31; total = 3072.00M  used = 1816.31M  free = 1255.69M  (encrypted)

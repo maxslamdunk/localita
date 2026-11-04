@@ -1,0 +1,4 @@
+/Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/expert-compression-results-9473a2/results/research-results-2026-11-04-miss-skip-variants/score.sh: line 39: 45993 Abort trap: 6           "$root/.build/release/TurboFieldfareScore" --model "$model" --sequences "$sequences" --max-tokens "$maxtok" --slots 24 --ref-out "$here/refs/$label.ref" >> "$out" 2>&1
+run ref failed: 134
+cmp: EOF on /Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/expert-compression-results-9473a2/results/research-results-2026-11-04-miss-skip-variants/refs/ref.ref
+ref DIFFERS from 2026-10-04; stopping

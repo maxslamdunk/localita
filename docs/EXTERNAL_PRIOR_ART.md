@@ -45,3 +45,49 @@ Related: `PRIOR_ART.md` (what this project tried), `MEASUREMENTS.md` (run log).
 - **Status:** `rejected` in favour of the drop policy. It stays implemented as
   `TURBO_FIELDFARE_EXPERT_SKIP=bias:<λ>` for comparison. See
   `results/research-results-2026-10-04-lossy-experts/results.md`.
+
+## Rank-conditional expert skipping (HOBBIT)
+
+- **Technique and source:** HOBBIT, arXiv 2411.01433.
+- **What it claims:** an expert matters less the more weight its
+  higher-ranked experts already carry. Low-importance misses are served
+  cheaply or skipped.
+- **Applicability here:** **Yes, as a variant of the drop policy.**
+  - **On gemma4**, implemented as `TURBO_FIELDFARE_EXPERT_SKIP=cum:<T>`, which
+    drops a miss at rank ≥ 2 once the experts above it carry T of the top-8
+    weight.
+  - `cum:0.85` cut waited-for reads 34.1% at 0.69× [0.42, 1.04] of the
+    `miss:<t>` curve's KL. `cum:0.80` cut 44.9% at 0.99× (Mac, 24 slots,
+    teacher-forced).
+  - The gain at 0.85 rests mostly on one token. It is not established.
+- **What adopting it would cost:** a runtime change only.
+- **Status:** `candidate`, behind `miss:<t>`. It needs a larger transcript
+  set. See `results/research-results-2026-11-04-miss-skip-variants/results.md`.
+
+## Prefetch-steered routing
+
+- **Technique and source:** arXiv 2610.34721.
+- **What it claims:** a routing bonus given only to the experts the
+  prefetcher brought in, so prefetches are used rather than wasted.
+- **Applicability here:** **Tested and worse.**
+  - The cache-prior arm above already gave the pending early read the
+    resident bonus.
+  - With a bonus for the early read alone (`early:<λ>`, a swap that always
+    saves a read), gemma4 saved 6.6–9.8% of waited-for reads at 2.5–3.2× the
+    `miss:<t>` curve's KL per read saved (Mac, teacher-forced).
+- **What adopting it would cost:** a runtime change only.
+- **Status:** `rejected`. See
+  `results/research-results-2026-11-04-miss-skip-variants/results.md`.
+
+## Stacking cache-aware rerouting with other miss reduction (Cacheable by Design)
+
+- **Technique and source:** arXiv 2608.18261.
+- **What it claims:** cache-aware rerouting stacks with other
+  miss-reduction methods.
+- **Applicability here:** **Tested; no gain.** Cache-prior reranking then
+  the drop policy (`bias:0.05+miss:0.08`) cut waited-for reads 51.0% at
+  0.95–0.99× the `miss:<t>` curve's KL. That is the drop policy's own price
+  (Mac, teacher-forced).
+- **What adopting it would cost:** a runtime change only.
+- **Status:** `rejected` in favour of the drop policy alone. See
+  `results/research-results-2026-11-04-miss-skip-variants/results.md`.

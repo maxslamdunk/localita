@@ -1,0 +1,18 @@
+# 2026-11-04 19:25:50 commit fa5cc90
+# label=ref sequences=sequences.json max-tokens=128 ref=ref env: 
+# System-wide memory free percentage: 49%; thermal: 
+*** Terminating app due to uncaught exception 'NSFileHandleOperationException', reason: '*** -[NSConcreteFileHandle writeData:]: No space left on device'
+*** First throw call stack:
+(
+	0   CoreFoundation                      0x000000018ea7f1c0 __exceptionPreprocess + 176
+	1   libobjc.A.dylib                     0x000000018e4fa91c objc_exception_throw + 88
+	2   Foundation                          0x0000000190c70d90 -[NSConcreteFileHandle readDataUpToLength:error:] + 0
+	3   Foundation                          0x000000019024e518 -[NSConcreteFileHandle writeData:] + 292
+	4   TurboFieldfareScore                 0x0000000102d07f34 $s19TurboFieldfareScore8scoreAllyyYaKFySi_s5Int32VSPys7Float16VGtXEfU0_TA + 996
+	5   TurboFieldfareScore                 0x0000000102c9f920 $s14TurboFieldfare18scoreTeacherForced6runner9promptIds012continuationH07scratch13prefillConfig5visitAA0dE3RunVAA17RealForwardRunnerC_Says5Int32VGAoA20RawCompletionScratchVAA014PrefillRuntimeL0Vy	6   TurboFieldfareScore                 0x0000000102d05441 $s19TurboFieldfareScore8scoreAllyyYaKFTQ1_ + 1
+	7   TurboFieldfareScore                 0x0000000102d0436d async_MainTQ2_ + 1
+	8   TurboFieldfareScore                 0x0000000102d04499 $sIetH_yts5Error_pIegHrzo_TR10async_MainTf3npf_nTQ0_ + 1
+	9   libswift_Concurrency.dylib          0x0000000294055f45 _ZL22completeTaskAndReleasePN5swift12AsyncContextEPNS_10SwiftErrorE + 1
+)
+libc++abi: terminating due to uncaught exception of type NSException
+# score: slots=24 prefill-chunk=256 lossy=off skip=off early=gemma-4-26b-a4b-it-4bit.bin@b18242445534d452b7efb9c7d1c358884ef56637ad6003c187e5bced50dc3dcd

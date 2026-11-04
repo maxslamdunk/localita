@@ -1,0 +1,21 @@
+start bias05+miss08 try 1 21:08:28
+TOTAL: 1536 positions, KL 0.03206 (max 2.477), top1 0.9674, NLL 0.1273 (ref 0.0940, +0.0332)
+decode: 1524 forwards, fg reads/tok 18.61, early reads/tok 29.00, MiB/tok 152.50, hit 83.7%, 0.441 s/tok; prefill MiB 75443.2
+skip: dropped/layer 0.757, dropped mass/layer 0.0502, substituted/layer 0.450
+# done 21:21:10; total = 4096.00M  used = 2485.56M  free = 1610.44M  (encrypted)
+start miss07 try 1 21:23:10
+TOTAL: 1536 positions, KL 0.01197 (max 1.041), top1 0.9824, NLL 0.1032 (ref 0.0940, +0.0092)
+decode: 1524 forwards, fg reads/tok 27.67, early reads/tok 29.00, MiB/tok 181.53, hit 80.4%, 0.213 s/tok; prefill MiB 75449.6
+skip: dropped/layer 0.412, dropped mass/layer 0.0213, substituted/layer 0.000
+# done 21:30:11; total = 4096.00M  used = 2675.31M  free = 1420.69M  (encrypted)
+start miss075 try 1 21:32:12
+TOTAL: 1536 positions, KL 0.01972 (max 5.019), top1 0.9811, NLL 0.1128 (ref 0.0940, +0.0188)
+decode: 1524 forwards, fg reads/tok 25.43, early reads/tok 29.00, MiB/tok 174.34, hit 81.3%, 0.602 s/tok; prefill MiB 75433.6
+skip: dropped/layer 0.503, dropped mass/layer 0.0278, substituted/layer 0.000
+# done 21:50:55; total = 3072.00M  used = 2383.88M  free = 688.12M  (encrypted)
+start miss085 try 1 21:52:55
+TOTAL: 1536 positions, KL 0.02719 (max 5.751), top1 0.9714, NLL 0.1294 (ref 0.0940, +0.0354)
+decode: 1524 forwards, fg reads/tok 20.87, early reads/tok 29.00, MiB/tok 159.74, hit 83.1%, 0.397 s/tok; prefill MiB 75398.4
+skip: dropped/layer 0.698, dropped mass/layer 0.0432, substituted/layer 0.000
+# done 22:05:58; total = 5120.00M  used = 4144.00M  free = 976.00M  (encrypted)
+queue done Wed Nov  4 22:05:58 CET 2026

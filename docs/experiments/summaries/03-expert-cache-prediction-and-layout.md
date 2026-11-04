@@ -305,6 +305,15 @@ capacity and memory cost.
   candidate for a phone A/B. Arithmetic puts `miss:0.08` at +18 to +32%
   tok/s. Needs an iOS harness flag, a quality check beyond KL, and the long
   context. See `results/research-results-2026-10-04-lossy-experts/results.md`.
+- **Later variants (2026-11-04, Mac):** none beat `miss:<t>` by a margin
+  12 transcripts can show.
+  - **HOBBIT's rank rule** (`cum:0.85`, arXiv 2411.01433): −34.1% reads at
+    0.69× [0.42, 1.04] of the `miss` curve's KL. Most of the gap is one token
+    in one transcript, so separating the two needs a larger transcript set.
+  - **A bonus for the early read alone** (`early:<λ>`, after arXiv
+    2610.34721): 2.5–3.2× the `miss` cost per read saved. Closed.
+  - **Reranking then dropping** (`bias:0.05+miss:0.08`): on the curve.
+  - See `results/research-results-2026-11-04-miss-skip-variants/results.md`.
 - **Lesson:** A lossy change can be priced against the quantization the
   project already accepts. Measure it with a teacher-forced KL meter against
   a one-rounding yardstick, not by eye and not against "no change".

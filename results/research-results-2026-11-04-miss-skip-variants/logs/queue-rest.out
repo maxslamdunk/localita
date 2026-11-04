@@ -1,0 +1,144 @@
+start cum0.85 20:21:10
+TOTAL: 1536 positions, KL 0.01428 (max 2.182), top1 0.9824, NLL 0.1139 (ref 0.0940, +0.0198)
+decode: 1524 forwards, fg reads/tok 25.03, early reads/tok 29.00, MiB/tok 173.07, hit 81.4%, 0.218 s/tok; prefill MiB 75436.8
+skip: dropped/layer 0.511, dropped mass/layer 0.0310, substituted/layer 0.000
+# done 20:28:33; total = 4096.00M  used = 2536.31M  free = 1559.69M  (encrypted)
+start cum0.80 20:30:33
+TOTAL: 1536 positions, KL 0.02690 (max 2.209), top1 0.9740, NLL 0.1294 (ref 0.0940, +0.0354)
+decode: 1524 forwards, fg reads/tok 20.92, early reads/tok 29.00, MiB/tok 159.90, hit 83.0%, 0.139 s/tok; prefill MiB 75449.6
+skip: dropped/layer 0.684, dropped mass/layer 0.0444, substituted/layer 0.000
+# done 20:35:22; total = 3072.00M  used = 2600.44M  free = 471.56M  (encrypted)
+start early0.10 20:37:22
+TOTAL: 1536 positions, KL 0.00711 (max 0.799), top1 0.9798, NLL 0.1045 (ref 0.0940, +0.0104)
+decode: 1524 forwards, fg reads/tok 35.51, early reads/tok 29.00, MiB/tok 206.63, hit 76.1%, 0.197 s/tok; prefill MiB 75472.0
+skip: dropped/layer 0.087, dropped mass/layer 0.0063, substituted/layer 0.087
+# done 20:43:45; total = 4096.00M  used = 2684.56M  free = 1411.44M  (encrypted)
+start early0.30 20:45:46
+TOTAL: 1536 positions, KL 0.01384 (max 2.106), top1 0.9785, NLL 0.1138 (ref 0.0940, +0.0198)
+decode: 1524 forwards, fg reads/tok 34.28, early reads/tok 29.00, MiB/tok 202.69, hit 76.0%, 0.184 s/tok; prefill MiB 75510.5
+skip: dropped/layer 0.135, dropped mass/layer 0.0099, substituted/layer 0.135
+# done 20:51:43; total = 3072.00M  used = 2594.50M  free = 477.50M  (encrypted)
+start miss08+early0.30 20:53:43
+TOTAL: 1536 positions, KL 0.03067 (max 4.730), top1 0.9701, NLL 0.1303 (ref 0.0940, +0.0363)
+decode: 1524 forwards, fg reads/tok 21.27, early reads/tok 29.00, MiB/tok 161.03, hit 82.1%, 0.164 s/tok; prefill MiB 75404.8
+skip: dropped/layer 0.672, dropped mass/layer 0.0420, substituted/layer 0.069
+# done 20:59:19; total = 4096.00M  used = 2767.56M  free = 1328.44M  (encrypted)
+start bias05+miss08 21:01:20
+8076 /bin/zsh -c source /Users/max/.claude/shell-snapshots/snapshot-zsh-1793819467943-c6ui64.sh 2>/dev/null || true && setopt NO_EXTENDED_GLOB NO_BARE_GLOB_QUAL 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'python3 - <<'"'"'EOF'"'"'
+p='"'"'Sources/TurboFieldfare/Runtime/Prefill/PrefillChunkScratch.swift'"'"'
+s=open(p).read()
+def rep(old,new):
+    global s
+    assert s.count(old)==1, old[:70]
+    s=s.replace(old,new)
+rep("""    let routedPairMicrobatchRows: Int
+""","""    let routedPairMicrobatchRows: Int
+    /// Pairs one matrix-unit microbatch processes: up to 2048, fewer, fuller
+    /// dispatches, but never more than a chunk can route.
+    let routedTensorPairMicrobatchRows: Int
+""")
+rep("""        self.routedPairMicrobatchRows = max(1, min(routedPairMicrobatchRows, 128))
+""","""        self.routedPairMicrobatchRows = max(1, min(routedPairMicrobatchRows, 128))
+        self.routedTensorPairMicrobatchRows = min(2048, self.chunkTokens * self.topK)
+""")
+rep("""    var routedGateUpActElements: Int { 3 * routedPairMicrobatchRows * routedIntermediate }""",
+"""    /// Shared by both routed paths: the thread-per-row kernels'"'"' gate, up and
+    /// activation rows, or the matrix-unit kernels'"'"' FP16 activations and block
+    /// scales (`PrefillGroupedRoutedMoE.tensorActScratchBytes`).
+    var routedGateUpActElements: Int {
+        let tensorBytes = PrefillGroupedRoutedMoE.tensorActScratchBytes(
+            pairs: routedTensorPairMicrobatchRows, intermediate: routedIntermediate)
+        return max(3 * routedPairMicrobatchRows * routedIntermediate,
+                   (tensorBytes + 1) / MemoryLayout<Float16>.stride)
+    }""")
+open(p,'"'"'w'"'"').write(s)
+p='"'"'Sources/TurboFieldfare/Runtime/Inference/RealForwardRunner.swift'"'"'
+s=open(p).read()
+old="""                            pairMicrobatchRows: scratch.layout.routedPairMicrobatchRows)"""
+assert s.count(old)==1
+s=s.replace(old,"""                            pairMicrobatchRows: prefillGroupedMoE.usesTensorOps
+                                ? scratch.layout.routedTensorPairMicrobatchRows
+                                : scratch.layout.routedPairMicrobatchRows)""")
+open(p,'"'"'w'"'"').write(s)
+EOF
+swift build -c release --product TurboFieldfareCLI 2>&1 | grep -E "error|warning: unused|Compiling|complete" | grep -v Compiling | tail' && pwd -P >| /tmp/claude-10be-cwd
+8078 /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-build -c release --product TurboFieldfareCLI
+8079 /bin/zsh -c source /Users/max/.claude/shell-snapshots/snapshot-zsh-1793819467943-c6ui64.sh 2>/dev/null || true && setopt NO_EXTENDED_GLOB NO_BARE_GLOB_QUAL 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'python3 - <<'"'"'EOF'"'"'
+p='"'"'Sources/TurboFieldfare/Runtime/Prefill/PrefillChunkScratch.swift'"'"'
+s=open(p).read()
+def rep(old,new):
+    global s
+    assert s.count(old)==1, old[:70]
+    s=s.replace(old,new)
+rep("""    let routedPairMicrobatchRows: Int
+""","""    let routedPairMicrobatchRows: Int
+    /// Pairs one matrix-unit microbatch processes: up to 2048, fewer, fuller
+    /// dispatches, but never more than a chunk can route.
+    let routedTensorPairMicrobatchRows: Int
+""")
+rep("""        self.routedPairMicrobatchRows = max(1, min(routedPairMicrobatchRows, 128))
+""","""        self.routedPairMicrobatchRows = max(1, min(routedPairMicrobatchRows, 128))
+        self.routedTensorPairMicrobatchRows = min(2048, self.chunkTokens * self.topK)
+""")
+rep("""    var routedGateUpActElements: Int { 3 * routedPairMicrobatchRows * routedIntermediate }""",
+"""    /// Shared by both routed paths: the thread-per-row kernels'"'"' gate, up and
+    /// activation rows, or the matrix-unit kernels'"'"' FP16 activations and block
+    /// scales (`PrefillGroupedRoutedMoE.tensorActScratchBytes`).
+    var routedGateUpActElements: Int {
+        let tensorBytes = PrefillGroupedRoutedMoE.tensorActScratchBytes(
+            pairs: routedTensorPairMicrobatchRows, intermediate: routedIntermediate)
+        return max(3 * routedPairMicrobatchRows * routedIntermediate,
+                   (tensorBytes + 1) / MemoryLayout<Float16>.stride)
+    }""")
+open(p,'"'"'w'"'"').write(s)
+p='"'"'Sources/TurboFieldfare/Runtime/Inference/RealForwardRunner.swift'"'"'
+s=open(p).read()
+old="""                            pairMicrobatchRows: scratch.layout.routedPairMicrobatchRows)"""
+assert s.count(old)==1
+s=s.replace(old,"""                            pairMicrobatchRows: prefillGroupedMoE.usesTensorOps
+                                ? scratch.layout.routedTensorPairMicrobatchRows
+                                : scratch.layout.routedPairMicrobatchRows)""")
+open(p,'"'"'w'"'"').write(s)
+EOF
+swift build -c release --product TurboFieldfareCLI 2>&1 | grep -E "error|warning: unused|Compiling|complete" | grep -v Compiling | tail' && pwd -P >| /tmp/claude-10be-cwd
+8080 /bin/zsh -c source /Users/max/.claude/shell-snapshots/snapshot-zsh-1793819467943-c6ui64.sh 2>/dev/null || true && setopt NO_EXTENDED_GLOB NO_BARE_GLOB_QUAL 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'python3 - <<'"'"'EOF'"'"'
+p='"'"'Sources/TurboFieldfare/Runtime/Prefill/PrefillChunkScratch.swift'"'"'
+s=open(p).read()
+def rep(old,new):
+    global s
+    assert s.count(old)==1, old[:70]
+    s=s.replace(old,new)
+rep("""    let routedPairMicrobatchRows: Int
+""","""    let routedPairMicrobatchRows: Int
+    /// Pairs one matrix-unit microbatch processes: up to 2048, fewer, fuller
+    /// dispatches, but never more than a chunk can route.
+    let routedTensorPairMicrobatchRows: Int
+""")
+rep("""        self.routedPairMicrobatchRows = max(1, min(routedPairMicrobatchRows, 128))
+""","""        self.routedPairMicrobatchRows = max(1, min(routedPairMicrobatchRows, 128))
+        self.routedTensorPairMicrobatchRows = min(2048, self.chunkTokens * self.topK)
+""")
+rep("""    var routedGateUpActElements: Int { 3 * routedPairMicrobatchRows * routedIntermediate }""",
+"""    /// Shared by both routed paths: the thread-per-row kernels'"'"' gate, up and
+    /// activation rows, or the matrix-unit kernels'"'"' FP16 activations and block
+    /// scales (`PrefillGroupedRoutedMoE.tensorActScratchBytes`).
+    var routedGateUpActElements: Int {
+        let tensorBytes = PrefillGroupedRoutedMoE.tensorActScratchBytes(
+            pairs: routedTensorPairMicrobatchRows, intermediate: routedIntermediate)
+        return max(3 * routedPairMicrobatchRows * routedIntermediate,
+                   (tensorBytes + 1) / MemoryLayout<Float16>.stride)
+    }""")
+open(p,'"'"'w'"'"').write(s)
+p='"'"'Sources/TurboFieldfare/Runtime/Inference/RealForwardRunner.swift'"'"'
+s=open(p).read()
+old="""                            pairMicrobatchRows: scratch.layout.routedPairMicrobatchRows)"""
+assert s.count(old)==1
+s=s.replace(old,"""                            pairMicrobatchRows: prefillGroupedMoE.usesTensorOps
+                                ? scratch.layout.routedTensorPairMicrobatchRows
+                                : scratch.layout.routedPairMicrobatchRows)""")
+open(p,'"'"'w'"'"').write(s)
+EOF
+swift build -c release --product TurboFieldfareCLI 2>&1 | grep -E "error|warning: unused|Compiling|complete" | grep -v Compiling | tail' && pwd -P >| /tmp/claude-10be-cwd
+another model-owning process is running; not starting
+run bias05+miss08 failed: 3
+queue done Wed Nov  4 21:01:20 CET 2026

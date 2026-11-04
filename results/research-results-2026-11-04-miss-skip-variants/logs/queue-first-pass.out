@@ -1,0 +1,28 @@
+seq 11: prompt 49 tok, scored 128; KL 0.00000 top1 0.0000 NLL 0.0359; decode fg reads/tok 40.69, MiB/tok 223.21, 0.21 s/tok
+reference: 1536 positions, NLL 0.0940
+decode: 1524 forwards, fg reads/tok 38.00, early reads/tok 29.00, MiB/tok 214.61, hit 76.2%, 0.197 s/tok; prefill MiB 75507.3
+# done 20:11:31; total = 3072.00M  used = 1816.31M  free = 1255.69M  (encrypted)
+ref identical to 2026-10-04
+TOTAL: 1536 positions, KL 0.02465 (max 5.619), top1 0.9766, NLL 0.1236 (ref 0.0940, +0.0295)
+decode: 1524 forwards, fg reads/tok 23.14, early reads/tok 29.00, MiB/tok 167.00, hit 82.2%, 0.179 s/tok; prefill MiB 75408.0
+skip: dropped/layer 0.600, dropped mass/layer 0.0351, substituted/layer 0.000
+# done 20:17:29; total = 3072.00M  used = 1989.94M  free = 1082.06M  (encrypted)
+3989 /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper --test-bundle-path /Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/prefill-port/.build/arm64-apple-macosx/debug/TurboFieldfarePackageTests.xctest/Contents/MacOS/TurboFieldfarePackageTests --no-parallel --filter ModelLoaderTests /Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/prefill-port/.build/arm64-apple-macosx/debug/TurboFieldfarePackageTests.xctest/Contents/MacOS/TurboFieldfarePackageTests --testing-library swift-testing
+another model-owning process is running; not starting
+run cum0.85 failed: 3
+3989 /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper --test-bundle-path /Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/prefill-port/.build/arm64-apple-macosx/debug/TurboFieldfarePackageTests.xctest/Contents/MacOS/TurboFieldfarePackageTests --no-parallel --filter ModelLoaderTests /Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/prefill-port/.build/arm64-apple-macosx/debug/TurboFieldfarePackageTests.xctest/Contents/MacOS/TurboFieldfarePackageTests --testing-library swift-testing
+another model-owning process is running; not starting
+run cum0.80 failed: 3
+3989 /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper --test-bundle-path /Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/prefill-port/.build/arm64-apple-macosx/debug/TurboFieldfarePackageTests.xctest/Contents/MacOS/TurboFieldfarePackageTests --no-parallel --filter ModelLoaderTests /Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/prefill-port/.build/arm64-apple-macosx/debug/TurboFieldfarePackageTests.xctest/Contents/MacOS/TurboFieldfarePackageTests --testing-library swift-testing
+another model-owning process is running; not starting
+run early0.10 failed: 3
+3989 /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper --test-bundle-path /Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/prefill-port/.build/arm64-apple-macosx/debug/TurboFieldfarePackageTests.xctest/Contents/MacOS/TurboFieldfarePackageTests --no-parallel --filter ModelLoaderTests /Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/prefill-port/.build/arm64-apple-macosx/debug/TurboFieldfarePackageTests.xctest/Contents/MacOS/TurboFieldfarePackageTests --testing-library swift-testing
+another model-owning process is running; not starting
+run early0.30 failed: 3
+3989 /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper --test-bundle-path /Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/prefill-port/.build/arm64-apple-macosx/debug/TurboFieldfarePackageTests.xctest/Contents/MacOS/TurboFieldfarePackageTests --no-parallel --filter ModelLoaderTests /Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/prefill-port/.build/arm64-apple-macosx/debug/TurboFieldfarePackageTests.xctest/Contents/MacOS/TurboFieldfarePackageTests --testing-library swift-testing
+another model-owning process is running; not starting
+run miss08+early0.30 failed: 3
+3989 /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/libexec/swift/pm/swiftpm-testing-helper --test-bundle-path /Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/prefill-port/.build/arm64-apple-macosx/debug/TurboFieldfarePackageTests.xctest/Contents/MacOS/TurboFieldfarePackageTests --no-parallel --filter ModelLoaderTests /Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/prefill-port/.build/arm64-apple-macosx/debug/TurboFieldfarePackageTests.xctest/Contents/MacOS/TurboFieldfarePackageTests --testing-library swift-testing
+another model-owning process is running; not starting
+run bias05+miss08 failed: 3
+queue done Wed Nov  4 20:17:29 CET 2026
