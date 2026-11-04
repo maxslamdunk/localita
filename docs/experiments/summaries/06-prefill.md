@@ -294,6 +294,39 @@ failed the M2 long-row gate.
 - **Lesson:** Reordered floating-point kernels need a direct numerical oracle
   plus model-quality gates, not identity with one reduction order.
 
+<a id="pf-18"></a>
+### PF-18: Prefill time breakdown on the iPhone 17
+
+- **Hypothesis:** On the phone, routed-expert work and expert reads would
+  dominate prefill. Storage was busy only ~20 of the long prompt's 68 s, so the
+  rest needed splitting before any kernel was ported from
+  [zw5/ane-fieldfare](https://github.com/zw5/ane-fieldfare).
+- **Variants tested:** The `[prefill-time …]` footer, with and without
+  `--prefill-profile` (the attention block split into five timed command
+  buffers), and with and without `--trust-install` (no SHA-256 of the layer
+  files). Seven runs: `medium-review` and `long-synthesis`, 24 slots.
+- **Evidence:** The long prefill is GPU-bound: GPU busy 61–67 s of 68–79 s.
+  It splits into three parts of about equal size:
+  - routed experts, 23–27 s;
+  - the shared expert, ~17 s, because it runs the decode GEMV once per token;
+  - attention, ~17 s, almost all of it the sliding-window layers on the
+    scalar tiled kernel.
+
+  Projections take ~4 s. Storage is busy 16–26 s, about 70% of it under GPU
+  work. The first-touch SHA-256 of the layer files warms the file cache, so
+  the long prefill is 5–11 s faster with it than without. It costs +0.8 s on
+  medium. Profiling changed no output and no wall time beyond noise.
+- **What changed the conclusion:** The shared expert's share (25%) is far
+  above the ~10% assumed when a Core ML shared FFN was ruled out. Attention
+  is as large as routed work.
+- **Final disposition:** Instrumentation kept: the footer, plus
+  `TURBO_FIELDFARE_PREFILL_PROFILE`, see
+  [Runtime controls](../../RUNTIME_CONTROLS.md). The sizing sets the port order
+  (`results/benchmark-results-2026-11-04-ios-prefill-breakdown/`).
+- **Lesson:** Split a phase by GPU timestamps before porting a kernel for it.
+  The storage-busy estimate left 48 s unattributed, and that time was GPU
+  compute in three equal parts, not one.
+
 [Previous: Attention and KV cache](05-attention-and-kv-cache.md) |
 [Experiment inventory](../EXPERIMENT_INVENTORY.md) |
 [Optimization journey](../../OPTIMIZATION_JOURNEY.md) |
