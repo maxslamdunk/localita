@@ -323,6 +323,14 @@ struct HarnessSettings {
     /// prefill kernels that reorder floating-point work
     /// (`PrefillEndpointScoring`); two arms are compared offline.
     var scoreEndpoints: Int?
+    /// `--score-continuation`, with `--score-endpoints`: append
+    /// `Documents/<case>-continuation.txt`, a reference reply, to each case's
+    /// prompt and place the endpoints in the reply alone. Inside a user turn
+    /// this instruction-tuned model's next-token distribution is near
+    /// degenerate (the NLL of the prompt's own next word runs 10–30 nats, in
+    /// prefill and token-by-token decode alike), so rounding-sized changes
+    /// move it by nats; its own reply is where it is in distribution.
+    var scoreContinuation = false
     /// The next-layer early read is on by default (`RuntimeConfiguration`).
     /// `--early-expert-read` forces it on and `--no-early-expert-read` turns
     /// it off, through this environment variable, which the runtime reads
@@ -361,6 +369,7 @@ struct HarnessSettings {
         if let v = value("--score-endpoints").flatMap(Int.init), v > 0 {
             settings.scoreEndpoints = v
         }
+        if args.contains("--score-continuation") { settings.scoreContinuation = true }
         if args.contains("--early-expert-read") {
             setenv(earlyExpertReadEnvironmentKey, "next-layer", 1)
         }
@@ -749,13 +758,27 @@ final class Harness: ObservableObject {
                 throw ModelError.residentBufferWrapFailed
             }
             for encoded in cases {
-                let endpoints = PrefillEndpointScoring.endpoints(
-                    tokenCount: encoded.promptIds.count, count: endpointCount)
+                var tokens = encoded.promptIds
+                var endpoints = PrefillEndpointScoring.endpoints(
+                    tokenCount: tokens.count, count: endpointCount)
+                if settings.scoreContinuation {
+                    let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                        .appendingPathComponent("\(encoded.caseID ?? "ad-hoc")-continuation.txt")
+                    let data = try Data(contentsOf: url)
+                    let reply = tokenizer.encode(String(decoding: data, as: UTF8.self), addBOS: false)
+                    let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+                    emit("continuation", "tokens=\(reply.count) sha256=\(digest)" + tag(encoded.caseID))
+                    // Each endpoint predicts a token of the reply; none at its end.
+                    endpoints = PrefillEndpointScoring.endpoints(
+                        tokenCount: reply.count - 1, count: endpointCount)
+                        .map { $0 + tokens.count }
+                    tokens += reply
+                }
                 let caseTag = tag(encoded.caseID)
                 let started = DispatchTime.now().uptimeNanoseconds
                 _ = try await PrefillEndpointScoring.run(
                     runner: runner,
-                    tokens: encoded.promptIds,
+                    tokens: tokens,
                     endpoints: endpoints,
                     config: runtimeConfiguration(chunkTokens: encoded.chunkTokens).prefillConfig,
                     logits: logits,

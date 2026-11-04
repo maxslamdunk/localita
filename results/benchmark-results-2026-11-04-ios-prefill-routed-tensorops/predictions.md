@@ -85,3 +85,34 @@ win may vanish or reverse, as on the M1.
 - Q1 or Q2 failing.
 - A short-case regression over 1.5 s. That would not reject the change, but
   it would call for a pairs-per-expert threshold before the default stays on.
+
+## Amendment, before a second gate (written after the first gate failed)
+
+The first gate ran as specified above, and **Q1 and Q2 failed**: mean ΔNLL
++0.170 nats, worst 3.55, top-1 differing at 4 of 32 endpoints. It is scored as
+failed in `results.md`. Its endpoints sat inside the user turn. There, both
+arms give the prompt's own next word 8–23 nats, and the top-1 is often a
+fragment or another script. The Mac gives the same values (15.45 against the
+phone's 15.35 nats at medium endpoint 134), and so does token-by-token decode
+with `--prefill off` ("-thought ownners" both ways). So these are the
+model's own near-degenerate distributions, not a kernel fault, and a gate
+placed there cannot tell rounding from a defect. At the two full-prompt
+endpoints, where the model is in distribution, the arms agree: same top-5,
+log-probabilities within 0.04 nats on long and 0.09 on medium.
+
+The second gate scores where the model is in distribution: its own reply.
+`--score-continuation --score-endpoints 12` appends each case's frozen
+October reply to its prompt. That is the old-kernel output before this
+branch, `87f6f357…` (long) and `209ffadb…` (medium), pushed as
+`<case>-continuation.txt`. The endpoints are placed inside the reply. One
+process per arm, A then B.
+
+- **Q1′:** over the reply endpoints of both cases, the mean ΔNLL (A − B) is
+  within ±0.02 nats.
+- **Q2′:** |ΔNLL| ≤ 0.10 nats at every endpoint where B's NLL is ≤ 5 nats.
+- **Q3′:** top-1 agrees at every endpoint where B's top-2 gap exceeds
+  0.1 nats.
+
+Any of these failing keeps the change opt-in. The thresholds are looser than
+Q1/Q2 on purpose: the full-prompt endpoints already moved by up to 0.04 nats
+on the top token.
