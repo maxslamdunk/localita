@@ -110,4 +110,115 @@ import Testing
         let expected = Self.softmax(d.experts.map { z[$0] })
         for i in 0..<8 { #expect(abs(Double(d.weights[i]) - expected[i]) < 1e-3) }
     }
+
+    @Test func parsesChainsAndRejectsBadOnes() throws {
+        let key = ExpertSkipPolicy.environmentKey
+        let chain = try ExpertSkipPolicy(environment: [key: "bias:0.05+miss:0.08"])
+        #expect(chain == ExpertSkipPolicy(kind: .bias, value: 0.05,
+                                          then: [ExpertSkipPolicy(kind: .miss, value: 0.08)]))
+        #expect(chain?.description == "bias:0.05+miss:0.08")
+        for bad in ["miss:0.08+bias:0.05", "misssub:0.08+early:0.3", "miss:0.08:nonorm+early:0.3",
+                    "miss:0.08+"] {
+            #expect(throws: ExpertSkipPolicyError.self) {
+                try ExpertSkipPolicy(environment: [key: bad])
+            }
+        }
+    }
+
+    @Test func cumDropsForegroundMissesOnceTheRanksAboveCarryEnough() {
+        let z = Self.logits()
+        let p = Self.softmax(Array(z[0..<8]))
+        // Ranks 1–5 carry 0.869 ≥ 0.85, ranks 1–4 only 0.757: experts 5, 6
+        // and 7 qualify, and 7 is resident.
+        #expect(p[0..<5].reduce(0, +) >= 0.85 && p[0..<4].reduce(0, +) < 0.85)
+        let policy = ExpertSkipPolicy(kind: .cum, value: 0.85)
+        let d = policy.decide(experts: Array(0..<8), logits: z, perExpertScale: Self.unitScale,
+                              resident: [7, 12, 13], residentByUse: [13, 12, 7],
+                              pendingEarly: [])
+        #expect(d.experts == [0, 1, 2, 3, 4, 13, 12, 7])
+        #expect(d.dropped == 2)
+        #expect(d.weights[5] == 0 && d.weights[6] == 0)
+    }
+
+    /// Expert 10 sits just below the top 8, at −1.0 against −0.5 for expert 6.
+    private static func logitsWithEarlyCandidate() -> [Float] {
+        var z = logits()
+        z[8] = -2
+        z[9] = -2
+        z[10] = -1
+        return z
+    }
+
+    @Test func earlySwapsTheLowestForegroundMissWithinTheBonus() {
+        let z = Self.logitsWithEarlyCandidate()
+        // Expert 7 is resident, so the lowest foreground miss is 6 (−0.5).
+        // A bonus of 0.01 × 12 leaves 10 below it; 0.1 × 12 lifts it above.
+        let near = ExpertSkipPolicy(kind: .early, value: 0.01)
+            .decide(experts: Array(0..<8), logits: z, perExpertScale: Self.unitScale,
+                    resident: [7, 12], residentByUse: [12, 7], pendingEarly: [10],
+                    averageLogitRange: 12)
+        #expect(near.experts == Array(0..<8) && near.dropped == 0)
+        let d = ExpertSkipPolicy(kind: .early, value: 0.1)
+            .decide(experts: Array(0..<8), logits: z, perExpertScale: Self.unitScale,
+                    resident: [7, 12], residentByUse: [12, 7], pendingEarly: [10],
+                    averageLogitRange: 12)
+        #expect(d.experts == [0, 1, 2, 3, 4, 5, 10, 7])
+        #expect(d.dropped == 1 && d.substituted == 1)
+        let expected = Self.softmax(d.experts.map { z[$0] })
+        for i in 0..<8 { #expect(abs(Double(d.weights[i]) - expected[i]) < 1e-3) }
+    }
+
+    @Test func missThenEarlySwapsAmongTheMissesLeft() {
+        let z = Self.logitsWithEarlyCandidate()
+        // miss:0.08 drops 6; the lowest miss left is 5 (1.0). 10 needs a
+        // bonus above 2.0 to replace it: 0.1 × 12 is not enough, 0.3 × 12 is.
+        func run(_ lambda: Double) -> ExpertSkipPolicy.Decision {
+            ExpertSkipPolicy(kind: .miss, value: 0.08,
+                             then: [ExpertSkipPolicy(kind: .early, value: lambda)])
+                .decide(experts: Array(0..<8), logits: z, perExpertScale: Self.unitScale,
+                        resident: [7, 12], residentByUse: [12, 7], pendingEarly: [10],
+                        averageLogitRange: 12)
+        }
+        let weak = run(0.1)
+        #expect(weak.experts == [0, 1, 2, 3, 4, 5, 12, 7] && weak.dropped == 1)
+        let strong = run(0.3)
+        #expect(strong.experts == [0, 1, 2, 3, 4, 10, 12, 7])
+        #expect(strong.dropped == 2 && strong.substituted == 1 && strong.weights[6] == 0)
+        let kept = [0, 1, 2, 3, 4, 10, 7]
+        let expected = Self.softmax(kept.map { z[$0] })
+        for (j, i) in [0, 1, 2, 3, 4, 5, 7].enumerated() {
+            #expect(abs(Double(strong.weights[i]) - expected[j]) < 1e-3)
+        }
+    }
+
+    @Test func chainedMissMatchesTheSinglePath() {
+        let z = Self.logits()
+        let policy = ExpertSkipPolicy(kind: .miss, value: 0.08)
+        let single = policy.decide(experts: Array(0..<8), logits: z, perExpertScale: Self.unitScale,
+                                   resident: [7, 12, 13], residentByUse: [13, 12, 7],
+                                   pendingEarly: [])
+        let chained = policy.chained(experts: Array(0..<8), logits: z,
+                                     perExpertScale: Self.unitScale, resident: [7, 12, 13],
+                                     residentByUse: [13, 12, 7], pendingEarly: [],
+                                     averageLogitRange: 0)
+        #expect(chained.experts == single.experts && chained.dropped == single.dropped)
+        for i in 0..<8 { #expect(abs(chained.weights[i] - single.weights[i]) < 1e-6) }
+    }
+
+    @Test func biasThenMissDropsFromTheRerankedSet() {
+        let z = Self.logits()
+        // bias:0.25 swaps 6 and 7 for residents 8 and 9 (as above). In the new
+        // set, 5 weighs about 0.086 and is the only foreground miss under 0.09.
+        let policy = ExpertSkipPolicy(kind: .bias, value: 0.25,
+                                      then: [ExpertSkipPolicy(kind: .miss, value: 0.09)])
+        let d = policy.decide(experts: Array(0..<8), logits: z, perExpertScale: Self.unitScale,
+                              resident: [8, 9, 1, 13], residentByUse: [13, 8, 9, 1],
+                              pendingEarly: [], averageLogitRange: 12)
+        #expect(d.experts == [0, 1, 2, 3, 4, 13, 8, 9])
+        #expect(d.dropped == 3 && d.substituted == 2 && d.weights[5] == 0)
+        let expected = Self.softmax([0, 1, 2, 3, 4, 8, 9].map { z[$0] })
+        for (j, i) in [0, 1, 2, 3, 4, 6, 7].enumerated() {
+            #expect(abs(Double(d.weights[i]) - expected[j]) < 1e-3)
+        }
+    }
 }
