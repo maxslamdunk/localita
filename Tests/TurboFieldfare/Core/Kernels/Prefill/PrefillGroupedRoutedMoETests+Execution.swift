@@ -5,7 +5,10 @@ import TurboFieldfareValidationSupport
 @testable import TurboFieldfare
 
 extension PrefillGroupedRoutedMoETests {
-  @Test func streamedBatchedMatchesReferenceAcrossPartialMicrobatch() throws {
+  /// Both routed paths: the matrix-unit kernels where they build, and the
+  /// thread-per-row kernels they fall back to.
+  @Test(arguments: [false, true])
+  func streamedBatchedMatchesReferenceAcrossPartialMicrobatch(threadPerRow: Bool) throws {
     let d = 64
     let f = 64
     let rows = 3
@@ -37,7 +40,8 @@ extension PrefillGroupedRoutedMoETests {
       f: f)
 
     let ctx = try MetalContext()
-    let grouped = try PrefillGroupedRoutedMoE(context: ctx)
+    let grouped = try PrefillGroupedRoutedMoE(context: ctx,
+                                              simulatingMissingTensorOps: threadPerRow)
     guard let hiddenBuffer = Fp16Buffer.make(ctx.device, halves: hidden),
       let pairBuffer = ctx.device.makeBuffer(
         bytes: routes.sortedPairs,

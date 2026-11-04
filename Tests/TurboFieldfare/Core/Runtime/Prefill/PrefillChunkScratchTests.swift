@@ -23,7 +23,10 @@ import Metal
         #expect(layout.routeWeightElements == 32 * 8)
         #expect(layout.sharedExpertScratchElements == 2112)
         #expect(layout.routedPairMicrobatchRows == 32)
-        #expect(layout.routedGateUpActElements == 3 * 32 * 704)
+        #expect(layout.routedTensorPairMicrobatchRows == 32 * 8)
+        // The matrix-unit path's 256 FP16 activation rows plus FP32 block
+        // scales outgrow the thread-per-row path's three 32-pair rows.
+        #expect(layout.routedGateUpActElements == (256 * 704 * 2 + 256 * 11 * 4) / 2)
         #expect(layout.routedDownOutputElements == 32 * 2816)
 
         let worksheetT32UpperBound = Int(4.5 * 1_048_576.0)
@@ -129,10 +132,10 @@ import Metal
         let at128 = PrefillChunkScratchLayout(config: .gemma4_26B_A4B, chunkTokens: 128)
         let at256 = PrefillChunkScratchLayout(config: .gemma4_26B_A4B, chunkTokens: 256)
         let perToken = at256.totalPersistentBytes - at128.totalPersistentBytes
-        #expect(at128.totalPersistentBytes == 16_390_528)
-        #expect(at256.totalPersistentBytes == 32_452_992)
-        #expect(perToken == 128 * 125_488)
-        #expect(at128.totalPersistentBytes - 128 * 125_488 == 328_064)
+        #expect(at128.totalPersistentBytes == 17_742_208)
+        #expect(at256.totalPersistentBytes == 35_291_520)
+        #expect(perToken == 128 * 137_104)
+        #expect(at128.totalPersistentBytes - 128 * 137_104 == 192_896)
     }
 
     @Test func multimodalBlockScratchStaysInsideBoundedBudget() {

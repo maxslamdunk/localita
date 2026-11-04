@@ -317,6 +317,12 @@ struct HarnessSettings {
     /// first touch. For measuring what that hashing costs; the model must be
     /// one already verified on this device.
     var trustInstall = false
+    /// `--score-endpoints <n>`: instead of generating, prefill each case's
+    /// prompt to `n` endpoints from an empty KV and log every endpoint's NLL
+    /// of the prompt's own next token and its top 5. A quality gate for
+    /// prefill kernels that reorder floating-point work
+    /// (`PrefillEndpointScoring`); two arms are compared offline.
+    var scoreEndpoints: Int?
     /// The next-layer early read is on by default (`RuntimeConfiguration`).
     /// `--early-expert-read` forces it on and `--no-early-expert-read` turns
     /// it off, through this environment variable, which the runtime reads
@@ -352,6 +358,9 @@ struct HarnessSettings {
             settings.prefillChunkExplicit = true
         }
         if args.contains("--trust-install") { settings.trustInstall = true }
+        if let v = value("--score-endpoints").flatMap(Int.init), v > 0 {
+            settings.scoreEndpoints = v
+        }
         if args.contains("--early-expert-read") {
             setenv(earlyExpertReadEnvironmentKey, "next-layer", 1)
         }
@@ -727,6 +736,34 @@ final class Harness: ObservableObject {
             + "expertCacheAging="
             + "\(PreadExpertStreamer.usesCountAging(environment: ProcessInfo.processInfo.environment))"
             + (session.map { " session=\($0.joined(separator: ","))" } ?? ""))
+
+        if let endpointCount = settings.scoreEndpoints {
+            for encoded in cases {
+                let endpoints = PrefillEndpointScoring.endpoints(
+                    tokenCount: encoded.promptIds.count, count: endpointCount)
+                let caseTag = tag(encoded.caseID)
+                let started = DispatchTime.now().uptimeNanoseconds
+                _ = try await PrefillEndpointScoring.run(
+                    runner: runner,
+                    tokens: encoded.promptIds,
+                    endpoints: endpoints,
+                    config: runtimeConfiguration(chunkTokens: encoded.chunkTokens).prefillConfig,
+                    logits: scratch.logits,
+                    vocab: model.config.vocabSize) { score in
+                    let top = zip(score.topIDs, score.topLogProbs)
+                        .map { "\($0):\(String(format: "%.6f", $1))" }
+                        .joined(separator: ",")
+                    emit("endpoint", "endpoint=\(score.endpoint) "
+                        + "target=\(score.target.map(String.init) ?? "end") "
+                        + "nll=\(score.nll.map { String(format: "%.6f", $0) } ?? "n/a") "
+                        + "top=\(top) thermal=\(DeviceState.thermal())" + caseTag)
+                }
+                emit("endpoints-done", "endpoints=\(endpoints.count) "
+                    + "ms=\((DispatchTime.now().uptimeNanoseconds - started) / 1_000_000)"
+                    + caseTag)
+            }
+            return []
+        }
 
         var outcomes: [HarnessCaseOutcome] = []
         for (index, encoded) in cases.enumerated() {

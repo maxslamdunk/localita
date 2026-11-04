@@ -1399,7 +1399,9 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                             argumentBuffer: argumentBuffer,
                             binding: fetch.binding,
                             params: streamedParams,
-                            pairMicrobatchRows: scratch.layout.routedPairMicrobatchRows)
+                            pairMicrobatchRows: prefillGroupedMoE.usesTensorOps
+                                ? scratch.layout.routedTensorPairMicrobatchRows
+                                : scratch.layout.routedPairMicrobatchRows)
                         tileCB.commit()
                         pendingTiles.append(PendingPrefillTile(tileIndex: tileIndex,
                                                                commandBuffer: tileCB,
