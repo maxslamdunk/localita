@@ -693,7 +693,10 @@ final class Harness: ObservableObject {
             streamingMode: .pread(slotCount: runtime.expertCacheSlots),
             expertCachePolicy: runtime.modelExpertCachePolicy,
             integrityPolicy: integrityPolicy,
-            expertReadsBypassFileCache: runtime.expertReadsBypassFileCache)
+            expertReadsBypassFileCache: runtime.expertReadsBypassFileCache,
+            // The receipt's absolute path cannot match an app container
+            // (see above); `--trust-install` binds it by content only.
+            requiringReceiptDirectoryPath: !settings.trustInstall)
         emit("model-loaded",
              "policy=\(integrityPolicy == .fullSha256 ? "fullSha256" : "trustedReceipt") "
                 + "ms=\((DispatchTime.now().uptimeNanoseconds - loadStarted) / 1_000_000)")
