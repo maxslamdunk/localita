@@ -377,6 +377,11 @@ struct HarnessSettings {
         if let v = value("--early-expert-reads") {
             setenv(earlyExpertReadsEnvironmentKey, v, 1)
         }
+        // Splits prefill's attention block for timing; a profiling run. See
+        // `RealForwardRunner.prefillProfileEnvironmentKey`.
+        if args.contains("--prefill-profile") {
+            setenv(RealForwardRunner.prefillProfileEnvironmentKey, "1", 1)
+        }
         return settings
     }
 }
@@ -798,6 +803,7 @@ final class Harness: ObservableObject {
         emit("phase-time", phaseTimeFooter(stats) + caseTag)
         emit("gpu-time", gpuTimeFooter(stats) + caseTag)
         emit("read-latency", readLatencyFooter(stats) + caseTag)
+        emit("prefill-time", prefillTimeFooter(stats) + caseTag)
         // The text itself, beside the log, and its hash in it. Token counts and
         // byte counters match between two runs whose text differs late, so an
         // A/B that claims identical output needs the output. A session writes

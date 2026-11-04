@@ -201,11 +201,13 @@ public struct RawDecodeResult: Sendable {
     /// Both are `.zero` when the producer does not report expert I/O.
     public let prefillExpertIO: ExpertIOStats
     public let decodeExpertIO: ExpertIOStats
-    /// Per-phase decode timings over the decode window only. There is no
-    /// prefill counterpart: the production chunked-prefill path does not drive
-    /// the cb1/io/cb2 handoff and never touches these counters. `.zero` when
-    /// the producer does not report them.
+    /// Per-phase decode timings over the decode window only: the chunked
+    /// prefill path does not drive the cb1/io/cb2 handoff and never touches
+    /// these counters. `.zero` when the producer does not report them.
     public let decodePhaseTimings: DecodePhaseTimings
+    /// Chunked-prefill breakdown over this turn's prefill. `.zero` when the
+    /// producer does not report it, or prefill ran unchunked.
+    public let prefillPhaseTimings: PrefillPhaseTimings
     public let withheldTrailingKVTokens: Int
 
     /// Explicit rather than memberwise so the expert-I/O fields can default:
@@ -223,7 +225,8 @@ public struct RawDecodeResult: Sendable {
                 withheldTrailingKVTokens: Int = 0,
                 prefillExpertIO: ExpertIOStats = .zero,
                 decodeExpertIO: ExpertIOStats = .zero,
-                decodePhaseTimings: DecodePhaseTimings = .zero) {
+                decodePhaseTimings: DecodePhaseTimings = .zero,
+                prefillPhaseTimings: PrefillPhaseTimings = .zero) {
         self.prefillTokens = prefillTokens
         self.cachedPromptTokens = cachedPromptTokens
         self.computedPrefillTokens = computedPrefillTokens
@@ -238,6 +241,7 @@ public struct RawDecodeResult: Sendable {
         self.prefillExpertIO = prefillExpertIO
         self.decodeExpertIO = decodeExpertIO
         self.decodePhaseTimings = decodePhaseTimings
+        self.prefillPhaseTimings = prefillPhaseTimings
     }
 
     /// Forwards run during decode. One less than `newTokens`: each loop
@@ -361,6 +365,8 @@ public func runRawCompletion(producer: any LogitProducer,
     // are monotonic and never reset, so a snapshot survives either.
     let expertIOReporter = producer as? any ExpertIOReporting
     let expertIOAtPrefillStart = expertIOReporter?.expertIOStats ?? .zero
+    let prefillPhaseReporter = producer as? any PrefillPhaseTimingReporting
+    let prefillPhasesAtStart = prefillPhaseReporter?.prefillPhaseTimings ?? .zero
 
     let prefill = try await runRawPrefill(
         producer: producer,
@@ -380,6 +386,8 @@ public func runRawCompletion(producer: any LogitProducer,
 
     let decodeStart = Date()
     let expertIOAtDecodeStart = expertIOReporter?.expertIOStats ?? .zero
+    let prefillPhaseTimings = (prefillPhaseReporter?.prefillPhaseTimings ?? .zero)
+        .delta(since: prefillPhasesAtStart)
     // Differenced rather than read at the end even though chunked prefill does
     // not touch these counters: the `.off` prefill path replays through the
     // same `produce` call the decode loop uses, and would otherwise land its
@@ -508,7 +516,8 @@ public func runRawCompletion(producer: any LogitProducer,
                            prefillExpertIO: expertIOAtDecodeStart.delta(since: expertIOAtPrefillStart),
                            decodeExpertIO: expertIOAtEnd.delta(since: expertIOAtDecodeStart),
                            decodePhaseTimings: (phaseTimingReporter?.decodePhaseTimings ?? .zero)
-                               .delta(since: phasesAtDecodeStart))
+                               .delta(since: phasesAtDecodeStart),
+                           prefillPhaseTimings: prefillPhaseTimings)
 }
 
 private func sampleOnce(scratch: RawCompletionScratch, context: MetalContext,

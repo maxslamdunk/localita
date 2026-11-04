@@ -630,7 +630,7 @@ public final class PreadExpertStreamer: @unchecked Sendable {
             counters.recordBytesRead(UInt64(readCount))
             filled += readCount
         }
-        counters.recordReadLatency(nanos: clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - started)
+        counters.recordRead(started: started, ended: clock_gettime_nsec_np(CLOCK_UPTIME_RAW))
     }
 
     /// Model-derived CPU-side scratch owned by this streamer: its aligned

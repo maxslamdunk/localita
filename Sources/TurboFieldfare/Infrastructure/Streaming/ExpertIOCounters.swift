@@ -131,8 +131,25 @@ public final class ExpertIOCounters: Sendable {
     private let latency = Mutex(LatencyHistogram())
     private let earlyReads = Atomic<UInt64>(0)
     private let earlyReadsUsed = Atomic<UInt64>(0)
+    /// Each completed read's `(start, end)` on `CLOCK_UPTIME_RAW`, while a
+    /// caller has a log open. `nil` otherwise, so decode pays nothing for it.
+    private let readIntervals = Mutex<[(start: UInt64, end: UInt64)]?>(nil)
 
     public init() {}
+
+    /// Starts recording read intervals, dropping any not yet taken.
+    func beginReadIntervalLog() {
+        readIntervals.withLock { $0 = [] }
+    }
+
+    /// The intervals recorded since `beginReadIntervalLog()`, and stops
+    /// recording.
+    func takeReadIntervals() -> [(start: UInt64, end: UInt64)] {
+        readIntervals.withLock { log in
+            defer { log = nil }
+            return log ?? []
+        }
+    }
 
     /// Independent loads: a snapshot taken while reads are in flight can be
     /// skewed by the reads outstanding at that instant. That is bounded by the
@@ -160,12 +177,14 @@ public final class ExpertIOCounters: Sendable {
 
     /// One completed expert read, timed from before its first `pread` to after
     /// its last.
-    func recordReadLatency(nanos: UInt64) {
+    func recordRead(started: UInt64, ended: UInt64) {
+        let nanos = ended - started
         let bucket = ExpertIOStats.readLatencyBucket(forNanos: nanos)
         latency.withLock {
             $0.totalNanos &+= nanos
             $0.buckets[bucket] &+= 1
         }
+        readIntervals.withLock { $0?.append((started, ended)) }
     }
 
     func recordEarlyRead() {

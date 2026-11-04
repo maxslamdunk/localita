@@ -130,7 +130,7 @@ internal enum PrefillProjectionDispatchPolicy {
     }
 }
 
-public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRunner, ContextWindowReporting, ContinuableLogitProducer, ExpertIOReporting, DecodePhaseTimingReporting, @unchecked Sendable {
+public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRunner, ContextWindowReporting, ContinuableLogitProducer, ExpertIOReporting, DecodePhaseTimingReporting, PrefillPhaseTimingReporting, @unchecked Sendable {
     private struct LayerSharedExpertProjections {
         let gate: SharedExpertInt8Proj
         let up: SharedExpertInt8Proj
@@ -218,6 +218,13 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
     /// is off or `TURBO_FIELDFARE_EARLY_EXPERT_READ=off`. See
     /// `NextLayerExpertPrefetcher`.
     private let earlyExpertReads: NextLayerExpertPrefetcher?
+    /// `TURBO_FIELDFARE_PREFILL_PROFILE=1` commits each prefill layer's
+    /// attention block in five pieces and waits on each, so their GPU time
+    /// can be read apart in `PrefillPhaseTimings`. Profiling only.
+    public static let prefillProfileEnvironmentKey = "TURBO_FIELDFARE_PREFILL_PROFILE"
+    private let profilesPrefillPhases: Bool
+    /// Chunked-prefill breakdown, cumulative; see `PrefillPhaseTimings`.
+    public private(set) var prefillPhaseTimings = PrefillPhaseTimings()
     /// `off`, `router`, or the fitted guess file's name and SHA-256, so a log
     /// can state which early read ran.
     public var earlyExpertReadDescription: String {
@@ -400,6 +407,8 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                                           effectiveScales: perLayer, to: trace)
         }
         self.routingTrace = trace
+        self.profilesPrefillPhases =
+            ProcessInfo.processInfo.environment[Self.prefillProfileEnvironmentKey] == "1"
         self.earlyExpertReads = try NextLayerExpertPrefetcher(
             enabledByDefault: runtimeConfiguration.earlyExpertRead,
             readsPerLayerByDefault: runtimeConfiguration.earlyExpertReadsPerLayer,
@@ -952,10 +961,31 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
 
         prefillChunkState.markDirty(startPosition: startPosition, tokenCount: tokens.count)
 
+        var timings = PrefillPhaseTimings()
+        var gpuWork: [(buffer: MTLCommandBuffer, part: PrefillGPUPart)] = []
+        func now() -> UInt64 { clock_gettime_nsec_np(CLOCK_UPTIME_RAW) }
+        let chunkStart = now()
+        model.expertIOCounters.beginReadIntervalLog()
+        // Closes the log on a throw too, so decode never records into it.
+        defer { _ = model.expertIOCounters.takeReadIntervals() }
+
         guard var cb = ctx.queue.makeCommandBuffer() else {
             throw ModelError.residentBufferWrapFailed
         }
         cb.label = "prefill start=\(startPosition) count=\(t) phase=embed"
+        /// Ends the attention block's current piece when profiling: commits and
+        /// waits on it, charges it to `part`, and opens the next piece.
+        func profileBoundary(_ part: PrefillGPUPart, next label: String) throws {
+            guard profilesPrefillPhases else { return }
+            cb.commit()
+            try waitForCompletion(cb)
+            gpuWork.append((cb, part))
+            guard let nextCB = ctx.queue.makeCommandBuffer() else {
+                throw ModelError.residentBufferWrapFailed
+            }
+            nextCB.label = "prefill start=\(startPosition) count=\(t) phase=\(label)"
+            cb = nextCB
+        }
         if let embeddingOverride {
             // The override spans the whole chunk — the planner emits image spans
             // as standalone chunks — so the INT4 gather it would cover is
@@ -986,8 +1016,10 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                             d: UInt32(D),
                             outScale: sqrtHidden)
         }
+        try profileBoundary(.embed, next: "qkv_projection")
 
         for L in 0..<cfg.numLayers {
+            let tLayerStart = now()
             model.beginOpeningRoutedExpertStreamer(layer: L)
             let views = layerViews[L]
             let isFull = cfg.fullAttentionLayerMask[L] != 0
@@ -1034,6 +1066,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                                  tokenCount: t,
                                  xStrideElements: D,
                                  yStrideElements: kvDim)
+            try profileBoundary(.qkvProjection, next: "qkv_epilogue")
 
             let rotatedPairs = isFull
                 ? UInt32(Double(cfg.fullHeadDim) * cfg.partialRotaryFactor / 2.0)
@@ -1068,6 +1101,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                                          valueSource: scratch.vStage,
                                          bytesPerToken: bytes / t)
             }
+            try profileBoundary(.qkvEpilogue, next: "attention")
             let params = PrefillAttentionParams(
                     startPosition: UInt32(startPosition),
                     queryCount: UInt32(t),
@@ -1104,6 +1138,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                 throw PrefillError.chunkedUnsupported(
                     "chunked prefill attention requires FP16 KV")
             }
+            try profileBoundary(.attention, next: "output_projection")
             encodeInt4Projection(commandBuffer: cb,
                                      family: .o,
                                      weights: views.o,
@@ -1134,6 +1169,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                                             routedStrideElements: UInt32(D),
                                             routerStrideElements: UInt32(D),
                                             eps: eps)
+            try profileBoundary(.outputProjection, next: "router")
             prefillRouter.encodeGemma4Block(
                         commandBuffer: cb,
                         weights: views.router.buffer,
@@ -1156,6 +1192,9 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
 
                     cb.commit()
                     try waitForCompletion(cb)
+                    gpuWork.append((cb, profilesPrefillPhases ? .router : .attentionBlock))
+                    let tRoutePlanStart = now()
+                    timings.attentionBlockNanos &+= tRoutePlanStart - tLayerStart
 
                     let routeCount = t * cfg.topKExperts
                     let idPtr = scratch.routeIDs.contents()
@@ -1193,6 +1232,8 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                         tileExpertCount: routeTileExpertCount,
                         expertSortKeys: model.routedExpertPhysicalOffsets(layer: L))
 
+                    let tSharedStart = now()
+                    timings.routePlanNanos &+= tSharedStart - tRoutePlanStart
                     guard let sharedCB = ctx.queue.makeCommandBuffer() else {
                         throw ModelError.residentBufferWrapFailed
                     }
@@ -1223,6 +1264,9 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                                            eps: eps)
                     sharedCB.commit()
                     try waitForCompletion(sharedCB)
+                    gpuWork.append((sharedCB, .shared))
+                    let tRoutedStart = now()
+                    timings.sharedNanos &+= tRoutedStart - tSharedStart
 
                     let metadata = try prefillGroupedMoE.makeStreamedMetadataBuffers(
                         device: ctx.device,
@@ -1239,9 +1283,12 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                     func drainOldestPendingTile() throws {
                         guard !pendingTiles.isEmpty else { return }
                         let pending = pendingTiles.removeFirst()
+                        let tDrain = now()
                         try withExtendedLifetime((pending.fetch, pending.argumentBuffer)) {
                             try waitForCompletion(pending.commandBuffer)
                         }
+                        timings.drainNanos &+= now() - tDrain
+                        gpuWork.append((pending.commandBuffer, .routed))
                         if !pending.fetch.plannedMissSlots.isEmpty {
                             try tileLifetime.complete(tileIndex: pending.tileIndex)
                         }
@@ -1309,6 +1356,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                                     detail: "routed tile scheduler requested pending action without pending tile")
                             }
                         }
+                        let tFetch = now()
                         let fetch = try await PrefillStreamedTileBinding.fetchBindingForTile(
                             model: model,
                             layer: L,
@@ -1316,6 +1364,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                             routes: routes,
                             plannedFetch: plannedFetch,
                             avoidingSlots: Set(pendingTiles.flatMap(\.fetch.plannedAssignedSlots)))
+                        timings.fetchNanos &+= now() - tFetch
                         try fetch.binding.validateCoversPairs(routes.sortedPairs,
                                                               pairStart: Int(tile.pairStart),
                                                               pairCount: Int(tile.pairCount))
@@ -1363,6 +1412,8 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                     while !pendingTiles.isEmpty {
                         try drainOldestPendingTile()
                     }
+                    let tTailStart = now()
+                    timings.routedNanos &+= tTailStart - tRoutedStart
                     guard let tailCB = ctx.queue.makeCommandBuffer() else {
                         throw ModelError.residentBufferWrapFailed
                     }
@@ -1395,6 +1446,8 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                     try withExtendedLifetime(metadata) {
                         try waitForCompletion(tailCB)
                     }
+                    gpuWork.append((tailCB, .tail))
+                    timings.tailNanos &+= now() - tTailStart
                     if L + 1 < cfg.numLayers {
                         guard let nextCB = ctx.queue.makeCommandBuffer() else {
                             throw ModelError.residentBufferWrapFailed
@@ -1407,6 +1460,8 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
         }
 
         if writeFinalHead {
+            let tHead = now()
+            defer { timings.headNanos &+= now() - tHead }
             let finalNorm = model.finalNorm
             let lm = model.lmHead
             guard let finalCB = ctx.queue.makeCommandBuffer() else {
@@ -1450,6 +1505,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             }
             finalCB.commit()
             try waitForCompletion(finalCB)
+            gpuWork.append((finalCB, .head))
             if outputMode == .greedyIfAvailable, useFusedGreedyHead {
                 lastGreedyToken = greedyTokenBuf.contents().load(as: UInt32.self)
             }
@@ -1457,6 +1513,54 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
 
         kv?.advance(by: tokens.count)
         prefillChunkState.markCommitted()
+
+        timings.wallNanos = now() - chunkStart
+        timings.chunks = 1
+        timings.profiledChunks = profilesPrefillPhases ? 1 : 0
+        recordPrefillChunk(timings,
+                           gpuWork: gpuWork,
+                           reads: model.expertIOCounters.takeReadIntervals())
+    }
+
+    /// Folds one chunk's timings into `prefillPhaseTimings`, charging each
+    /// command buffer's GPU execution to its part and measuring storage
+    /// against the GPU. Command-buffer timestamps are host seconds on the
+    /// same mach clock as `CLOCK_UPTIME_RAW`, so the two sets of intervals can
+    /// be intersected directly.
+    private func recordPrefillChunk(_ chunk: PrefillPhaseTimings,
+                                    gpuWork: [(buffer: MTLCommandBuffer, part: PrefillGPUPart)],
+                                    reads: [(start: UInt64, end: UInt64)]) {
+        var timings = chunk
+        var gpuIntervals: [(start: UInt64, end: UInt64)] = []
+        gpuIntervals.reserveCapacity(gpuWork.count)
+        for (buffer, part) in gpuWork {
+            let start = buffer.gpuStartTime
+            let end = buffer.gpuEndTime
+            guard start > 0, end > start else { continue }
+            let interval = (start: UInt64(start * 1_000_000_000), end: UInt64(end * 1_000_000_000))
+            let nanos = interval.end - interval.start
+            switch part {
+            case .embed: timings.gpuEmbedNanos &+= nanos
+            case .attentionBlock: timings.gpuAttentionBlockNanos &+= nanos
+            case .qkvProjection: timings.gpuQKVProjectionNanos &+= nanos
+            case .qkvEpilogue: timings.gpuQKVEpilogueNanos &+= nanos
+            case .attention: timings.gpuAttentionNanos &+= nanos
+            case .outputProjection: timings.gpuOutputProjectionNanos &+= nanos
+            case .router: timings.gpuRouterNanos &+= nanos
+            case .shared: timings.gpuSharedNanos &+= nanos
+            case .routed: timings.gpuRoutedNanos &+= nanos
+            case .tail: timings.gpuTailNanos &+= nanos
+            case .head: timings.gpuHeadNanos &+= nanos
+            }
+            gpuIntervals.append(interval)
+        }
+        timings.gpuBusyNanos = PrefillPhaseTimings.totalLength(
+            of: PrefillPhaseTimings.mergedIntervals(gpuIntervals))
+        timings.storageBusyNanos = PrefillPhaseTimings.totalLength(
+            of: PrefillPhaseTimings.mergedIntervals(reads))
+        timings.storageGPUOverlapNanos = PrefillPhaseTimings.overlapNanoseconds(gpuIntervals, reads)
+
+        prefillPhaseTimings = prefillPhaseTimings.adding(timings)
     }
 
     private func produceToken(token: Int32,
