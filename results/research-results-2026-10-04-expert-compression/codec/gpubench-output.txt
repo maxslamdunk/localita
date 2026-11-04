@@ -1,0 +1,4 @@
+GPU decode of 16 experts: bit-exact against the installed bytes
+ 1 expert(s): GPU time min 1163 us, median 1170 us; commit-to-complete min 1376 us, median 1404 us; 2.88 GB/s of output at the best GPU time
+ 3 expert(s): GPU time min 2109 us, median 2120 us; commit-to-complete min 2366 us, median 2395 us; 4.76 GB/s of output at the best GPU time
+16 expert(s): GPU time min 10443 us, median 12241 us; commit-to-complete min 10755 us, median 12641 us; 5.13 GB/s of output at the best GPU time

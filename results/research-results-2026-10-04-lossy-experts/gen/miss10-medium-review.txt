@@ -1,0 +1,29 @@
+### Risk Assessment
+
+**1. Critical Correctness Risks (Data Corruption & Crashes)**
+*   **Race Condition on Buffer Reuse:** The design allows a "hit" to return a view into a buffer while an asynchronous "miss" is overwriting that same buffer. Because the dictionary is updated *before* the read completes, a second request for the same key (or a different key that picked the same slot) will access buffer contents being mutated by the background thread. This leads to corrupted reads or partial data.
+*   **Memory Exhaustion (OOM):** There is no upper bound on payload length. A malicious or malformed file can trigger a massive `realloc`, crashing the service.
+*   **Use-After-Free/Invalid Views:** Since views are returned to callers and can be retained, and the buffer is "reusable," a slot being repurposed for a new key will corrupt the data held by a previous caller.
+
+**2. Critical Performance Risks**
+*   **Thundering Herd:** If multiple requests for the same missing key arrive simultaneously, they will all trigger independent, redundant I/O tasks for the same file.
+*   **False Hits:** The design counts "in-flight" and "failed" entries as hits. This inflates hit-rate metrics and masks the latency/failure costs of the cache.
+
+---
+
+### Proposed Safer Design
+
+To resolve these issues, we must decouple the **Logical Key** from the **Physical Buffer** and ensure **Single-Writer** semantics.
+
+**1. Structural Changes**
+*   **Indirection Layer:** The dictionary should map `Key -> Entry`. An `Entry` contains a `State` (Empty, Loading, Ready) and a `Ref-Counted Buffer`.
+*   re-use buffers via a **Buffer Pool** rather than fixed slots. When a file is read, the buffer is assigned to that entry.
+
+**2. Correctness Fixes**
+*   **Atomic State Transitions:** Use a `State` field (e.g., `Loading`) in the dictionary entry. If a key is "Loading," subsequent requests for that key must join the existing `Future` rather than starting a new read.
+*   **Immutability via Reference Counting:** Use reference-counted buffers (e.g., `Arc<Bytes>` in Rust). A "hit" returns a cloned handle to the buffer. The buffer is only returned to the pool when its reference count reaches zero. This prevents a new read from overwriting data currently being viewed.
+*   **Size Bounds:** Enforce a `MAX_PAYLOAD_SIZE`. If a header exceeds this, fail the read immediately.
+
+**3. Performance & Metrics Fixes**
+*   **Request Collapsing:** Use a "Singleflight" pattern. If a key is being loaded, new requests wait on the existing `Future`.
+*   

@@ -218,6 +218,15 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
     /// is off or `TURBO_FIELDFARE_EARLY_EXPERT_READ=off`. See
     /// `NextLayerExpertPrefetcher`.
     private let earlyExpertReads: NextLayerExpertPrefetcher?
+    /// Research only: `ExpertSkipPolicy`, nil unless its environment variable
+    /// is set.
+    private let expertSkip: ExpertSkipPolicy?
+    private var perExpertScales: [[Float]] = []
+    /// What `expertSkip` did since load.
+    package private(set) var expertSkipCounts = ExpertSkipCounts()
+    /// Running average of the router's logit range, for `bias:` reranking.
+    private var expertSkipAverageLogitRange: Float = 0
+    package var expertSkipDescription: String? { expertSkip?.description }
     /// `off`, `router`, or the fitted guess file's name and SHA-256, so a log
     /// can state which early read ran.
     public var earlyExpertReadDescription: String {
@@ -404,6 +413,15 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             enabledByDefault: runtimeConfiguration.earlyExpertRead,
             readsPerLayerByDefault: runtimeConfiguration.earlyExpertReadsPerLayer,
             model: model, config: cfg, device: ctx.device)
+        self.expertSkip = try ExpertSkipPolicy()
+        if expertSkip != nil {
+            self.perExpertScales = try (0..<cfg.numLayers).map { L in
+                let view = try model.routerPerExpertScale(layer: L)
+                let src = view.buffer.contents().advanced(by: Int(view.offset))
+                    .assumingMemoryBound(to: UInt16.self)
+                return (0..<cfg.numExperts).map { Quantization.bf16ToFloat(src[$0]) }
+            }
+        }
     }
 
     public func reset() {
@@ -1754,6 +1772,33 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                     resident: streamer.residentExperts(), limit: early.readsPerLayer)
                 if !experts.isEmpty {
                     earlyGuess = (streamer, experts)
+                }
+            }
+
+            if let expertSkip {
+                let streamer = try model.routedExpertStreamer(layer: L)
+                let logits = Array(UnsafeBufferPointer(
+                    start: moe.lastRouterScores.contents().assumingMemoryBound(to: Float.self),
+                    count: cfg.numExperts))
+                let range = (logits.max() ?? 0) - (logits.min() ?? 0)
+                expertSkipAverageLogitRange = expertSkipAverageLogitRange == 0
+                    ? range : 0.999 * expertSkipAverageLogitRange + 0.001 * range
+                let decision = expertSkip.decide(
+                    experts: experts, logits: logits, perExpertScale: perExpertScales[L],
+                    resident: streamer.residentExperts(),
+                    residentByUse: streamer.residentExpertsByUse(),
+                    pendingEarly: earlyExpertReads?.pendingExperts(layer: L) ?? [],
+                    averageLogitRange: expertSkipAverageLogitRange)
+                expertSkipCounts.layerSteps += 1
+                expertSkipCounts.dropped += decision.dropped
+                expertSkipCounts.droppedMass += decision.droppedMass
+                expertSkipCounts.substituted += decision.substituted
+                if decision.dropped > 0 {
+                    experts = decision.experts
+                    let weightPtr = outWeights.contents().assumingMemoryBound(to: Float16.self)
+                    for i in 0..<cfg.topKExperts {
+                        weightPtr[i] = Float16(decision.weights[i])
+                    }
                 }
             }
 

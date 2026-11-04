@@ -1,0 +1,19 @@
+# 2026-10-05 12:45:01 commit da57c46+dirty
+# label=cold50-3 sequences=sequences.json max-tokens=128 ref=ref env: TURBO_FIELDFARE_LOSSY_EXPERTS=all=3,experts=/Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/expert-compression/research-results-2026-10-04-lossy-experts/cold-50.txt
+# System-wide memory free percentage: 68%; thermal: 
+# score: slots=24 prefill-chunk=256 lossy=all=3,experts=/Users/max/ml_projects/iphone-port/turbo-fieldfare/.claude/worktrees/expert-compression/research-results-2026-10-04-lossy-experts/cold-50.txt skip=off early=gemma-4-26b-a4b-it-4bit.bin@b18242445534d452b7efb9c7d1c358884ef56637ad6003c187e5bced50dc3dcd
+seq 0: prompt 56 tok, scored 128; KL 0.01088 top1 0.9922 NLL 0.0529; decode fg reads/tok 33.92, MiB/tok 201.54, 9.27 s/tok
+seq 1: prompt 39 tok, scored 128; KL 0.05617 top1 0.9219 NLL 0.2458; decode fg reads/tok 46.36, MiB/tok 241.39, 8.86 s/tok
+seq 2: prompt 47 tok, scored 128; KL 0.16545 top1 0.9219 NLL 0.2052; decode fg reads/tok 30.88, MiB/tok 191.81, 0.86 s/tok
+seq 3: prompt 205 tok, scored 128; KL 0.05051 top1 0.9609 NLL 0.4152; decode fg reads/tok 35.49, MiB/tok 206.56, 0.58 s/tok
+seq 4: prompt 89 tok, scored 128; KL 0.01039 top1 0.9922 NLL 0.0585; decode fg reads/tok 50.10, MiB/tok 253.37, 7.83 s/tok
+seq 5: prompt 111 tok, scored 128; KL 0.02559 top1 0.9844 NLL 0.0763; decode fg reads/tok 44.39, MiB/tok 235.06, 0.60 s/tok
+seq 6: prompt 56 tok, scored 128; KL 0.02896 top1 0.9688 NLL 0.0941; decode fg reads/tok 42.55, MiB/tok 229.19, 3.87 s/tok
+seq 7: prompt 79 tok, scored 128; KL 0.02326 top1 0.9688 NLL 0.1105; decode fg reads/tok 47.94, MiB/tok 246.44, 1.54 s/tok
+seq 8: prompt 37 tok, scored 128; KL 0.04493 top1 0.9453 NLL 0.1392; decode fg reads/tok 40.78, MiB/tok 223.51, 1.39 s/tok
+seq 9: prompt 54 tok, scored 128; KL 0.10533 top1 0.9531 NLL 0.1250; decode fg reads/tok 22.31, MiB/tok 164.37, 0.46 s/tok
+seq 10: prompt 37 tok, scored 128; KL 0.10692 top1 0.9219 NLL 0.2306; decode fg reads/tok 20.54, MiB/tok 158.67, 0.37 s/tok
+seq 11: prompt 49 tok, scored 128; KL 0.01213 top1 0.9922 NLL 0.0367; decode fg reads/tok 40.15, MiB/tok 221.49, 1.10 s/tok
+TOTAL: 1536 positions, KL 0.05338 (max 4.170), top1 0.9603, NLL 0.1492 (ref 0.0940, +0.0551)
+decode: 1524 forwards, fg reads/tok 37.95, early reads/tok 29.00, MiB/tok 214.45, hit 76.2%, 3.062 s/tok; prefill MiB 75532.9
+# done 14:28:33; total = 7168.00M  used = 6155.69M  free = 1012.31M  (encrypted)

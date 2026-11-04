@@ -1,0 +1,13 @@
+layers [0, 10, 20, 29], experts 0..112 step 16, bits per code:
+  order-0                                                    3.7065
+  given z                                                    3.6840
+  given z, column group                                      3.6839
+  given z, exact input column                                3.6732
+  given z, |scale| / row median (16 bins)                    3.6715
+  given z, scale sign                                        3.6840
+  given z, has-15 flag (+ flag cost)                         3.6874
+  shift by z, 1 encoder-chosen classes (+ class cost)        3.6884
+  shift by z, 4 encoder-chosen classes (+ class cost)        3.6941
+  shift by z, 16 encoder-chosen classes (+ class cost)       3.7038
+  given z, same position in expert e-1                       3.6831
+  given z (same sample as above)                             3.6832

@@ -100,6 +100,11 @@ public final class PreadExpertStreamer: @unchecked Sendable {
     private var useClock = 0
     private let cacheLock = NSLock()
 
+    /// Research only: runs on every expert right after it is read, with the
+    /// expert's ID. Set once, before the first read; see
+    /// `LossyExpertSimulation`. Nil in production.
+    package var postReadTransform: (@Sendable (UnsafeMutableRawPointer, Int) -> Void)?
+
     public convenience init(layout: StreamLayout,
                             device: MTLDevice,
                             slotCount: Int,
@@ -269,6 +274,18 @@ public final class PreadExpertStreamer: @unchecked Sendable {
         return Set(slotExpert.filter { $0 >= 0 })
     }
 
+    /// Experts currently held in a slot, most used first. Research only:
+    /// `ExpertSkipPolicy` takes its stand-ins from it.
+    package func residentExpertsByUse() -> [Int] {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        return slotExpert.filter { $0 >= 0 }.sorted {
+            let a = $0 < expertUseCount.count ? expertUseCount[$0] : 0
+            let b = $1 < expertUseCount.count ? expertUseCount[$1] : 0
+            return a != b ? a > b : $0 < $1
+        }
+    }
+
     /// Reads one expert into memory outside the slot pool, normally a staging
     /// buffer's `pointer` captured before any adoption could swap it. Counted
     /// as a read like any other, plus an early read.
@@ -282,6 +299,7 @@ public final class PreadExpertStreamer: @unchecked Sendable {
             into: destination,
             fileOffset: layout.streamOffset + regionOffset,
             count: Int(layout.expertStride))
+        postReadTransform?(destination, expert)
     }
 
     /// Puts `staging`'s buffer in the slot `plan` assigned to its miss at
@@ -325,6 +343,7 @@ public final class PreadExpertStreamer: @unchecked Sendable {
             into: slotPointers[slot],
             fileOffset: layout.streamOffset + regionOffset,
             count: Int(layout.expertStride))
+        postReadTransform?(slotPointers[slot], expert)
         return (slotBuffers[slot], 0, layout.expertStride)
     }
 

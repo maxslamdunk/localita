@@ -1,0 +1,20 @@
+# 2026-10-05 00:58:12 commit da57c46+dirty
+# label=top7 sequences=sequences.json max-tokens=128 ref=ref env: TURBO_FIELDFARE_EXPERT_SKIP=topk:7
+# System-wide memory free percentage: 68%; thermal: 
+# score: slots=24 prefill-chunk=256 lossy=off skip=topk:7.0 early=gemma-4-26b-a4b-it-4bit.bin@b18242445534d452b7efb9c7d1c358884ef56637ad6003c187e5bced50dc3dcd
+seq 0: prompt 56 tok, scored 128; KL 0.01075 top1 0.9844 NLL 0.0542; decode fg reads/tok 26.46, MiB/tok 177.66, 0.67 s/tok
+seq 1: prompt 39 tok, scored 128; KL 0.06939 top1 0.9297 NLL 0.2699; decode fg reads/tok 39.07, MiB/tok 218.04, 0.25 s/tok
+seq 2: prompt 47 tok, scored 128; KL 0.03109 top1 0.9531 NLL 0.0749; decode fg reads/tok 23.94, MiB/tok 169.56, 0.44 s/tok
+seq 3: prompt 205 tok, scored 128; KL 0.00503 top1 0.9922 NLL 0.3996; decode fg reads/tok 28.26, MiB/tok 183.41, 0.30 s/tok
+seq 4: prompt 89 tok, scored 128; KL 0.01531 top1 0.9766 NLL 0.0619; decode fg reads/tok 41.11, MiB/tok 224.57, 8.56 s/tok
+seq 5: prompt 111 tok, scored 128; KL 0.03253 top1 0.9766 NLL 0.0868; decode fg reads/tok 36.77, MiB/tok 210.67, 0.36 s/tok
+seq 6: prompt 56 tok, scored 128; KL 0.01790 top1 0.9766 NLL 0.0858; decode fg reads/tok 34.87, MiB/tok 204.60, 0.43 s/tok
+seq 7: prompt 79 tok, scored 128; KL 0.02441 top1 0.9609 NLL 0.1236; decode fg reads/tok 39.67, MiB/tok 219.96, 0.21 s/tok
+seq 8: prompt 37 tok, scored 128; KL 0.03190 top1 0.9609 NLL 0.1263; decode fg reads/tok 33.67, MiB/tok 200.74, 0.20 s/tok
+seq 9: prompt 54 tok, scored 128; KL 0.03926 top1 0.9766 NLL 0.0882; decode fg reads/tok 17.74, MiB/tok 149.71, 0.12 s/tok
+seq 10: prompt 37 tok, scored 128; KL 0.05154 top1 0.9453 NLL 0.1601; decode fg reads/tok 16.07, MiB/tok 144.37, 0.12 s/tok
+seq 11: prompt 49 tok, scored 128; KL 0.00740 top1 1.0000 NLL 0.0458; decode fg reads/tok 32.99, MiB/tok 198.57, 0.18 s/tok
+TOTAL: 1536 positions, KL 0.02804 (max 2.980), top1 0.9694, NLL 0.1314 (ref 0.0940, +0.0374)
+decode: 1524 forwards, fg reads/tok 30.89, early reads/tok 29.00, MiB/tok 191.82, hit 79.6%, 0.986 s/tok; prefill MiB 75689.8
+skip: dropped/layer 1.000, dropped mass/layer 0.0669, substituted/layer 0.000
+# done 01:25:01; total = 6144.00M  used = 4931.19M  free = 1212.81M  (encrypted)

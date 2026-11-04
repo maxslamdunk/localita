@@ -46,18 +46,18 @@ resident set size; and **NLL** is negative log-likelihood. See
 
 | Area | Summary | Entries |
 | --- | --- | ---: |
-| Model installation and expert I/O | [Remote repack, `pread`, hints, compression, and speculative I/O](summaries/01-model-install-and-expert-io.md) | 13 |
+| Model installation and expert I/O | [Remote repack, `pread`, hints, compression, and speculative I/O](summaries/01-model-install-and-expert-io.md) | 15 |
 | Decode MoE, INT4, and router | [Persistent MoE, vectorization, router, and rejected geometries](summaries/02-decode-moe-int4-and-router.md) | 18 |
-| Expert cache and layout | [Replacement policy, capacity, prediction, and disk layout](summaries/03-expert-cache-prediction-and-layout.md) | 9 |
+| Expert cache and layout | [Replacement policy, capacity, prediction, and disk layout](summaries/03-expert-cache-prediction-and-layout.md) | 10 |
 | RDADVISE | [The complete short-win to long-context-rejection arc](summaries/04-rdadvise.md) | 7 |
 | Attention and KV cache | [Split attention, MLX geometry, K4/V4, and FP16 ring](summaries/05-attention-and-kv-cache.md) | 15 |
 | Prefill | [Chunking, MPP, routed MoE, overlap, attention, and allocation experiments](summaries/06-prefill.md) | 17 |
 | Fusions and orchestration | [Targeted fusions, head variants, queues, and synchronization](summaries/07-fusions-head-and-orchestration.md) | 15 |
 | Sampling and output | [Gumbel sampling, tokenizer caching, and detokenization](summaries/08-sampling-tokenization-and-output.md) | 4 |
 | Validation methodology | [False rejections, holdouts, thermal state, and benchmark artifacts](summaries/09-validation-and-measurement-lessons.md) | 10 |
-| **Total** | | **107** |
+| **Total** | | **110** |
 
-## All 107 experiments
+## All 110 experiments
 
 ### Model installation and expert I/O
 
@@ -76,6 +76,8 @@ resident set size; and **NLL** is negative log-likelihood. See
 | [IO-11](summaries/01-model-install-and-expert-io.md#io-11) — The fetch-path bandwidth gap that was not there | Production fetch is 94-96% of a bare `pread` of the same files; the 2.7-3.2 GB/s roof was zero-filled data (incompressible: 0.77 GB/s). | Gap closed as nonexistent. |
 | [IO-12](summaries/01-model-install-and-expert-io.md#io-12) — Write order sets read throughput; recency is a second term | At production slot granularity the write-order ratio is 1.29x at 0h and 1.34x at 25h; recency 2.30 to 2.08 over 25h. Extent count predicts nothing. Whole-file reads overstate both. | **Validated 2026-08-11, WITHDRAWN 2026-08-18, REOPENED 2026-09-15 — a second artifact held.** A rewrite written on a 74%-full volume gives **3.745/3.346/2.987 tok/s at 26.8 d** (+20.7/+15.8/+15.2% over scattered), fetch 1.67-1.74 GB/s, bytes/token unchanged. The history of the first artifact follows. At t=0 the rewrite gave +20.1/+14.4/+14.9% tok/s, `io` 202.1 to 152.40 ms (predicted ~155), bytes/token unchanged to the digit. At **t=7d 16.8h the same artifact gives 3.271/2.858/2.674**, `io` back to 187.33/213.01/216.29 — only +5.4/-1.1/+3.2% over the scattered artifact, i.e. noise. Byte-identical output and `cb1-wait` flat, so it is storage, not drift; confounded by a 34 GiB deletion (GC) in the window. **Installer product change withdrawn 2026-08-18, a candidate again pending IO-13**; invariant against deliberate scattering stands. Open decay term is [IO-13](summaries/01-model-install-and-expert-io.md#io-13). |
 | [IO-13](summaries/01-model-install-and-expert-io.md#io-13) — Read rate falls after write; rate not established | Sequential 2.30 (0h) to 2.08 (25h); shuffled 1.78 to 1.55. Same direction under both probe geometries. | **Open; reframed 2026-09-15** — the second rewritten artifact kept ~94% of its 0 h production fetch over 26.8 d, so decay is not a general property of age; the question is now whether the first died of free space at write time (91% full) or of the ~34 GiB deletion after it. Earlier framing, **upgraded 2026-08-18 to the dominant question here** — it erased IO-12's entire end-to-end gain over 7 days on the production artifact (fetch 1.72 to 1.40 GB/s, units-corrected). One interval cannot separate a decay from a one-time step, and GC/write pressure is a likelier trigger than elapsed time; a ~34 GiB deletion in the 2026-08-18 window makes GC-triggered relocation the leading hypothesis. Next step is a probe separating idle-volume from churned-volume aging. The /tmp controls for the multi-day fit were deleted and are gone. |
+| [IO-14](summaries/01-model-install-and-expert-io.md#io-14) — Lossless expert compression, measured | Entropy bound −15.2%; Huffman codec −14.0%, bit-exact, 1.97 GB/s/core; Mac replay +1.8% `io` with decode (the tail cancels the saving at ~1.2 reads/layer); scales+biases only −7.4% bytes, −5.8% `io`. | Full codec rejected for decode; side-only format a candidate (+2–3% tok/s modelled), pending phone probes. |
+| [IO-15](summaries/01-model-install-and-expert-io.md#io-15) — Lower-bit routed experts, quality measured (simulated) | All at 3 bits: −22.5% bytes per expert at 3.05× the KL of one INT4 rounding; gate+up 3 bits ≈1.46×, down ≈1.36×, cold half 1.18×. | Rejected for now; dominated by CACHE-12. |
 
 ### Decode MoE, INT4, and router
 
@@ -115,6 +117,7 @@ resident set size; and **NLL** is negative log-likelihood. See
 | [CACHE-09](summaries/03-expert-cache-prediction-and-layout.md#cache-09) — APFS preallocation | Fragmentation observed; candidate not built. | Unexecuted hypothesis. |
 | [CACHE-10](summaries/03-expert-cache-prediction-and-layout.md#cache-10) — next-layer early read | iPhone +15.1 / +12.2 / +12.4% tok/s unfitted; fitted guess a further +5.2 / +4.2 / +13.4% (long inflated by GPU speed), precision 0.68–0.75, identical output. About +17–20% tok/s at +11–18% bytes/token against off. | Experimental switch, off by default. |
 | [CACHE-11](summaries/03-expert-cache-prediction-and-layout.md#cache-11) — replacement policies in replay, stale LFU counts | Replay within 0.33 points of live. Test hit rate: LFU 76.2%, learned 77.5%, Belady 84.6%. Over an 11-prompt session, LFU falls to 66.8–67.1% against 74.7–75.3% with reset or decayed counts. Built as count aging; on the iPhone an 11-prompt session ran +23.1% tok/s (hit rate 67.7% → 75.4%), with identical output. | Production since 2026-10-03, both platforms; learned policy later. |
+| [CACHE-12](summaries/03-expert-cache-prediction-and-layout.md#cache-12) — cache-conditional expert skipping | Mac, teacher-forced: drop a miss with weight < 0.08 → waited-for reads −39.1% at 0.55× the KL of one INT4 rounding (top-1 97.7%); < 0.10 → −62.0% at 0.94×. Beats static top-7 and published cache-prior reranking at equal KL. | Research switch; phone A/B next. |
 
 ### RDADVISE
 

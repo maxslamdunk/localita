@@ -1,0 +1,9 @@
+# 2026-10-04 23:25:34 commit c08caa6+dirty
+# label=smoke-3bit sequences=seq2.json max-tokens=24 ref=smoke-ref env: TURBO_FIELDFARE_LOSSY_EXPERTS=all=3
+# System-wide memory free percentage: 69%; thermal: 
+# score: slots=24 prefill-chunk=256 lossy=all=3 skip=off early=gemma-4-26b-a4b-it-4bit.bin@b18242445534d452b7efb9c7d1c358884ef56637ad6003c187e5bced50dc3dcd
+seq 0: prompt 56 tok, scored 24; KL 0.02634 top1 1.0000 NLL 0.0035; decode fg reads/tok 42.09, MiB/tok 227.70, 2.65 s/tok
+seq 1: prompt 39 tok, scored 24; KL 0.11260 top1 0.8750 NLL 0.3240; decode fg reads/tok 52.43, MiB/tok 260.85, 2.99 s/tok
+TOTAL: 48 positions, KL 0.06947 (max 1.131), top1 0.9375, NLL 0.1637 (ref 0.1704, -0.0066)
+decode: 46 forwards, fg reads/tok 47.26, early reads/tok 29.00, MiB/tok 244.27, hit 71.8%, 2.818 s/tok; prefill MiB 12082.2
+# done 23:29:59; total = 5120.00M  used = 4027.38M  free = 1092.62M  (encrypted)

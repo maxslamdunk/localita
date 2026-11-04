@@ -1,0 +1,12 @@
+fit 4.4s
+limit 11, tables per layer and kind, one code table per z, 1920 test experts (odd, step 2)
+  size: 0.8596 of raw (-14.04%), 4 KiB-aligned per expert 0.8602 (-13.98%)
+  streams, bits per unit: codes 3.7034/code, scale-hi+bias 3.430/group, raw lo+esc+hdr 8.083/group
+  round trip: bit-exact (0 of 1920 experts differ)
+  decode (1 thread, 120 experts): 1.97 GB/s of output
+fit 4.5s
+limit 11, tables per layer and kind, one code table per z, 120 test experts (odd, step 32)
+  size: 0.8600 of raw (-14.00%), 4 KiB-aligned per expert 0.8607 (-13.93%)
+  streams, bits per unit: codes 3.7056/code, scale-hi+bias 3.420/group, raw lo+esc+hdr 8.083/group
+  round trip: bit-exact (0 of 120 experts differ)
+  decode (all cores, GCD, 120 experts): 9.45 GB/s of output

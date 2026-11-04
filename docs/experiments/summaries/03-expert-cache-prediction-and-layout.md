@@ -19,6 +19,7 @@ capacity and memory cost.
 | Fresh preallocated expert artifact | Unexecuted hypothesis |
 | Next-layer early read from the hidden state | Production since 2026-10-03, with the fitted guess: about +17–20% tok/s on iPhone at +11–18% bytes/token |
 | LFU count aging (decay and a reset per conversation) | Production; +23% tok/s over an 11-chat session on iPhone, nothing on a fresh single prompt |
+| Cache-conditional expert skipping (drop a low-weight expert only when it misses) | Research switch; −39% waited-for reads at half the KL of one INT4 rounding (Mac); phone A/B next, [CACHE-12](#cache-12) |
 
 ## Cache policy and capacity
 
@@ -262,6 +263,51 @@ capacity and memory cost.
   `results/benchmark-results-2026-10-03-ios-expert-cache-aging/results.md`.
 - **Lesson:** The benchmark starts a fresh process, so state that accumulates
   over a session is invisible to it. Replay sessions, not only prompts.
+
+<a id="cache-12"></a>
+### CACHE-12: Cache-conditional expert skipping (quality measured, Mac)
+
+- **Hypothesis:** Gemma 4's router weights are flat: ranks 1–8 average
+  0.26 … 0.07. So dropping a low-weight expert only when it would be a
+  foreground read could cut the reads a token waits for at little quality
+  cost. Upstream left this as "a quality-changing hypothesis", never run.
+- **Variants tested:**
+  - **Runtime policies** (`TURBO_FIELDFARE_EXPERT_SKIP`), scored with
+    `TurboFieldfareScore` against a reference and a one-INT4-rounding
+    yardstick (KL 0.045), at 24 slots with the early read on.
+  - **The policies:** drop a miss below weight 0.05, 0.08 or 0.10; drop a
+    miss of rank 7 or later; always drop rank 8; swap in the best resident
+    expert; no renormalization.
+  - **The published baseline:** cache-prior reranking (Skliar et al. 2024,
+    arXiv 2412.00099) at λ 0.05 and 0.10.
+- **Evidence:**
+
+| Policy | Waited-for reads per token | KL against the yardstick | Top-1 agreement |
+| --- | --- | --- | --- |
+| `miss:0.05` | −10.2% | 0.10× | 0.986 |
+| `miss:0.08` | **−39.1%** | **0.55×** [0.31, 0.90] | 0.977 |
+| `miss:0.10` | **−62.0%** | 0.94× [0.64, 1.30] | 0.968 |
+| `missrank:7` | −38.4% | 0.54× | 0.977 |
+| `top7` (static) | −18.7% | 0.62× | 0.969 |
+| Reranking, λ 0.05 | −31.4% | 0.55× | 0.969 |
+| Reranking, λ 0.10 | −51.3% | 0.92× | 0.966 |
+
+  - The replay of 29 traces predicted every read cut within its range.
+  - Greedy generations of two benchmark prompts under `miss:0.08` and
+    `miss:0.10` read as equally good.
+- **What changed the conclusion:**
+  - **It is cache-conditional.** The policy spends its quality budget only
+    where the router rates an expert least and the expert would cost a read.
+    Static top-7 drops twice the weight for half the reads.
+  - **Swapping in a resident expert is not better than dropping** on this
+    model, whether by reranking or substitution: the same KL for fewer reads.
+- **Final disposition:** **A research switch, off by default.** It is a
+  candidate for a phone A/B. Arithmetic puts `miss:0.08` at +18 to +32%
+  tok/s. Needs an iOS harness flag, a quality check beyond KL, and the long
+  context. See `results/research-results-2026-10-04-lossy-experts/results.md`.
+- **Lesson:** A lossy change can be priced against the quantization the
+  project already accepts. Measure it with a teacher-forced KL meter against
+  a one-rounding yardstick, not by eye and not against "no change".
 
 [Previous: Decode, MoE, INT4, and router](02-decode-moe-int4-and-router.md) |
 [Experiment inventory](../EXPERIMENT_INVENTORY.md) |

@@ -188,6 +188,12 @@ final class NextLayerExpertPrefetcher: @unchecked Sendable {
         try wait(for: pending.filter(\.adopted))
     }
 
+    /// The experts unadopted early reads are bringing in for `layer`.
+    func pendingExperts(layer: Int) -> Set<Int> {
+        guard pendingLayer == layer else { return [] }
+        return Set(pending.filter { !$0.adopted }.map(\.expert))
+    }
+
     /// Blocks until every pending early read has finished, and rethrows the
     /// first error.
     func waitForPending() throws {
