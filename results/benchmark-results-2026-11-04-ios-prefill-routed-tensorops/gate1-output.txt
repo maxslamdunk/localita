@@ -1,0 +1,44 @@
+A: decode-gate-A-2026-11-04T213318Z.log
+B: decode-gate-B-2026-11-04T215026Z.log
+case                 end     nll A     nll B      dNLL  top1 A  top1 B  B gap
+long-synthesis       188   16.3444   16.3866   -0.0422    3569    3569  0.111
+long-synthesis       377    8.5242    7.7039    0.8203  236743  236743  1.523
+long-synthesis       565   18.6708   17.9584    0.7124    1074    1074  2.260
+long-synthesis       754   17.9505   17.9984   -0.0479  236772  236772  8.511
+long-synthesis       942   20.5832   17.0359    3.5473     775    6114  1.987  <- top-1 differs
+long-synthesis      1131    7.8087    8.0521   -0.2434  236810  236810  2.765
+long-synthesis      1319   10.9110   10.9465   -0.0356  236751  236779  0.533  <- top-1 differs
+long-synthesis      1508   23.5293   23.2156    0.3138    9340   22752  0.495  <- top-1 differs
+long-synthesis      1696   11.4832   12.7653   -1.2821    3770    3770  2.644
+long-synthesis      1884   10.6022   11.5592   -0.9571     569     569  3.558
+long-synthesis      2073   22.8438   22.6259    0.2179  236772  236772 10.111
+long-synthesis      2261   14.4861   13.9436    0.5425  236751  236751  2.959
+long-synthesis      2450   10.1717   10.5846   -0.4129  239874  239874  0.625
+long-synthesis      2638   16.0734   15.8671    0.2063  236771  236771  1.875
+long-synthesis      2827   12.6079   12.6073    0.0005  236772  236772  2.604
+long-synthesis      3015       nan       nan       nan   10354   10354  0.279
+medium-review         27    5.5901    5.6300   -0.0399    1082    1082  0.684
+medium-review         54    3.3807    3.2159    0.1648   45518   45518  2.746
+medium-review         81    5.5188    5.5334   -0.0146    1852    1852  1.681
+medium-review        108    5.5103    5.5295   -0.0192  236764  236764  0.050
+medium-review        134   15.3384   15.3535   -0.0151  236772  236772 10.481
+medium-review        161   11.2346   11.3988   -0.1642    6219    6219  0.815
+medium-review        188    0.4126    0.3919    0.0207     506     506  1.366
+medium-review        215    5.0623    5.0145    0.0477  236786  236786  1.069
+medium-review        242   16.1805   16.1994   -0.0189     496     496  2.925
+medium-review        269   16.0745   16.1263   -0.0518  236772  236772  2.864
+medium-review        296   10.7417    8.8642    1.8775     594  237036  0.187  <- top-1 differs
+medium-review        323   13.3730   13.4836   -0.1106   38494   38494  0.088
+medium-review        349    9.8993    9.7603    0.1391  236772  236772  5.160
+medium-review        376   15.9430   15.9404    0.0026    2234    2234  0.293
+medium-review        403    2.2220    2.2663   -0.0443  236761  236761  0.275
+medium-review        430       nan       nan       nan   10354   10354 10.912
+
+scored endpoints 30; mean dNLL +0.17045; worst |dNLL| 3.54730
+Q1 FAILED (mean within 0.01, worst within 0.05)
+top-1 agreement 28/32; disagreements at B gap > 0.1: [('long-synthesis', 942), ('long-synthesis', 1319), ('long-synthesis', 1508), ('medium-review', 296)]
+Q2 FAILED
+
+Q1' FAILED (mean +0.17045, within 0.02)
+Q2' FAILED (worst |dNLL| 0.16481 over 3 endpoints with B NLL <= 5)
+Q3' FAILED

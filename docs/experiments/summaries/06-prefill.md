@@ -327,6 +327,42 @@ failed the M2 long-row gate.
   The storage-busy estimate left 48 s unattributed, and that time was GPU
   compute in three equal parts, not one.
 
+<a id="pf-19"></a>
+### PF-19: Routed experts on the matrix units (iPhone 17)
+
+- **Hypothesis:** The long prefill's routed GPU time (23 s of 68,
+  [PF-18](#pf-18)) would fall several-fold on the A19's matrix hardware, and
+  the routed phase would then be bounded by its expert reads.
+- **Variants tested:** zw5/ane-fieldfare's `587953b` kernels against the
+  thread-per-row kernels, in one binary (`--no-routed-tensorops`). Long and
+  medium A B B A, short A B. The kernels use:
+  - same-expert tiles of ≤32 pairs;
+  - 32×64×32 `matmul2d` with FP32 accumulation;
+  - FP16 activations at a power-of-two scale per pair and 64-row block;
+  - gate/up loads split to `ushort` for the load-width rule.
+
+  Two endpoint quality gates.
+- **Evidence:**
+  - Long prefill 67.13 → 55.19 s (−17.8%), medium −14.6%, short +0.73 s on
+    one pair.
+  - GPU routed time 23.2 → 4.3 s. `drain` 11.8 → 0.8 s; `fetch` unchanged at
+    ~16 s.
+  - Prefill bytes within 0.15%. Text identical over 32 tokens.
+  - The gate inside the model's own reply passed: mean ΔNLL −0.0012 nats,
+    top-1 24/24.
+  - The 186 device kernel tests pass on the A19.
+  - On the M1 a 43-token prompt's routed GPU time rose 0.88 → 1.70 s.
+- **What changed the conclusion:** The first gate, with endpoints inside the
+  user turn, failed: ΔNLL up to 3.55 nats. The model's distributions there
+  are near degenerate (8–23 nats on the prompt's own next word, the same on
+  the Mac and with `--prefill off`), so rounding moved them by nats. Scoring
+  inside the reply, where the model is in distribution, separated rounding
+  from defects.
+- **Final disposition:** Production where the tensor pipelines build.
+- **Lesson:** A quality gate has to sit where the model is in distribution.
+  Endpoints in an instruction-tuned model's user turn measure chaos, not
+  kernels.
+
 [Previous: Attention and KV cache](05-attention-and-kv-cache.md) |
 [Experiment inventory](../EXPERIMENT_INVENTORY.md) |
 [Optimization journey](../../OPTIMIZATION_JOURNEY.md) |
