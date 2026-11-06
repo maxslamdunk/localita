@@ -15,6 +15,10 @@ public enum RawDecodeProgress: Sendable {
 public enum RawCompletionStart: Sendable, Equatable {
     case reset
     case resume(cachedPromptTokens: Int)
+    /// Carries on a prefill from an empty KV that the GPU refused part way,
+    /// without the reset that would discard its finished layers. The producer
+    /// checks that the prompt is the one it kept.
+    case resumeSuspendedPrefill
 
     /// How many of `promptCount` tokens the producer's KV already holds.
     func cachedPromptTokens(promptCount: Int, producer: any LogitProducer) throws -> Int {
@@ -31,6 +35,12 @@ public enum RawCompletionStart: Sendable, Equatable {
                     "producer does not support continuation")
             }
             return count
+        case .resumeSuspendedPrefill:
+            guard (producer as? any SuspendedPrefillResuming)?.hasSuspendedPrefill == true else {
+                throw GeneratorError.invalidContinuation(
+                    "producer holds no suspended prefill")
+            }
+            return 0
         }
     }
 }
@@ -116,6 +126,8 @@ func runRawPrefill(
     case .resume:
         let continuable = producer as! any ContinuableLogitProducer
         try continuable.prepareForContinuation(expectedPosition: cachedPromptTokens)
+    case .resumeSuspendedPrefill:
+        break
     }
     let prefillStart = Date()
     var position = cachedPromptTokens

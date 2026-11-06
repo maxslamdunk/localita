@@ -300,26 +300,18 @@ Steps:
    token again when the GPU is back. That is safe because the KV advances
    only after a whole forward succeeds. A prefill refusal resumes after the
    chunks that committed.
-   - ⚠️ **Except a long first message, since layer-at-a-time prefill
-     (2026-11-06,
-     `results/benchmark-results-2026-11-06-ios-prefill-layer-major/`).** A
-     prompt from an empty KV that needs more than one chunk commits nothing
-     until its last layer. So a refusal (the phone locked mid-prefill) finds
-     no committed progress and restarts the prefill from zero. Nothing is
-     corrupted, but on the long prompt a lock at 40 s costs about 85 s in all,
-     against about 60–75 s chunk by chunk.
-   - **To do: resume layer-at-a-time prefill from its last finished layer.**
-     When the refusal comes, every earlier layer is complete for the whole
-     prompt. The prompt-wide buffers hold the next layer's input, and nothing
-     else touches the KV while the app waits for the GPU. So the runner could
-     keep that state (buffers, next layer, prompt tokens) across the retry,
-     and `MultimodalConversation`'s refusal path (`committed` at lines
-     636–647) could ask for it instead of restarting. A pause would then lose
-     about one layer (~1.5 s), less than a chunk does today. It needs tests in
-     the mock-runner suites (`MultimodalPrefillProgressTests`,
-     `RawCompletionLoopTests+Continuation`) and one lock-and-unlock check on
-     the phone. It is not a blocker: an uninterrupted long prefill is 10–16 s
-     faster. It should land before the change is relied on for long pastes.
+   - **A long first message resumes from its first unfinished layer**
+     (2026-11-06). Layer-at-a-time prefill
+     (`results/benchmark-results-2026-11-06-ios-prefill-layer-major/`)
+     commits nothing before its last layer, so at first a refusal there
+     restarted the prefill from zero. Now the runner keeps the refused
+     prefill (`PrefillLayerMajorSuspension`) and the retry carries on from
+     the layer it was in (`RawCompletionStart.resumeSuspendedPrefill`), so a
+     pause loses at most one layer, about 1.5 s on the long prompt. A layer
+     used to overwrite its input rows as it went, so the residual stream is
+     now two prompt-wide buffers that alternate by layer: +5,632 B a token,
+     about +17 MB on the long prompt
+     (`results/benchmark-results-2026-11-06-ios-prefill-resume/`).
    - **Lock:** the reply pauses, and unlocking resumes it.
    - **Closing the window:** suspends the app, and coming back resumes the
      reply.

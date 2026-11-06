@@ -636,11 +636,16 @@ public actor MultimodalConversation {
                 // The chunks that committed hold exactly the prompt's first
                 // tokens, so a text turn carries on after them rather than
                 // rewinding, which past the ring slack would fail and lose the
-                // conversation. An image turn's spans are laid out from the
-                // turn start, so it goes back there.
+                // conversation. A layer-at-a-time prefill commits nothing
+                // before its last layer, but the runner keeps the layers it
+                // finished, and the retry carries on from the next one. An
+                // image turn's spans are laid out from the turn start, so it
+                // goes back there.
                 let committed = runner.continuationPosition
                 if turn.prefillInput == nil, committed > cached, committed < promptIDs.count {
                     start = .resume(cachedPromptTokens: committed)
+                } else if turn.prefillInput == nil, cached == 0, runner.hasSuspendedPrefill {
+                    start = .resumeSuspendedPrefill
                 } else {
                     try restoreAfterFailure(generationError)
                     start = turnStart

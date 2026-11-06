@@ -130,7 +130,7 @@ internal enum PrefillProjectionDispatchPolicy {
     }
 }
 
-public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRunner, ContextWindowReporting, ContinuableLogitProducer, ExpertIOReporting, DecodePhaseTimingReporting, PrefillPhaseTimingReporting, @unchecked Sendable {
+public final class RealForwardRunner: ChunkedPrefillRunner, SuspendedPrefillResuming, MultimodalPrefillRunner, ContextWindowReporting, ContinuableLogitProducer, ExpertIOReporting, DecodePhaseTimingReporting, PrefillPhaseTimingReporting, @unchecked Sendable {
     private struct LayerSharedExpertProjections {
         let gate: SharedExpertInt8Proj
         let up: SharedExpertInt8Proj
@@ -198,6 +198,9 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
     private let moeMissActiveSlots: MTLBuffer // [topK] UInt32
     private let greedyTokenBuf: MTLBuffer // 4 B UInt32 fused-head output
     private var prefillChunkState = PrefillChunkCommitState()
+    /// A layer-at-a-time prefill the GPU refused, kept for its retry until
+    /// anything else touches the KV.
+    private var suspendedLayerMajorPrefill: PrefillLayerMajorSuspension?
     private var prefillScratch: PrefillChunkScratchBuffers?
 
     private static let rdadviseBoundedMissCap = 12
@@ -460,8 +463,15 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
         resetTransientState()
     }
 
+    /// Whether a refused layer-at-a-time prefill is waiting for its retry;
+    /// see `RawCompletionStart.resumeSuspendedPrefill`.
+    public var hasSuspendedPrefill: Bool {
+        suspendedLayerMajorPrefill != nil
+    }
+
     private func resetTransientState() {
         prefillChunkState.reset()
+        suspendedLayerMajorPrefill = nil
         rdadviseSkipUntilPosition = -1
         rdadviseAdaptiveState.reset()
         rdadviseAdaptivePosition = -1
@@ -600,7 +610,13 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                                config: PrefillRuntimeConfig,
                                into logits: MTLBuffer,
                                onProgress: (Int) -> Void) async throws -> PrefillResult {
-        try prefillChunkState.requireClean(operation: "prefillChunked")
+        // A refused layer-at-a-time prefill leaves the state dirty on
+        // purpose; only its own prompt may pick it up.
+        let suspended = suspendedLayerMajorPrefill
+        suspendedLayerMajorPrefill = nil
+        if suspended == nil {
+            try prefillChunkState.requireClean(operation: "prefillChunked")
+        }
         guard config.mode == .chunked else {
             throw PrefillError.chunkedUnsupported(
                 "prefillChunked requires PrefillRuntimeConfig.mode == .chunked")
@@ -626,6 +642,10 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
         let spans = PrefillChunkPlanner.spans(tokenCount: tokens.count,
                                               startPosition: startPosition,
                                               config: config)
+        if let suspended, !suspended.resumes(tokens: tokens, startPosition: startPosition, spans: spans) {
+            throw PrefillError.prefillCursorMismatch(
+                "a suspended layer-at-a-time prefill resumes only on its own prompt")
+        }
         if PrefillLayerMajorPolicy.applies(enabled: prefillLayerMajorEnabled,
                                            spanCount: spans.count,
                                            startPosition: startPosition,
@@ -637,6 +657,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                                         logits: logits,
                                         scratch: scratch,
                                         config: config,
+                                        resuming: suspended,
                                         onProgress: onProgress)
         } else {
             try await PrefillSpanIteration.forEachSpan(spans) { spanIndex, span in
@@ -1021,7 +1042,7 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                     "a prefill starting past layer 0 needs the prompt's rows")
             }
             let rowBytes = t * D * MemoryLayout<Float16>.stride
-            blit.copy(from: layerMajor.buffers.hidden,
+            blit.copy(from: layerMajor.buffers.input(ofLayer: layersToRun.lowerBound),
                       sourceOffset: layerMajor.tokenOffset * D * MemoryLayout<Float16>.stride,
                       to: scratch.hidden,
                       destinationOffset: 0,
@@ -1274,7 +1295,8 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                         guard let blit = sharedCB.makeBlitCommandEncoder() else {
                             throw ModelError.residentBufferWrapFailed
                         }
-                        for (source, destination) in [(scratch.hidden, layerMajor.buffers.hidden),
+                        let output = layerMajor.buffers.output(ofLayer: layersToRun.lowerBound)
+                        for (source, destination) in [(scratch.hidden, output),
                                                       (scratch.h1, layerMajor.buffers.h1),
                                                       (scratch.routedX, layerMajor.buffers.routedX)] {
                             blit.copy(from: source, sourceOffset: 0, to: destination,
@@ -1343,7 +1365,8 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
     /// `PrefillLayerMajorPolicy`. Each layer runs every chunk's attention
     /// block and shared expert in order, then its routed experts and tail
     /// once over the whole prompt. The KV advances, and the chunks commit,
-    /// only after the last layer.
+    /// only after the last layer. A refusal keeps the finished layers for the
+    /// retry, which passes them back as `resuming`.
     private func prefillLayerMajor(tokens: ArraySlice<Int32>,
                                    startPosition: Int,
                                    spans: [PrefillChunkSpan],
@@ -1351,56 +1374,69 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
                                    logits: MTLBuffer,
                                    scratch: PrefillChunkScratchBuffers,
                                    config: PrefillRuntimeConfig,
+                                   resuming: PrefillLayerMajorSuspension?,
                                    onProgress: (Int) -> Void) async throws {
         func now() -> UInt64 { clock_gettime_nsec_np(CLOCK_UPTIME_RAW) }
-        let buffers = try PrefillLayerMajorBuffers(device: ctx.device,
-                                                   tokenCount: tokens.count,
-                                                   hiddenSize: cfg.hiddenSize,
-                                                   topK: cfg.topKExperts)
+        let buffers = try resuming?.buffers ?? PrefillLayerMajorBuffers(device: ctx.device,
+                                                                         tokenCount: tokens.count,
+                                                                         hiddenSize: cfg.hiddenSize,
+                                                                         topK: cfg.topKExperts)
         prefillChunkState.markDirty(startPosition: startPosition, tokenCount: tokens.count)
-        for L in 0..<cfg.numLayers {
-            try await PrefillSpanIteration.forEachSpan(spans) { _, span in
-                let lower = tokens.index(tokens.startIndex, offsetBy: span.tokenOffset)
-                let upper = tokens.index(lower, offsetBy: span.tokenCount)
-                try await executePrefillChunk(
-                    tokens: tokens[lower..<upper],
-                    startPosition: span.startPosition,
-                    outputMode: outputMode,
-                    logits: logits,
+        var completedLayers = resuming?.completedLayers ?? 0
+        do {
+            for L in completedLayers..<cfg.numLayers {
+                try await PrefillSpanIteration.forEachSpan(spans) { _, span in
+                    let lower = tokens.index(tokens.startIndex, offsetBy: span.tokenOffset)
+                    let upper = tokens.index(lower, offsetBy: span.tokenCount)
+                    try await executePrefillChunk(
+                        tokens: tokens[lower..<upper],
+                        startPosition: span.startPosition,
+                        outputMode: outputMode,
+                        logits: logits,
+                        scratch: scratch,
+                        config: config,
+                        writeFinalHead: false,
+                        layers: L..<(L + 1),
+                        layerMajor: (buffers, span.tokenOffset))
+                }
+                var timings = PrefillPhaseTimings()
+                var gpuWork: [(buffer: MTLCommandBuffer, part: PrefillGPUPart)] = []
+                let tStart = now()
+                model.expertIOCounters.beginReadIntervalLog()
+                defer { _ = model.expertIOCounters.takeReadIntervals() }
+                try await runPrefillRoutedExperts(
+                    layer: L,
+                    rows: PrefillRoutedRows(prompt: buffers, layer: L),
                     scratch: scratch,
-                    config: config,
-                    writeFinalHead: false,
-                    layers: L..<(L + 1),
-                    layerMajor: (buffers, span.tokenOffset))
+                    label: "prefill start=\(startPosition) count=\(tokens.count) layer=\(L)",
+                    timings: &timings,
+                    gpuWork: &gpuWork)
+                if L == cfg.numLayers - 1 {
+                    let tHead = now()
+                    let finalCB = try runPrefillFinalHead(hidden: buffers.output(ofLayer: L),
+                                                          row: tokens.count - 1,
+                                                          outputMode: outputMode, logits: logits,
+                                                          label: "prefill start=\(startPosition) count=\(tokens.count)")
+                    gpuWork.append((finalCB, .head))
+                    timings.headNanos &+= now() - tHead
+                    timings.chunks = spans.count
+                    timings.profiledChunks = profilesPrefillPhases ? spans.count : 0
+                }
+                timings.wallNanos = now() - tStart
+                recordPrefillChunk(timings,
+                                   gpuWork: gpuWork,
+                                   reads: model.expertIOCounters.takeReadIntervals())
+                // Progress by layer: no token is done before the last one.
+                onProgress(tokens.count * (L + 1) / cfg.numLayers)
+                completedLayers = L + 1
             }
-            var timings = PrefillPhaseTimings()
-            var gpuWork: [(buffer: MTLCommandBuffer, part: PrefillGPUPart)] = []
-            let tStart = now()
-            model.expertIOCounters.beginReadIntervalLog()
-            defer { _ = model.expertIOCounters.takeReadIntervals() }
-            try await runPrefillRoutedExperts(
-                layer: L,
-                rows: PrefillRoutedRows(prompt: buffers),
-                scratch: scratch,
-                label: "prefill start=\(startPosition) count=\(tokens.count) layer=\(L)",
-                timings: &timings,
-                gpuWork: &gpuWork)
-            if L == cfg.numLayers - 1 {
-                let tHead = now()
-                let finalCB = try runPrefillFinalHead(hidden: buffers.hidden, row: tokens.count - 1,
-                                                      outputMode: outputMode, logits: logits,
-                                                      label: "prefill start=\(startPosition) count=\(tokens.count)")
-                gpuWork.append((finalCB, .head))
-                timings.headNanos &+= now() - tHead
-                timings.chunks = spans.count
-                timings.profiledChunks = profilesPrefillPhases ? spans.count : 0
-            }
-            timings.wallNanos = now() - tStart
-            recordPrefillChunk(timings,
-                               gpuWork: gpuWork,
-                               reads: model.expertIOCounters.takeReadIntervals())
-            // Progress by layer: no token is done before the last one.
-            onProgress(tokens.count * (L + 1) / cfg.numLayers)
+        } catch let refusal as GPUWorkNotPermitted {
+            suspendedLayerMajorPrefill = PrefillLayerMajorSuspension(tokens: Array(tokens),
+                                                                     startPosition: startPosition,
+                                                                     spans: spans,
+                                                                     buffers: buffers,
+                                                                     completedLayers: completedLayers)
+            throw refusal
         }
         kv?.advance(by: tokens.count)
         prefillChunkState.markCommitted()
@@ -1487,9 +1523,9 @@ public final class RealForwardRunner: ChunkedPrefillRunner, MultimodalPrefillRun
             routeWeights = scratch.routeWeights
         }
 
-        init(prompt buffers: PrefillLayerMajorBuffers) {
+        init(prompt buffers: PrefillLayerMajorBuffers, layer: Int) {
             tokenCount = buffers.tokenCount
-            hidden = buffers.hidden
+            hidden = buffers.output(ofLayer: layer)
             h1 = buffers.h1
             routedX = buffers.routedX
             // The reduce writes h2 only after every routed tile has read

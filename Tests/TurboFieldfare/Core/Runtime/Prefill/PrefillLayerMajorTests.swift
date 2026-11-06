@@ -36,21 +36,45 @@ import Testing
                                                  tokenCount: 3015))
     }
 
-    /// Gemma 4: D 2816, top-8. 62,000 bytes a token; the doc comments and
+    /// Gemma 4: D 2816, top-8. 67,632 bytes a token; the doc comments and
     /// `docs/RUNTIME_CONTROLS.md` quote these sizes.
     @Test func promptWideBytesPerToken() {
-        #expect(PrefillLayerMajorBuffers.bytes(tokenCount: 1, hiddenSize: 2816, topK: 8) == 62_000)
+        #expect(PrefillLayerMajorBuffers.bytes(tokenCount: 1, hiddenSize: 2816, topK: 8) == 67_632)
         #expect(PrefillLayerMajorBuffers.bytes(tokenCount: 3015, hiddenSize: 2816, topK: 8)
-            == 186_930_000)
+            == 203_910_480)
         #expect(PrefillLayerMajorBuffers.bytes(tokenCount: PrefillLayerMajorPolicy.maxTokens,
-                                               hiddenSize: 2816, topK: 8) == 253_952_000)
+                                               hiddenSize: 2816, topK: 8) == 277_020_672)
     }
 
     @Test func buffersMatchTheirByteCount() throws {
         guard let device = MTLCreateSystemDefaultDevice() else { return }
         let buffers = try PrefillLayerMajorBuffers(device: device, tokenCount: 3, hiddenSize: 16, topK: 2)
-        let total = [buffers.hidden, buffers.h1, buffers.routedX, buffers.routePartials,
-                     buffers.routeIDs, buffers.routeWeights].map(\.length).reduce(0, +)
+        let total = (buffers.hidden + [buffers.h1, buffers.routedX, buffers.routePartials,
+                                       buffers.routeIDs, buffers.routeWeights]).map(\.length).reduce(0, +)
         #expect(total == PrefillLayerMajorBuffers.bytes(tokenCount: 3, hiddenSize: 16, topK: 2))
+    }
+
+    /// A layer never writes the rows it reads, so a refused layer can run
+    /// again from its own input.
+    @Test func eachLayerReadsTheRowsTheLayerBeforeWrote() throws {
+        guard let device = MTLCreateSystemDefaultDevice() else { return }
+        let buffers = try PrefillLayerMajorBuffers(device: device, tokenCount: 3, hiddenSize: 16, topK: 2)
+        for layer in 1..<30 {
+            #expect(buffers.input(ofLayer: layer) === buffers.output(ofLayer: layer - 1))
+            #expect(buffers.input(ofLayer: layer) !== buffers.output(ofLayer: layer))
+        }
+    }
+
+    @Test func aSuspensionResumesOnlyItsOwnPrompt() throws {
+        guard let device = MTLCreateSystemDefaultDevice() else { return }
+        let spans = PrefillChunkPlanner.spans(tokenCount: 6, startPosition: 0, chunkTokens: 4)
+        let suspension = PrefillLayerMajorSuspension(
+            tokens: [1, 2, 3, 4, 5, 6], startPosition: 0, spans: spans,
+            buffers: try PrefillLayerMajorBuffers(device: device, tokenCount: 6, hiddenSize: 16, topK: 2),
+            completedLayers: 7)
+        #expect(suspension.resumes(tokens: [1, 2, 3, 4, 5, 6], startPosition: 0, spans: spans))
+        #expect(!suspension.resumes(tokens: [1, 2, 3, 4, 5, 7], startPosition: 0, spans: spans))
+        #expect(!suspension.resumes(tokens: [1, 2, 3, 4, 5, 6], startPosition: 0,
+                                    spans: Array(spans.dropLast())))
     }
 }

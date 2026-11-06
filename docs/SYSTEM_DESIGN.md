@@ -282,9 +282,11 @@ one layer at a time, without holding expert activations for the full prompt.
 A prompt from an empty KV that needs more than one chunk, up to 4096 tokens,
 runs layer at a time across its chunks instead (`PrefillLayerMajorPolicy`). For
 each layer, every chunk's attention block and shared expert run in order. Then
-the routed experts, reduce and tail run once over prompt-wide rows (62,000 B a
+the routed experts, reduce and tail run once over prompt-wide rows (67,632 B a
 token), so each expert is read once per layer. KV advances and the prefill
-commits after the last layer.
+commits after the last layer. The residual stream alternates between two of
+those buffers by layer, so a layer the GPU refused can run again from its
+input: the runner keeps the finished layers and the retry carries on.
 
 For each chunk and layer, TurboFieldfare:
 

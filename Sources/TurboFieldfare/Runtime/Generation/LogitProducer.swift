@@ -49,6 +49,12 @@ protocol ChunkedPrefillRunner: LogitProducer {
                         onProgress: (Int) -> Void) async throws -> PrefillResult
 }
 
+/// A chunked runner that keeps a prefill the GPU refused part way, for a
+/// retry to carry on (`RawCompletionStart.resumeSuspendedPrefill`).
+protocol SuspendedPrefillResuming: ChunkedPrefillRunner {
+    var hasSuspendedPrefill: Bool { get }
+}
+
 protocol MultimodalPrefillRunner: LogitProducer {
     func prefillMultimodal(input: MultimodalPrefillInput,
                            startPosition: Int,

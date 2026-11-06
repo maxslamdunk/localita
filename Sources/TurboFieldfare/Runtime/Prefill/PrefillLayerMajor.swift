@@ -13,11 +13,13 @@ import Metal
 /// Only a prompt that starts an empty KV qualifies. Nothing commits until the
 /// last layer, and by then the SWA rings have wrapped further than a failed
 /// turn can rewind past; at position 0 a failed turn restarts from a reset,
-/// which needs no rewind. The token cap bounds the prompt-wide buffers.
+/// which needs no rewind. A turn the GPU refused carries on instead from its
+/// first unfinished layer (`RawCompletionStart.resumeSuspendedPrefill`). The
+/// token cap bounds the prompt-wide buffers.
 enum PrefillLayerMajorPolicy {
     /// "0" keeps every prompt chunk by chunk.
     static let environmentKey = "TURBO_FIELDFARE_PREFILL_LAYER_MAJOR"
-    /// About 62 KB of prompt-wide rows per token: 254 MB at the cap.
+    /// About 68 KB of prompt-wide rows per token: 277 MB at the cap.
     static let maxTokens = 4096
 
     static func applies(enabled: Bool, spanCount: Int, startPosition: Int, tokenCount: Int) -> Bool {
@@ -27,11 +29,15 @@ enum PrefillLayerMajorPolicy {
 
 /// The whole prompt's rows a layer-at-a-time prefill keeps between a layer's
 /// attention, run chunk by chunk, and its routed experts, run once over the
-/// prompt. Allocated for one prefill and released after it.
+/// prompt. Allocated for one prefill and released after it, or after the
+/// retry of a refused one (`PrefillLayerMajorSuspension`).
 struct PrefillLayerMajorBuffers {
     let tokenCount: Int
-    /// The residual stream, carried from layer to layer.
-    let hidden: MTLBuffer
+    /// The residual stream, in two buffers that alternate by layer: a layer
+    /// reads the one the layer before it wrote and writes the other. Its
+    /// input is then intact however far it got, so a layer the GPU refused
+    /// can run again.
+    let hidden: [MTLBuffer]
     /// The shared expert's output for the layer tail.
     let h1: MTLBuffer
     /// The routed experts' input, then the reduced routed output (`h2`): the
@@ -43,7 +49,7 @@ struct PrefillLayerMajorBuffers {
 
     static func bytes(tokenCount: Int, hiddenSize: Int, topK: Int) -> Int {
         let half = MemoryLayout<Float16>.stride
-        return 3 * tokenCount * hiddenSize * half
+        return 4 * tokenCount * hiddenSize * half
             + tokenCount * topK * hiddenSize * half
             + tokenCount * topK * (MemoryLayout<UInt32>.stride + half)
     }
@@ -59,7 +65,9 @@ struct PrefillLayerMajorBuffers {
         let half = MemoryLayout<Float16>.stride
         let rowBytes = tokenCount * hiddenSize * half
         self.tokenCount = tokenCount
-        hidden = try buffer(rowBytes, .storageModePrivate, "prefill.layerMajor.hidden")
+        hidden = try (0..<2).map {
+            try buffer(rowBytes, .storageModePrivate, "prefill.layerMajor.hidden\($0)")
+        }
         h1 = try buffer(rowBytes, .storageModePrivate, "prefill.layerMajor.h1")
         routedX = try buffer(rowBytes, .storageModePrivate, "prefill.layerMajor.routedX")
         routePartials = try buffer(rowBytes * topK, .storageModePrivate, "prefill.layerMajor.routePartials")
@@ -67,5 +75,32 @@ struct PrefillLayerMajorBuffers {
                               "prefill.layerMajor.routeIDs")
         routeWeights = try buffer(tokenCount * topK * half, .storageModeShared,
                                   "prefill.layerMajor.routeWeights")
+    }
+
+    /// Layer `layer`'s output, which the next layer reads.
+    func output(ofLayer layer: Int) -> MTLBuffer { hidden[layer % 2] }
+
+    /// Layer `layer`'s input: the layer before it's output. Layer 0 embeds
+    /// its tokens instead.
+    func input(ofLayer layer: Int) -> MTLBuffer { hidden[(layer + 1) % 2] }
+}
+
+/// A layer-at-a-time prefill the GPU refused part way. The finished layers'
+/// keys and values are in the KV and the last one's output is in `buffers`,
+/// so a retry of the same prompt carries on from the first unfinished layer
+/// instead of starting again from the embedding. Redoing that layer rewrites
+/// its ring slots in the order they were first written, so it reads what it
+/// would have.
+struct PrefillLayerMajorSuspension {
+    let tokens: [Int32]
+    let startPosition: Int
+    let spans: [PrefillChunkSpan]
+    let buffers: PrefillLayerMajorBuffers
+    let completedLayers: Int
+
+    /// Whether a prefill of `tokens` from `startPosition`, in `spans`, is the
+    /// one that was refused.
+    func resumes(tokens: ArraySlice<Int32>, startPosition: Int, spans: [PrefillChunkSpan]) -> Bool {
+        startPosition == self.startPosition && spans == self.spans && tokens.elementsEqual(self.tokens)
     }
 }
