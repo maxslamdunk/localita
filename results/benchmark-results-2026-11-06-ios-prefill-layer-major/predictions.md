@@ -88,3 +88,24 @@ not overlap.
   chunk's routed work and the next chunk's attention) costs what the reads
   saved.
 - Footprint above +300 MB: buffers outlive the prefill or are double counted.
+
+## Addendum: trusted load (written 2026-11-06 02:47, before these runs)
+
+Written after long A1, B1 and B2 had run. A1 put its 3,478 reads mostly in
+the file cache (fetch 1.60 s, mean 2.19 ms a read), warmed by the first-touch
+SHA-256 of each layer file just before that layer's routed step. A new chat on
+an already-loaded model does not hash, so the hashed benchmark flatters arm A
+there. Long A B B A once more with `--trust-install`, after the main set,
+same binary:
+
+| | B, trusted | A, trusted |
+| --- | --- | --- |
+| prefill bytes, MiB | 30,561.02 (exact, as hashed) | 11,140.47 (exact, as hashed) |
+| prefill wall, s | 58–70 | **43–50** |
+| A − B | | **−12 to −22 s** |
+
+- Mechanism: without the hash, B's 9,541 reads are random at 8–16 ms and
+  A's 3,478 are too, so A's routed phase is bound by about 11 GB from
+  storage (6–9 s), against B's ~30 GB.
+- Controls: text `30e14eae…` in all four.
+- Falsified if A − B is smaller than 8 s, or A's routed phase exceeds 12 s.
