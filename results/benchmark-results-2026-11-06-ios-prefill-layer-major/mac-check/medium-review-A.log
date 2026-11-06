@@ -1,0 +1,7 @@
+
+[stop=maxTokens prefill=430tok new=48tok decode=12.52s tok/s=3.833]
+[expert-io decode bytes/tok=307.16MB hit-rate=61.6% req/tok=240.00 reads/tok=95.89 forwards=47 | prefill bytes=8885.47MB hit-rate=0.0% reads=2774 | early decode reads/tok=29.00 used/tok=25.28]
+[phase-time decode ms/fwd cb1=1.77 cb1-wait=94.96 io=144.66 cb2=1.76 routed-drain=1.46 head=15.58 wall=266.41 forwards=47 | sequential per layer; io hides the shared-expert branch]
+[gpu-time decode ms/fwd embed=0.01 cb1=53.56 shared=23.96 hit-experts=12.79 routed=25.90 head=15.32 busy=125.12 idle=141.29 wall=266.41 forwards=47 | command-buffer timestamps; parts may overlap, busy is their union]
+[read-latency decode reads=4507 mean=4.88ms <0.25ms=0.0% 0.25-0.5ms=0.1% 0.5-1ms=0.3% 1-2ms=22.4% 2-4ms=23.2% 4-8ms=37.7% 8-16ms=16.1% >=16ms=0.2% | prefill reads=2774 mean=2.26ms <0.25ms=0.0% 0.25-0.5ms=0.1% 0.5-1ms=3.9% 1-2ms=68.9% 2-4ms=23.2% 4-8ms=0.5% 8-16ms=1.8% >=16ms=1.5%]
+[prefill-time s chunks=4 profiled=0 wall=12.01 attn-block=4.01 route-plan=0.01 shared=3.87 routed=4.07 fetch=2.69 drain=1.32 tail=0.03 head=0.01 | gpu embed=0.00 attn-block=2.39 qkv-proj=0.00 qkv-epilogue=0.00 attention=0.00 o-proj=0.00 router=0.00 shared=3.71 routed=2.13 tail=0.02 head=0.01 busy=8.27 | storage busy=1.02 overlap-gpu=0.76 both-idle=3.48 | wall phases in sequence; gpu parts may overlap, busy is their union]
