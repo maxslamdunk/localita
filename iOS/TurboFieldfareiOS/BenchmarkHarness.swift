@@ -411,6 +411,10 @@ struct HarnessSettings {
         if args.contains("--no-routed-tensorops") {
             setenv("TURBO_FIELDFARE_PREFILL_ROUTED_TENSOROPS", "0", 1)
         }
+        // Keeps every prompt chunk by chunk. See `PrefillLayerMajorPolicy`.
+        if args.contains("--no-layer-major-prefill") {
+            setenv("TURBO_FIELDFARE_PREFILL_LAYER_MAJOR", "0", 1)
+        }
         return settings
     }
 }
