@@ -1,0 +1,13 @@
+03:07:45 cooldown 300s
+03:12:45 launch trust-A1 (long-synthesis)
+03:13:52 done trust-A1: [stop=maxTokens prefill=3015tok new=32tok decode=7.05s tok/s=4.538]
+03:13:52 cooldown 300s
+03:18:52 launch trust-B1 (long-synthesis)
+03:20:19 done trust-B1: [stop=maxTokens prefill=3015tok new=32tok decode=7.04s tok/s=4.545]
+03:20:19 cooldown 300s
+03:25:19 launch trust-B2 (long-synthesis)
+03:26:49 done trust-B2: [stop=maxTokens prefill=3015tok new=32tok decode=7.36s tok/s=4.351]
+03:26:49 cooldown 300s
+03:31:49 launch trust-A2 (long-synthesis)
+03:32:55 done trust-A2: [stop=maxTokens prefill=3015tok new=32tok decode=7.69s tok/s=4.161]
+03:32:55 ALL DONE
