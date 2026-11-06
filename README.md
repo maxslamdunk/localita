@@ -132,6 +132,8 @@ repository adds:
 - **24 expert slots per layer** on the phone instead of 16: 21–37% faster.
 - **1,024-token prefill chunks** on the phone instead of 256: 71% less read
   for a long prompt.
+- **Prefill one layer at a time across chunks**, so a long prompt reads each
+  expert once per layer: 64% less read, and 18–25% faster prefill.
 - **The measurements**: per-phase timers, GPU timestamps and read latencies
   printed on every run, and a log of every run
   ([`MEASUREMENTS.md`](MEASUREMENTS.md)).

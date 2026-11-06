@@ -279,6 +279,13 @@ The production profile handles up to 128 prompt tokens at a time. Execution
 stays layer-major: it moves each bounded group of rows through the transformer
 one layer at a time, without holding expert activations for the full prompt.
 
+A prompt from an empty KV that needs more than one chunk, up to 4096 tokens,
+runs layer at a time across its chunks instead (`PrefillLayerMajorPolicy`). For
+each layer, every chunk's attention block and shared expert run in order. Then
+the routed experts, reduce and tail run once over prompt-wide rows (62,000 B a
+token), so each expert is read once per layer. KV advances and the prefill
+commits after the last layer.
+
 For each chunk and layer, TurboFieldfare:
 
 - runs projection GEMM/QMM paths where the row count can amortize setup;

@@ -363,6 +363,38 @@ failed the M2 long-row gate.
   Endpoints in an instruction-tuned model's user turn measure chaos, not
   kernels.
 
+<a id="pf-20"></a>
+### PF-20: Layer at a time across chunks (iPhone 17)
+
+- **Hypothesis:** After [PF-19](#pf-19)
+  the long prompt's routed phase was bound by its reads. Each of its three
+  1024-token chunks re-read about 106 of each layer's 128 experts, which 24
+  slots cannot keep. Running a layer's routed experts once over the whole
+  prompt would read each expert once per layer: about −60% bytes.
+- **Variants tested:** The idea is from zw5/ane-fieldfare `c17d0c2`, which
+  moves layers outside chunks. That alone reads the same bytes here, because
+  the expert cache is per layer. So each layer's attention block and shared
+  expert run chunk by chunk, into prompt-wide rows (62,000 B a token), and
+  then its routed experts, reduce and tail run once over the prompt. Only a
+  prompt from an empty KV qualifies, up to 4096 tokens. The A/B was
+  `--no-layer-major-prefill` in one binary: long and medium A B B A, hashed,
+  then long A B B A with `--trust-install`.
+- **Evidence:**
+  - Long prefill bytes 30,561.02 → 11,140.47 MiB (−63.5%, 3,478 reads).
+  - Wall 54.52 → 44.81 s hashed (−17.8%), and 67.27 → 50.73 s trusted
+    (−24.6%).
+  - Text identical on the phone and on the M1. Medium (one chunk)
+    unchanged. Peak footprint +132 MB.
+  - On the M1 at chunk 128, long bytes fell −93.9%.
+- **What changed the conclusion:** With the first-load SHA-256, the routed
+  reads came mostly from the file cache: storage was busy 1.58 s for 11 GB.
+  The hash reads each layer file sequentially just before that layer's
+  routed step. A loaded model does not hash, so the trusted set, with real
+  reads at about 11 ms, is the closer guide to a new chat.
+- **Final disposition:** Production, both platforms.
+- **Lesson:** A literal port can save nothing when the cache design differs.
+  Here what matters is when each expert is read, not which loop is outermost.
+
 [Previous: Attention and KV cache](05-attention-and-kv-cache.md) |
 [Experiment inventory](../EXPERIMENT_INVENTORY.md) |
 [Optimization journey](../../OPTIMIZATION_JOURNEY.md) |

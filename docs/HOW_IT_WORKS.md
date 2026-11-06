@@ -142,6 +142,11 @@ as three chunks and read 30,606 MiB in prefill: about 106 of each layer's 128
 experts per chunk. Raising the chunk size on iOS from 256 to 1,024 tokens cut
 that prompt's prefill reads by 70.6%.
 
+A prompt that opens a chat now goes one layer at a time across all its chunks.
+Attention still runs chunk by chunk, but each layer's experts run once over
+the whole prompt, so each is read once. On the long prompt that cut prefill
+reads from 30,561 to 11,140 MiB, and prefill time by 18–25%.
+
 ## Where a token's time goes
 
 Milliseconds per token, from the engine's own timers:

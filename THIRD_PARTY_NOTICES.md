@@ -28,6 +28,13 @@ microbatch is capped by what a chunk can route. The FP32-reference kernel
 test in `Tests/TurboFieldfare/Core/Kernels/Prefill/PrefillGroupedRoutedMoETests+TensorOps.swift`
 follows that commit's test.
 
+Layer-at-a-time prefill across chunks (`PrefillLayerMajorPolicy` and
+`RealForwardRunner.prefillLayerMajor`) takes its idea from zw5/ane-fieldfare
+commit `c17d0c2`, which runs prefill's layers outside its chunks. No code is
+taken from it. Here the routed experts also run once over the whole prompt
+per layer, because this runtime's expert cache is per layer, and the order
+applies only to a prompt that starts an empty KV.
+
 ## Model weights
 
 Model weights are not included in this repository. The installer downloads
