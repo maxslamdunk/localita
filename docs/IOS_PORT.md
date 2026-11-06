@@ -336,6 +336,31 @@ Steps:
    `controlsStyle` key and has no video, which App Review would refuse. The
    app is side-loaded.
 
+   **To do: a Continue action for a stopped reply** (proposed 2026-11-06,
+   not built). With the setting off, the default, a lock, Control Center, a
+   call or a quick app switch all end the reply. The only way on is to send
+   "continue", which leaves a fake user turn in the chat. The model may also
+   restart, repeat or summarize rather than finish the sentence. The runtime
+   already keeps what Continue needs:
+   - A stopped run ends with reason `.cancelled`, and the KV keeps every
+     generated token except the last one shown.
+   - That token is held as `uncommittedBoundary` with `boundaryNeedsReplay`
+     set.
+   - The model's turn is left open, with no end-of-turn written.
+   - The token IDs are saved with the turn.
+
+   Today the next message replays that token, closes the model turn and
+   prefills only the new user turn (`MultimodalConversation.swift`, around
+   518–522). Continue would replay the token and keep decoding inside the
+   same open turn. Nothing is re-read or added to the transcript, and the
+   reply grows in place. If iOS ended the app meanwhile, the conversation is
+   first rebuilt from the saved tokens, one full prefill, and then
+   continues. Needs: a runtime entry point next to `generate`, the button on
+   a reply that stopped with `.cancelled` (and `.maxTokens`, if the app caps
+   replies), and tests in the mock-runner suites. Making background
+   generation the default would cover some of the same cases, but it is a
+   separate decision.
+
    ✅ **Community models from a pasted link since 2026-10-07.** Add Model in
    the composer's model menu takes a Hugging Face link or `owner/name`.
    `RemoteModelInspector` reads only the config, the index and each shard's
