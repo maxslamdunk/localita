@@ -146,6 +146,12 @@ now 4–9 s.
   tokens, and a failed turn there would rewind into SWA ring slots that this
   order has already overwritten. At position 0 a failure restarts from a
   reset.
+- **A GPU refusal now restarts the prefill** (found after scoring). Chunk by
+  chunk, when the phone locked mid-prefill, the turn resumed after the chunks
+  that had committed. Layer at a time commits nothing until the last layer,
+  so it starts over. This is not measured. Resuming from the last finished
+  layer is the fix, and it is listed as a to-do in `docs/IOS_PORT.md`, under
+  background generation.
 - Each layer-at-a-time run logs 30 progress lines, one per layer, where the
   chunk path logs one per chunk.
 - Decode bytes/token over 32 tokens moved: 273.61 against 271.03 MB. Decode
