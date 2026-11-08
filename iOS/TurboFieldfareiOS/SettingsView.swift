@@ -309,7 +309,11 @@ struct SettingsView: View {
     /// (`results/benchmark-results-2026-10-08-ios-early-read-x2/`); skipping
     /// the file cache gave +6 to +8% where GPU speed matched
     /// (`results/benchmark-results-2026-10-03-ios-expert-read-nocache/`).
-    /// The in-app benchmark ignores both and runs the defaults.
+    /// Skipping unlikely experts at 0.08 gave +18 to +33% and solved as many
+    /// graded problems as off (`results/benchmark-results-2026-11-08-ios-expert-skip/`,
+    /// `results/validation-results-2026-11-08-ios-expert-skip-accuracy/`); 0.10 is
+    /// offered unmeasured on the phone, at the user's request. The in-app
+    /// benchmark ignores all three and runs the defaults.
     private var expertReadsSection: some View {
         Section {
             described("While storage would otherwise sit idle, read the experts "
@@ -333,6 +337,19 @@ struct SettingsView: View {
                 } set: { model.setExpertReadsBypassFileCache($0) })
             }
 
+            described("Leave out an expert the model barely uses when it would "
+                      + "have to be read from storage. Faster, and changes the "
+                      + "replies slightly. 0.08 kept answers as accurate in tests; "
+                      + "0.10 is faster again but untested on the phone.") {
+                Picker("Skip unlikely experts", selection: Binding {
+                    model.runtimeOptions.expertSkipThreshold
+                } set: { model.setExpertSkipThreshold($0) }) {
+                    ForEach(AppRuntimeOptions.allowedExpertSkipThresholds, id: \.self) { threshold in
+                        Text(Self.expertSkipLabel(threshold)).tag(threshold)
+                    }
+                }
+            }
+
             if model.hasStaleLoadedRuntime {
                 Button("Reload Model to Apply") { model.perform(.reload) }
                     .disabled(!model.canReloadModel)
@@ -340,9 +357,14 @@ struct SettingsView: View {
         } header: {
             Text("Expert reads")
         } footer: {
-            Text("Both apply after the model reloads. The benchmark always runs the defaults.")
+            Text("These apply after the model reloads. The benchmark always runs the defaults.")
         }
         .disabled(model.isRunning || model.loadState.isLoading)
+    }
+
+    private static func expertSkipLabel(_ threshold: Double) -> String {
+        let label = threshold == 0 ? "Off" : String(format: "%.2f", threshold)
+        return threshold == AppRuntimeOptions.defaultExpertSkipThreshold ? "\(label) · default" : label
     }
 
     // MARK: - Image support

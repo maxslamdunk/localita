@@ -137,14 +137,18 @@ import TurboFieldfare
         let old = try JSONDecoder().decode(MacAppSettings.self, from: Data(json.utf8))
         #expect(old.earlyExpertReads == 1)
         #expect(old.expertReadsBypassFileCache == PreadExpertStreamer.readsBypassFileCacheByDefault)
+        #expect(old.expertSkipThreshold == AppRuntimeOptions.defaultExpertSkipThreshold)
 
-        let chosen = MacAppSettings(earlyExpertReads: 2, expertReadsBypassFileCache: false)
+        let chosen = MacAppSettings(earlyExpertReads: 2, expertReadsBypassFileCache: false,
+                                    expertSkipThreshold: 0.10)
         let decoded = try JSONDecoder().decode(
             MacAppSettings.self, from: JSONEncoder().encode(chosen))
         #expect(decoded.earlyExpertReads == 2)
         #expect(!decoded.expertReadsBypassFileCache)
+        #expect(decoded.expertSkipThreshold == 0.10)
         #expect(decoded.isValid())
         #expect(!MacAppSettings(earlyExpertReads: 5).isValid())
+        #expect(!MacAppSettings(expertSkipThreshold: 0.05).isValid())
     }
 
     @Test(arguments: [true, false])

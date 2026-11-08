@@ -19,7 +19,7 @@ capacity and memory cost.
 | Fresh preallocated expert artifact | Unexecuted hypothesis |
 | Next-layer early read from the hidden state | Production since 2026-10-03, with the fitted guess: about +17–20% tok/s on iPhone at +11–18% bytes/token |
 | LFU count aging (decay and a reset per conversation) | Production; +23% tok/s over an 11-chat session on iPhone, nothing on a fresh single prompt |
-| Cache-conditional expert skipping (drop a low-weight expert only when it misses) | Research switch; −39% waited-for reads at half the KL of one INT4 rounding (Mac); +18 to +33% tok/s on iPhone, 47 of 50 graded problems in both arms, [CACHE-12](#cache-12) |
+| Cache-conditional expert skipping (drop a low-weight expert only when it misses) | **iOS default since 2026-11-08** (a quality spend; off on macOS); −39% waited-for reads at half the KL of one INT4 rounding (Mac); +18 to +33% tok/s on iPhone, 47 of 50 graded problems in both arms, [CACHE-12](#cache-12) |
 
 ## Cache policy and capacity
 
@@ -332,8 +332,11 @@ capacity and memory cost.
     did not compound.
   - It cannot resolve a loss of 1–3 problems in 50, and it covers English
     arithmetic only.
-  - It stays off by default; the default is the user's quality decision.
   - See `results/validation-results-2026-11-08-ios-expert-skip-accuracy/results.md`.
+- **Decision (2026-11-08, the user's):** `miss:0.08` is the iOS default, and
+  the iOS Settings sheet offers Off, 0.08 and 0.10. 0.10 is not measured on
+  the phone. macOS stays off. Recorded in `docs/IOS_PORT.md`, "The rule that
+  keeps the split honest".
 - **Lesson:** A lossy change can be priced against the quantization the
   project already accepts. Measure it with a teacher-forced KL meter against
   a one-rounding yardstick, not by eye and not against "no change".

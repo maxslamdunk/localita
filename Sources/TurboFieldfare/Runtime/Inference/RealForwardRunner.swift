@@ -221,8 +221,8 @@ public final class RealForwardRunner: ChunkedPrefillRunner, SuspendedPrefillResu
     /// is off or `TURBO_FIELDFARE_EARLY_EXPERT_READ=off`. See
     /// `NextLayerExpertPrefetcher`.
     private let earlyExpertReads: NextLayerExpertPrefetcher?
-    /// Research only: `ExpertSkipPolicy`, nil unless its environment variable
-    /// is set.
+    /// `ExpertSkipPolicy`, from `RuntimeConfiguration.expertSkipMissThreshold`
+    /// unless its environment variable overrides it; nil when off.
     private let expertSkip: ExpertSkipPolicy?
     private var perExpertScales: [[Float]] = []
     /// What `expertSkip` did since load.
@@ -434,7 +434,8 @@ public final class RealForwardRunner: ChunkedPrefillRunner, SuspendedPrefillResu
             enabledByDefault: runtimeConfiguration.earlyExpertRead,
             readsPerLayerByDefault: runtimeConfiguration.earlyExpertReadsPerLayer,
             model: model, config: cfg, device: ctx.device)
-        self.expertSkip = try ExpertSkipPolicy()
+        self.expertSkip = try ExpertSkipPolicy(
+            missThresholdByDefault: runtimeConfiguration.expertSkipMissThreshold)
         if expertSkip != nil {
             self.perExpertScales = try (0..<cfg.numLayers).map { L in
                 let view = try model.routerPerExpertScale(layer: L)

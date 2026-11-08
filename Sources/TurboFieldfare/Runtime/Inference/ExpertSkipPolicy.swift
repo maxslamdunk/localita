@@ -1,8 +1,11 @@
 import Foundation
 
-/// Research only: decode drops some of a layer's routed experts, which
-/// changes the model's output on purpose. Off unless the environment variable
-/// `TURBO_FIELDFARE_EXPERT_SKIP` is set. Prefill is unaffected.
+/// Decode drops some of a layer's routed experts, which changes the model's
+/// output on purpose. Prefill is unaffected. The load's
+/// `RuntimeConfiguration.expertSkipMissThreshold` sets a `miss:<t>` policy
+/// (on iOS `miss:0.08` by default since 2026-11-08, off on macOS), and the
+/// environment variable `TURBO_FIELDFARE_EXPERT_SKIP` overrides it with any
+/// spec below, or with `off`.
 ///
 /// Spec `<kind>:<value>[:nonorm]`. Weights `p` are the router's softmax over
 /// the top-8 logits (before the per-expert scale), and rank 1 is never dropped.
@@ -55,8 +58,16 @@ package struct ExpertSkipPolicy: Sendable, Equatable {
         self.then = then
     }
 
-    package init?(environment: [String: String] = ProcessInfo.processInfo.environment) throws {
-        guard let spec = environment[Self.environmentKey], !spec.isEmpty else { return nil }
+    /// The environment's spec if it sets one, `off` included; otherwise
+    /// `miss:<missThresholdByDefault>`, or none when that is nil.
+    package init?(environment: [String: String] = ProcessInfo.processInfo.environment,
+                  missThresholdByDefault: Double? = nil) throws {
+        guard let spec = environment[Self.environmentKey], !spec.isEmpty else {
+            guard let threshold = missThresholdByDefault else { return nil }
+            self.init(kind: .miss, value: threshold)
+            return
+        }
+        if spec == "off" { return nil }
         var steps: [ExpertSkipPolicy] = []
         for step in spec.split(separator: "+", omittingEmptySubsequences: false) {
             let parts = step.split(separator: ":").map(String.init)

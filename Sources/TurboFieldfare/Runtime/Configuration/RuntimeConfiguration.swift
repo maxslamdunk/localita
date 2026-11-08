@@ -22,6 +22,8 @@ public enum RuntimeExpertCachePolicy: String, Codable, Sendable {
 public struct RuntimeConfiguration: Sendable, Equatable {
     public static let allowedExpertCacheSlots = [8, 16, 24, 32]
     public static let allowedPrefillChunkTokens = PrefillRuntimeConfig.allowedChunkTokens
+    /// The `miss:<t>` thresholds the apps offer besides off.
+    public static let allowedExpertSkipMissThresholds = [0.08, 0.10]
     public static let minimumExpertCacheSlotsForChunkedPrefill = 16
 
     /// The production slot count, which differs by platform because what it
@@ -112,6 +114,27 @@ public struct RuntimeConfiguration: Sendable, Equatable {
     /// on iOS, off on macOS** (`PreadExpertStreamer.readsBypassFileCacheByDefault`).
     /// `TURBO_FIELDFARE_EXPERT_READ_NOCACHE` overrides it.
     public let expertReadsBypassFileCache: Bool
+    /// In decode, drop a routed expert that would be a foreground read and
+    /// that the router weighs under this (`ExpertSkipPolicy`, `miss:<t>`); nil
+    /// is off. **This changes the output.** Default `productionExpertSkipMissThreshold`.
+    /// `TURBO_FIELDFARE_EXPERT_SKIP` overrides it.
+    public let expertSkipMissThreshold: Double?
+
+    /// **0.08 on iOS since 2026-11-08, off on macOS.** On the iPhone 17,
+    /// `miss:0.08` gave **+32.9 / +18.2 / +26.0% tok/s**
+    /// (`results/benchmark-results-2026-11-08-ios-expert-skip/`) and solved
+    /// 47 of 50 GSM-Symbolic P2 problems, as off did
+    /// (`results/validation-results-2026-11-08-ios-expert-skip-accuracy/`).
+    /// On the M1 it cost 0.55× the KL of one INT4 rounding
+    /// (`results/research-results-2026-10-04-lossy-experts/`). The Mac has no
+    /// speed A/B, so it stays off there.
+    public static let productionExpertSkipMissThreshold: Double? = {
+        #if os(iOS)
+        return 0.08
+        #else
+        return nil
+        #endif
+    }()
 
     public init(expertCacheSlots: Int = RuntimeConfiguration.productionExpertCacheSlots,
                 expertCachePolicy: RuntimeExpertCachePolicy = .lfu,
@@ -122,7 +145,8 @@ public struct RuntimeConfiguration: Sendable, Equatable {
                 forceLogitsHead: Bool = false,
                 earlyExpertRead: Bool = true,
                 earlyExpertReadsPerLayer: Int = 1,
-                expertReadsBypassFileCache: Bool = PreadExpertStreamer.readsBypassFileCacheByDefault) {
+                expertReadsBypassFileCache: Bool = PreadExpertStreamer.readsBypassFileCacheByDefault,
+                expertSkipMissThreshold: Double? = RuntimeConfiguration.productionExpertSkipMissThreshold) {
         precondition(Self.allowedExpertCacheSlots.contains(expertCacheSlots),
                      "unsupported expert-cache slot count")
         precondition(Self.allowedPrefillChunkTokens.contains(prefillChunkTokens),
@@ -139,6 +163,7 @@ public struct RuntimeConfiguration: Sendable, Equatable {
         self.earlyExpertRead = earlyExpertRead
         self.earlyExpertReadsPerLayer = earlyExpertReadsPerLayer
         self.expertReadsBypassFileCache = expertReadsBypassFileCache
+        self.expertSkipMissThreshold = expertSkipMissThreshold
     }
 
     public static var production: RuntimeConfiguration {

@@ -163,6 +163,32 @@ import TurboFieldfare
             == PreadExpertStreamer.readsBypassFileCacheByDefault)
     }
 
+    /// Off maps to no policy, a threshold to `miss:<t>`, and changing it makes
+    /// a loaded session stale.
+    @Test(arguments: [0.0, 0.08, 0.10])
+    func expertSkipChoicesMapToRuntime(_ threshold: Double) throws {
+        let options = AppRuntimeOptions(expertSkipThreshold: threshold)
+        let runtime = try options.resolvedRuntimeConfiguration(forceLogitsHead: false)
+        #expect(runtime.expertSkipMissThreshold == (threshold > 0 ? threshold : nil))
+
+        let directory = URL(fileURLWithPath: "/tmp/model.gturbo")
+        let key = AppLoadedRuntimeKey(modelDirectory: directory, maxContextTokens: 4_096,
+                                      options: options)
+        #expect(key.options(prefillEnabled: true, prefillChunkTokens: 128) == options)
+        var changed = options
+        changed.expertSkipThreshold = threshold == 0 ? 0.08 : 0
+        #expect(AppLoadedRuntimeKey(modelDirectory: directory, maxContextTokens: 4_096,
+                                    options: changed) != key)
+    }
+
+    @Test func expertSkipDefaultFollowsTheRuntime() {
+        #expect(AppRuntimeOptions().expertSkipThreshold
+            == (RuntimeConfiguration.productionExpertSkipMissThreshold ?? 0))
+        #expect(throws: AppInferenceError.self) {
+            try AppRuntimeOptions(expertSkipThreshold: 0.05).validate()
+        }
+    }
+
     @Test func threeEarlyReadsAreRefused() {
         #expect(throws: AppInferenceError.self) {
             try AppRuntimeOptions(earlyExpertReads: 3).validate()

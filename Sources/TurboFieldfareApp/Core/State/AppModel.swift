@@ -295,7 +295,8 @@ public final class AppModel {
             rdadvisePolicy: settings.rdadvisePolicy,
             visionResidencyPolicy: .onDemand,
             earlyExpertReads: settings.earlyExpertReads,
-            expertReadsBypassFileCache: settings.expertReadsBypassFileCache)
+            expertReadsBypassFileCache: settings.expertReadsBypassFileCache,
+            expertSkipThreshold: settings.expertSkipThreshold)
         let admitted = Self.admittedContext(settings.contextTokens,
                                             hostMemoryBytes: hostMemoryBytes,
                                             expertCacheSlots: settings.expertCacheSlots)
@@ -1148,6 +1149,14 @@ public final class AppModel {
         persistSettings()
     }
 
+    /// Expert skipping: 0 (off), 0.08 or 0.10. Applies after a reload.
+    public func setExpertSkipThreshold(_ threshold: Double) {
+        guard runtimeOptions.expertSkipThreshold != threshold,
+              AppRuntimeOptions.allowedExpertSkipThresholds.contains(threshold) else { return }
+        runtimeOptions.expertSkipThreshold = threshold
+        persistSettings()
+    }
+
     /// Changes the context, and redraws a stored conversation against it.
     ///
     /// Continuability is a function of the conversation's size and the context
@@ -1188,6 +1197,7 @@ public final class AppModel {
         runtimeOptions.expertCacheSlots = defaults.expertCacheSlots
         runtimeOptions.earlyExpertReads = defaults.earlyExpertReads
         runtimeOptions.expertReadsBypassFileCache = defaults.expertReadsBypassFileCache
+        runtimeOptions.expertSkipThreshold = defaults.expertSkipThreshold
         // Through the setter, so a stored conversation on screen is redrawn
         // against the restored context. It saves the settings when the
         // context changes and not otherwise, so the save below is still needed.
@@ -2333,7 +2343,8 @@ public final class AppModel {
             // tower on a machine with no control that shows or clears it.
             visionResidencyPolicy: .onDemand,
             earlyExpertReads: settings.earlyExpertReads,
-            expertReadsBypassFileCache: settings.expertReadsBypassFileCache)
+            expertReadsBypassFileCache: settings.expertReadsBypassFileCache,
+            expertSkipThreshold: settings.expertSkipThreshold)
         // Clamped for the same reason as `init`: another model directory can
         // carry a context this Mac cannot back, and adopting it would leave
         // the app on a setting the loader refuses. Assigned before the notice
@@ -2378,7 +2389,8 @@ public final class AppModel {
             loadModelOnLaunch: loadModelOnLaunch,
             backgroundGeneration: backgroundGeneration,
             earlyExpertReads: runtimeOptions.earlyExpertReads,
-            expertReadsBypassFileCache: runtimeOptions.expertReadsBypassFileCache)
+            expertReadsBypassFileCache: runtimeOptions.expertReadsBypassFileCache,
+            expertSkipThreshold: runtimeOptions.expertSkipThreshold)
         let modelDirectory = URL(fileURLWithPath: modelPathText, isDirectory: true)
         do {
             try MacAppSettingsFileStore.save(settings, forModelDirectory: modelDirectory)

@@ -942,6 +942,25 @@ ceiling.** The failure mode of a two-track plan is Track B's costs leaking
 silently into Track A — you shrink something to fit under jetsam and never write
 down that you paid for it.
 
+**Quality spends recorded so far:**
+
+- **2026-11-08: expert skipping `miss:0.08` is the iOS default**, by the
+  user's decision. In decode it drops a routed expert that would be a
+  foreground read and that the router weighs under 0.08.
+  - **What it buys:** +32.9 / +18.2 / +26.0% tok/s on the iPhone 17
+    (`results/benchmark-results-2026-11-08-ios-expert-skip/`).
+  - **What it costs:** 0.55× the KL of one INT4 rounding, top-1 agreement
+    97.7% (M1, teacher-forced, `results/research-results-2026-10-04-lossy-experts/`).
+    Graded free generation on the phone found no loss: 47 of 50 GSM-Symbolic
+    P2 problems both ways
+    (`results/validation-results-2026-11-08-ios-expert-skip-accuracy/`). That
+    test cannot see a loss of 1–3 problems in 50.
+  - **The choice is the user's:** Settings → Expert reads → Skip unlikely
+    experts offers Off, 0.08 and 0.10. The user asked for 0.10 to be offered
+    without a phone measurement. On the M1 it cut 62% of the waited-for reads
+    at 0.94× the KL of one rounding [0.64, 1.30].
+  - macOS stays off: it has no speed A/B.
+
 ## What is deliberately not decided
 
 - ~~**Target device.**~~ **Decided 2026-09-15: iPhone 17.** See
@@ -951,8 +970,9 @@ down that you paid for it.
   bytes/token ÷ bandwidth, was wrong: GPU work and the CPU/GPU handoff are ~30%
   of a forward on the phone.) The 0.5 tok/s floor was a feasibility threshold,
   long since passed.
-- **Quality budget.** Not needed until Track B step 3. Steps 0–2 cost no
-  accuracy.
+- **Quality budget.** No overall budget is set. Steps 0–2 cost no accuracy.
+  The first quality spend, expert skipping on iOS, was decided on its own
+  measurements on 2026-11-08 (above).
 
 ## Repository layout
 

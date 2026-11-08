@@ -56,6 +56,13 @@ public struct AppRuntimeOptions: Equatable, Sendable {
     /// two. Two measured slower on the iPhone 17 and faster on the M1; it is
     /// offered for other devices, whose storage may serve reads differently.
     public static let allowedEarlyExpertReads = [0, 1, 2]
+    /// Expert-skip thresholds the app offers: 0 (off), 0.08 (the default on
+    /// iOS) or 0.10. Only 0.08 is measured on the phone; 0.10 cost about one
+    /// INT4 rounding of KL on the M1, nearly twice 0.08's, and is left for the
+    /// user to try.
+    public static let allowedExpertSkipThresholds = [0.0] + RuntimeConfiguration.allowedExpertSkipMissThresholds
+    public static let defaultExpertSkipThreshold =
+        RuntimeConfiguration.productionExpertSkipMissThreshold ?? 0
 
     public var expertCacheSlots: Int
     public var expertCachePolicy: AppExpertCachePolicy
@@ -69,6 +76,9 @@ public struct AppRuntimeOptions: Equatable, Sendable {
     public var earlyExpertReads: Int
     /// `F_NOCACHE` on routed-expert reads (`RuntimeConfiguration.expertReadsBypassFileCache`).
     public var expertReadsBypassFileCache: Bool
+    /// 0 turns expert skipping off; otherwise the `miss:<t>` threshold
+    /// (`RuntimeConfiguration.expertSkipMissThreshold`). Changes the output.
+    public var expertSkipThreshold: Double
 
     /// `expertCacheSlots` defaults to the platform's production constant rather
     /// than a literal, so a caller that does not name it gets 16 on macOS and
@@ -86,7 +96,8 @@ public struct AppRuntimeOptions: Equatable, Sendable {
                 modelVerification: AppModelVerification = .fullSha256,
                 visionResidencyPolicy: VisionResidencyPolicy = .onDemand,
                 earlyExpertReads: Int = 1,
-                expertReadsBypassFileCache: Bool = PreadExpertStreamer.readsBypassFileCacheByDefault) {
+                expertReadsBypassFileCache: Bool = PreadExpertStreamer.readsBypassFileCacheByDefault,
+                expertSkipThreshold: Double = AppRuntimeOptions.defaultExpertSkipThreshold) {
         self.expertCacheSlots = expertCacheSlots
         self.expertCachePolicy = expertCachePolicy
         self.prefillEnabled = prefillEnabled
@@ -96,6 +107,7 @@ public struct AppRuntimeOptions: Equatable, Sendable {
         self.visionResidencyPolicy = visionResidencyPolicy
         self.earlyExpertReads = earlyExpertReads
         self.expertReadsBypassFileCache = expertReadsBypassFileCache
+        self.expertSkipThreshold = expertSkipThreshold
     }
 
     public func validate() throws {
@@ -110,6 +122,10 @@ public struct AppRuntimeOptions: Equatable, Sendable {
         guard Self.allowedEarlyExpertReads.contains(earlyExpertReads) else {
             throw AppInferenceError.invalidRequest(
                 "early expert reads must be one of \(Self.allowedEarlyExpertReads)")
+        }
+        guard Self.allowedExpertSkipThresholds.contains(expertSkipThreshold) else {
+            throw AppInferenceError.invalidRequest(
+                "expert skip threshold must be one of \(Self.allowedExpertSkipThresholds)")
         }
         // Refused here rather than inside the first prefill chunk, which is
         // after the model load and, on an image turn, after every attachment
@@ -153,7 +169,8 @@ public struct AppRuntimeOptions: Equatable, Sendable {
             forceLogitsHead: forceLogitsHead,
             earlyExpertRead: earlyExpertReads > 0,
             earlyExpertReadsPerLayer: max(earlyExpertReads, 1),
-            expertReadsBypassFileCache: expertReadsBypassFileCache)
+            expertReadsBypassFileCache: expertReadsBypassFileCache,
+            expertSkipMissThreshold: expertSkipThreshold > 0 ? expertSkipThreshold : nil)
     }
 }
 
@@ -167,6 +184,7 @@ public struct AppLoadedRuntimeKey: Equatable, Sendable {
     public var visionResidencyPolicy: VisionResidencyPolicy
     public var earlyExpertReads: Int
     public var expertReadsBypassFileCache: Bool
+    public var expertSkipThreshold: Double
     public var forceLogitsHead: Bool
 
     public init(modelDirectory: URL,
@@ -182,6 +200,7 @@ public struct AppLoadedRuntimeKey: Equatable, Sendable {
         self.visionResidencyPolicy = options.visionResidencyPolicy
         self.earlyExpertReads = options.earlyExpertReads
         self.expertReadsBypassFileCache = options.expertReadsBypassFileCache
+        self.expertSkipThreshold = options.expertSkipThreshold
         self.forceLogitsHead = forceLogitsHead
     }
 
@@ -203,6 +222,7 @@ public struct AppLoadedRuntimeKey: Equatable, Sendable {
             modelVerification: modelVerification,
             visionResidencyPolicy: visionResidencyPolicy,
             earlyExpertReads: earlyExpertReads,
-            expertReadsBypassFileCache: expertReadsBypassFileCache)
+            expertReadsBypassFileCache: expertReadsBypassFileCache,
+            expertSkipThreshold: expertSkipThreshold)
     }
 }

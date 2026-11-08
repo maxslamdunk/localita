@@ -415,9 +415,10 @@ struct HarnessSettings {
         if args.contains("--no-layer-major-prefill") {
             setenv("TURBO_FIELDFARE_PREFILL_LAYER_MAJOR", "0", 1)
         }
-        // Research only: `--expert-skip miss:0.08` drops some routed experts
-        // in decode, which changes the output. The spec grammar is
-        // `ExpertSkipPolicy`'s; an invalid one fails the runner's load.
+        // `--expert-skip <spec>` replaces the default expert skipping
+        // (`miss:0.08` on iOS), and `--expert-skip off` turns it off. Either
+        // changes the output. The spec grammar is `ExpertSkipPolicy`'s; an
+        // invalid one fails the runner's load.
         if let v = value("--expert-skip") {
             setenv("TURBO_FIELDFARE_EXPERT_SKIP", v, 1)
         }

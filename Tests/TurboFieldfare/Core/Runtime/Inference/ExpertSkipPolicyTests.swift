@@ -29,6 +29,28 @@ import Testing
         #expect(try ExpertSkipPolicy(environment: [:]) == nil)
     }
 
+    /// The load's threshold is the policy unless the environment sets one;
+    /// `off` turns a default off.
+    @Test func environmentOverridesTheConfiguredThreshold() throws {
+        let key = ExpertSkipPolicy.environmentKey
+        #expect(try ExpertSkipPolicy(environment: [:], missThresholdByDefault: 0.08)
+            == ExpertSkipPolicy(kind: .miss, value: 0.08))
+        #expect(try ExpertSkipPolicy(environment: [key: "off"], missThresholdByDefault: 0.08) == nil)
+        #expect(try ExpertSkipPolicy(environment: [key: "miss:0.1"], missThresholdByDefault: 0.08)
+            == ExpertSkipPolicy(kind: .miss, value: 0.1))
+        #expect(try ExpertSkipPolicy(environment: [key: "off"]) == nil)
+    }
+
+    @Test func productionThresholdIsPlatformSplit() {
+        #if os(iOS)
+        #expect(RuntimeConfiguration.productionExpertSkipMissThreshold == 0.08)
+        #else
+        #expect(RuntimeConfiguration.productionExpertSkipMissThreshold == nil)
+        #endif
+        #expect(RuntimeConfiguration().expertSkipMissThreshold
+            == RuntimeConfiguration.productionExpertSkipMissThreshold)
+    }
+
     /// The line the Mac meter and the iOS harness both log, and that the
     /// results scripts parse.
     @Test func countsSummaryIsPerLayerStep() {

@@ -42,7 +42,10 @@ gemma4: about +17–20% tok/s for +11–18% bytes/token against this table
 (`results/benchmark-results-2026-10-03-ios-fitted-guess/`). **Expert reads have
 skipped the OS file cache (`F_NOCACHE`) on iOS since the same day**, worth
 about +4 to +8% more at identical bytes
-(`results/benchmark-results-2026-10-03-ios-expert-read-nocache/`). Per decode forward,
+(`results/benchmark-results-2026-10-03-ios-expert-read-nocache/`). **Expert skipping
+(`miss:0.08`) has been on by default on iOS since 2026-11-08**, a recorded
+quality spend worth about +18 to +33% tok/s
+(`results/benchmark-results-2026-11-08-ios-expert-skip/`). Per decode forward,
 iPhone 17, 2026-10-01/02, short / medium / long:
 
 | | short | medium | long |
@@ -425,7 +428,9 @@ hand.
   changing these surfaces.
 - Defaults that differ by platform:
   - expert-cache slots: 16 on macOS, 24 on iOS;
-  - prefill chunk cap: 256 on macOS, 1024 on iOS.
+  - prefill chunk cap: 256 on macOS, 1024 on iOS;
+  - expert skipping: off on macOS, `miss:0.08` on iOS (since 2026-11-08). It
+    changes the output, and the harness's `--expert-skip off` turns it off.
 
   The full list is in `docs/RUNTIME_CONTROLS.md`. Adding a control means
   updating that doc in the same change.
@@ -456,6 +461,7 @@ are **MiB labelled MB**.
 | Prefill breakdown (profiling, 2026-11-04) | Long prompt (3015 tok, 3 chunks): wall 67.7 s, **GPU busy 61 s (90%)**: routed experts 23, shared expert 17 (the decode GEMV once per token), attention 16.5 (sliding-window layers on the scalar tiled kernel), projections 4. Storage busy 16 s, 72% of it under GPU work. Medium (430 tok, 1 chunk): wall 12.2 s, GPU 6.8 s. Every iOS load SHA-256s each layer file on first touch, which warms the file cache: long is 72.6–78.8 s without it, medium 11.4 s. Prefill bytes, which are exact: 30,605.86 / 8,875.86 MiB. | `results/benchmark-results-2026-11-04-ios-prefill-breakdown/`, PF-18 |
 | Prefill routed experts on the matrix units (on by default, ported from zw5/ane-fieldfare `587953b`) | Long prefill **67.13 → 55.19 s (−17.8%)**, medium 11.87 → 10.14 s (−14.6%), short +0.73 s (n=1, storage noise). GPU routed time 23.2 → 4.3 s (long). The long routed phase is now bounded by storage: `fetch` ~16 s, `drain` 11.8 → 0.8 s. Prefill bytes −0.15 / +0.07 / +0.05%. Text identical over 32 tokens. Quality gate in the model's own reply: mean ΔNLL −0.0012 nats, worst 0.037, top-1 24/24. A gate inside the user turn failed, because the model's distributions there are near degenerate. `--no-routed-tensorops` turns it off. | `results/benchmark-results-2026-11-04-ios-prefill-routed-tensorops/`, PF-19 |
 | Prefill layer at a time across chunks (on by default, idea from zw5/ane-fieldfare `c17d0c2`) | A multi-chunk prompt from an empty KV runs each layer's attention chunk by chunk, then its routed experts once over the whole prompt. Long prefill bytes **30,561 → 11,140 MiB (−63.5%)**, wall **54.52 → 44.81 s (−17.8%)** hashed and **67.27 → 50.73 s (−24.6%)** trusted. Text identical. Peak footprint +132 MB. Medium (one chunk) unchanged. With the first-load hash the routed reads come mostly from the file cache (routed phase 4.1–4.3 s); without it they are real reads (8.7–9.1 s). `--no-layer-major-prefill` turns it off. | `results/benchmark-results-2026-11-06-ios-prefill-layer-major/`, PF-20 |
+| Expert skipping `miss:0.08` (on by default on iOS since 2026-11-08, a recorded quality spend) | In decode, drops a routed expert that would be a foreground read and weighs under 0.08. **+32.9 / +18.2 / +26.0% tok/s**, foreground reads −42.3 / −33.9 / −33.7%, bytes/token −21.5 / −18.7 / −20.0%, measured against off, before it was the default. Output changes: 0.55× the KL of one INT4 rounding (M1, teacher-forced); 47 of 50 GSM-Symbolic P2 problems right both ways (McNemar p = 1.000), which cannot see a loss of 1–3. The iOS Settings sheet offers Off, 0.08 and 0.10; 0.10 is unmeasured on the phone. Rows in the [Where the time goes](#where-the-time-goes-on-the-phone) table are without it. | `results/benchmark-results-2026-11-08-ios-expert-skip/`, `results/validation-results-2026-11-08-ios-expert-skip-accuracy/`, CACHE-12 |
 | Thermal | `serious` costs ~12% tok/s, mostly through `io`. At `fair` the GPU may slow ~9% (n=1). Separately, whole-run GPU speed varies up to ~40% between consecutive runs at the same thermal state. | `results/benchmark-results-2026-09-16-ios-slots/`, `…-10-03-ios-fitted-guess/` |
 | Kernel numerics | The device kernel suites pass: 179 tests in 51 suites as of 2026-10-01. Worst-case relative error is identical to the M1 at every shared site. This is conformance in isolation, not a composition test. Device-vs-Mac text differences under sampling are not evidence of a defect. | `results/validation-results-2026-09-16-ios-kernels/`, `…-09-24-ios-vision/` |
 

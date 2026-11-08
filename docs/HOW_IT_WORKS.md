@@ -175,8 +175,15 @@ Speed changes that should not change the math are checked against the
 generated text itself. A benchmark prompt with a fixed seed gives the same
 text every time, so the run logs its SHA-256. The early read, skipping the OS
 file cache, and cache aging all produced byte-identical text to the runs
-without them. Changes that would trade quality for speed, such as fewer
-experts per token, stay opt-in experiments and are measured for quality.
+without them.
+
+Changes that trade quality for speed are measured for quality, and only the
+user makes one a default. One is on by default on the iPhone: when an expert
+the router barely uses would have to be read from storage, the phone leaves it
+out. That made decoding 18–33% faster. The replies change slightly. On 50
+graded math word problems, it got as many right as the runs without it: 47.
+Settings can turn it off, or raise its threshold for more speed, untested on
+the phone.
 
 ## Read next
 

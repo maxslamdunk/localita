@@ -43,6 +43,9 @@ struct MacAppSettings: Codable, Equatable, Sendable {
     var earlyExpertReads: Int = 1
     /// `F_NOCACHE` on expert reads; the platform default, on iOS only.
     var expertReadsBypassFileCache: Bool = PreadExpertStreamer.readsBypassFileCacheByDefault
+    /// Expert skipping: 0 (off), 0.08 or 0.10; the platform default, 0.08 on
+    /// iOS. A file from before the setting starts on the default.
+    var expertSkipThreshold: Double = AppRuntimeOptions.defaultExpertSkipThreshold
 
     private enum CodingKeys: String, CodingKey {
         case version
@@ -70,6 +73,7 @@ struct MacAppSettings: Codable, Equatable, Sendable {
         case backgroundGeneration = "keepGeneratingInBackground"
         case earlyExpertReads
         case expertReadsBypassFileCache
+        case expertSkipThreshold
     }
 
     init(version: Int = currentVersion,
@@ -91,7 +95,8 @@ struct MacAppSettings: Codable, Equatable, Sendable {
          loadModelOnLaunch: Bool = false,
          backgroundGeneration: Bool = true,
          earlyExpertReads: Int = 1,
-         expertReadsBypassFileCache: Bool = PreadExpertStreamer.readsBypassFileCacheByDefault) {
+         expertReadsBypassFileCache: Bool = PreadExpertStreamer.readsBypassFileCacheByDefault,
+         expertSkipThreshold: Double = AppRuntimeOptions.defaultExpertSkipThreshold) {
         self.version = version
         self.contextTokens = contextTokens
         self.expertCacheSlots = expertCacheSlots
@@ -112,6 +117,7 @@ struct MacAppSettings: Codable, Equatable, Sendable {
         self.backgroundGeneration = backgroundGeneration
         self.earlyExpertReads = earlyExpertReads
         self.expertReadsBypassFileCache = expertReadsBypassFileCache
+        self.expertSkipThreshold = expertSkipThreshold
     }
 
     init(from decoder: Decoder) throws {
@@ -170,12 +176,16 @@ struct MacAppSettings: Codable, Equatable, Sendable {
         expertReadsBypassFileCache = try container.decodeIfPresent(
             Bool.self,
             forKey: .expertReadsBypassFileCache) ?? PreadExpertStreamer.readsBypassFileCacheByDefault
+        expertSkipThreshold = try container.decodeIfPresent(
+            Double.self,
+            forKey: .expertSkipThreshold) ?? AppRuntimeOptions.defaultExpertSkipThreshold
     }
 
     func isValid() -> Bool {
         AppContextLengthOption.allCases.contains { $0.tokens == contextTokens }
             && AppRuntimeOptions.allowedSlotCounts.contains(expertCacheSlots)
             && AppRuntimeOptions.allowedEarlyExpertReads.contains(earlyExpertReads)
+            && AppRuntimeOptions.allowedExpertSkipThresholds.contains(expertSkipThreshold)
             && temperature.isFinite && (0...2).contains(temperature)
             && (1...256).contains(topK)
             && topP.isFinite && (0.01...1).contains(topP)
