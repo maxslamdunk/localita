@@ -1,0 +1,33 @@
+To find out how much Sakura should pay, we need to calculate the total number of skeins required, the total cost before the discount, and then apply the discount.
+
+**Step 1: Calculate the wool needed for the grandchildren.**
+There are 4 grandchildren. For each child, Sakura makes:
+- 1 vest: 5 skeins
+- 1 cardigan: 4 skeins
+- 1 shawl: 10 skeins
+- 1 pair of gloves: 12 skeins
+- 1 pair of mittens: 9 skeins
+
+Total skeins per child = $5 + 4 + 10 + 12 + 9 = 40$ skeins.
+Total skeins for 4 children = $40 \times 4 = 160$ skeins.
+
+**Step 2: Calculate the wool needed for Sakura.**
+Sakura wants to make 2 jackets.
+- 1 jacket: 4 skeins
+Total skeins for Sakura = $2 \times 4 = 8$ skeins.
+
+**Step 3: Calculate the total number of skeins.**
+Total skeins = $160 + 8 = 168$ skeins.
+
+**Step 4: Calculate the total cost.**
+The wool is sold by the dozen. One dozen is 12 skeins.
+Total dozens = $168 / 12 = 14$ dozens.
+The cost per dozen is $9.
+Total cost before discount = $14 \times 9 = \$126$.
+
+**Step 5: Apply the promotion.**
+The store offers a $20 discount on purchases over $100.
+Since $126 is greater than $100, Sakura is eligible for the discount.
+Final price = $\$126 - \$20 = \$106$.
+
+Final answer: 106

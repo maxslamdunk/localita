@@ -1,0 +1,40 @@
+To find the number of bouncy balls in the tube, we need to calculate the total number of items Sofia has already gathered and subtract that from the final total of 320.
+
+**Step 1: List the quantities of each item type provided.**
+*   Building blocks: 33
+*   Stuffed animals: 5
+*   Action figures: Twice the number of blocks and stuffed animals combined.
+*   Crayons: 12
+*   Stickers: 9 pages with 13 stickers each.
+*   Stacking rings: 28
+*   Bouncy balls: Unknown ($x$)
+
+**Step 2: Calculate the number of action figures.**
+The number of blocks and stuffed animals combined is:
+$33 + 5 = 38$
+The number of action figures is twice this amount:
+$38 \times 2 = 76$
+
+**Step 3: Calculate the number of stickers.**
+There are 9 pages with 13 stickers on each page:
+$9 \times 13 = 117$
+
+**Step 4: Calculate the sum of all items currently accounted for (excluding bouncy balls).**
+Sum = Blocks + Stuffed animals + Action figures + Crayons + Stickers + Rings
+Sum = $33 + 5 + 76 + 12 + 117 + 28$
+
+Let's add them step by step:
+$33 + 5 = 38$
+$38 + 76 = 114$
+$114 + 12 = 126$
+$126 + 117 = 243$
+$243 + 28 = 271$
+
+**Step 5: Calculate the number of bouncy balls.**
+The total number of items is 320.
+Total = Sum + Bouncy balls
+$320 = 271 + x$
+$x = 320 - 271$
+$x = 49$
+
+Final answer: 49

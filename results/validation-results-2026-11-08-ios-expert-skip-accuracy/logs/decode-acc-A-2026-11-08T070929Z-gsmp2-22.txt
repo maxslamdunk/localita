@@ -1,0 +1,45 @@
+To find the number of forks in the package Valentina bought, we can set up an equation based on the information provided.
+
+**Step 1: Identify the variables and constants.**
+- Let $x$ be the number of forks in the package Valentina bought.
+- Husband's forks: $19$
+- Forks used for sampling: $6$
+- Defective forks thrown away: $8$
+- Guest's forks: $2 \times 8 = 16$
+- Final total of forks: $49$
+
+**Step 2: Set up the equation.**
+The total number of forks is the sum of the initial amount plus the additions, minus the subtractions.
+The sequence of events is:
+1. Valentina buys $x$ forks.
+2. Husband adds $19$ forks.
+3. Valentina uses $6$ forks (these are removed from the "new" pool/available count).
+4. Valentina throws away $8$ forks.
+5. Guests bring $16$ forks ($2 \times 8$).
+6. The final total is $49$.
+
+Equation:
+$x + 19 - 6 - 8 + 16 = 49$
+
+**Step 3: Solve the equation.**
+First, simplify the constants on the left side:
+$19 - 6 = 13$
+$13 - 8 = 5$
+$5 + 16 = 21$
+
+So the equation becomes:
+$x + 21 = 49$
+
+Subtract 21 from both sides:
+$x = 49 - 21$
+$x = 28$
+
+**Step 4: Verify the result.**
+- Start with 28 forks.
+- Add 19: $28 + 19 = 47$
+- Subtract 6: $47 - 6 = 41$
+- Subtract 8: $41 - 8 = 33$
+- Add 16: $33 + 16 = 49$
+The result matches the final total given in the problem.
+
+Final answer: 28

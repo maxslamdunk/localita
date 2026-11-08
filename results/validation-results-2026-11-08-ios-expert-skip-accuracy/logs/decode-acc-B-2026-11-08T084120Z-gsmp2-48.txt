@@ -1,0 +1,40 @@
+To solve this problem, we need to calculate the time taken for each step of the process: washing, peeling, the break, and sautéing.
+
+**Step 1: Calculate the time for washing.**
+There are 180 clams. Each clam takes 19 seconds to wash.
+Total washing time = $180 \times 19$ seconds.
+$180 \times 19 = 3420$ seconds.
+Convert seconds to minutes: $3420 / 60 = 57$ minutes.
+
+**Step 2: Calculate the time for peeling.**
+Olga peels 12 clams per minute.
+Total peeling time = $180 / 12 = 15$ minutes.
+
+**Step 3: Account for the break.**
+The problem states she takes an 11-minute break after peeling before she can start sautéing.
+Break time = 11 minutes.
+
+**Step 4: Calculate the time for sautéing.**
+She sautés 30 clams in 9 minutes.
+First, find the rate per clam: $9 / 30 = 0.3$ minutes per clam.
+Total sautéing time = $180 \times 0.3 = 54$ minutes.
+(Alternatively: $180 / 30 = 6$ sets of 9 minutes. $6 \times 9 = 54$ minutes.)
+
+**Step 5: Calculate the total time.**
+Since she cannot work in parallel, we sum all the durations:
+Total time = Washing time + Peeling time + Break time + Sautéing time
+Total time = $57 + 15 + 11 + 54$
+
+Summing them up:
+$57 + 15 = 72$
+$72 + 11 = 83$
+$83 + 54 = 137$
+
+Final check of the steps:
+- Washing: $180 \times 19 = 3420$s = 57 min. (Correct)
+- Peeling: $180 / 12 = 15$ min. (Correct)
+- Break: 11 min. (Correct)
+- Sautéing: $(180 / 30) \times 9 = 6 \times 9 = 54$ min. (Correct)
+- Total: $57 + 15 + 11 + 54 = 137$ min. (Correct)
+
+Final answer: 137

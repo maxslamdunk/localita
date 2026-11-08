@@ -1,0 +1,26 @@
+To find out how many days it will take for the pizza to be fully eaten, we first determine the daily consumption rates of each person.
+
+1.  **Calculate individual consumption rates:**
+    *   Aisha: 3 servings/day
+    *   Amelia: $2 \times 3 = 6$ servings/day
+    *   Ava: $4 \times 6 = 24$ servings/day
+
+2.  **Calculate total consumption for the first 2 days:**
+    *   Total daily consumption = $3 + 6 + 24 = 33$ servings/day.
+    *   After 2 days, the total servings eaten = $33 \times 2 = 66$ servings.
+
+3.  **Calculate remaining servings:**
+    *   Remaining servings = $87 - 66 = 21$ servings.
+
+4.  **Calculate the new consumption rate after Ava's diet:**
+    *   Ava's new consumption = $24 / 2 = 12$ servings/day.
+    *   New total daily consumption = $3 (\text{Aisha}) + 6 (\text{Amelia}) + 12 (\text{Ava}) = 21$ servings/day.
+
+5.  **Calculate the time needed to finish the remaining servings:**
+    *   Days needed = $\text{Remaining servings} / \text{New daily consumption}$
+    *   Days needed = $21 / 21 = 1$ day.
+
+6.  **Calculate the total number of days:**
+    *   Total days = $2 \text{ (initial days)} + 1 \text{ (additional day)} = 3$ days.
+
+Final answer: 3

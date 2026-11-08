@@ -1,0 +1,30 @@
+To solve this problem, we need to determine the total time Emma takes to complete her walk based on the given distances, speeds, and the time spent on the beach.
+
+**1. Identify the given information:**
+- Total distance: 32 km
+- Beach distance ($d_b$): 14 km
+- Sidewalk distance ($d_s$): 18 km
+- Speed relationship: Sidewalk speed ($v_s$) = 3 $\times$ Beach speed ($v_b$)
+- Injury effect: Speeds are halved (this affects both, so the ratio remains the same).
+- Time spent on beach ($t_b$): 56 minutes.
+
+**2. Calculate the current speed on the beach:**
+The time spent on the beach is given as 56 minutes for 14 km.
+$v_b = \frac{d_b}{t_b} = \frac{14 \text{ km}}{56 \text{ min}} = 0.25 \text{ km/min}$.
+
+**3. Determine the speed on the sidewalk:**
+The problem states that the sidewalk speed is three times the beach speed.
+$v_s = _3 \times v_b = 3 \times 0.25 \text{ km/min} = 0.75 \text{ km/min}$.
+
+*Note: The problem mentions that her speed decreased by half due to an injury. Since the 56 minutes is the time spent on the beach **after** the injury (as it is part of her current walk), the 0.25 km/min is her current speed. The ratio of 3:1 remains constant regardless of the injury.*
+
+**4. Calculate the time spent on the sidewalk:**
+The distance on the sidewalk is 18 km.
+$t_s = \frac{d_s}{v_s} = \frac{18 \text{ km}}{0.75 \text{ km/min}}$.
+$t_s = \frac{18}{3/4} = 18 \times \frac{4}{3} = 6 \times 4 = 24 \text{ minutes}$.
+
+**5. Calculate the total time for the walk:**
+Total time ($T$) = Time on beach ($t_b$) + Time on sidewalk ($t_s$).
+$T = 56 \text{ minutes} + 24 \text{ minutes} = 80 \text{ minutes}$.
+
+Final answer: 80

@@ -1,0 +1,33 @@
+To find out how much Bodhi has to pay, we need to calculate the cost of the rice and the cost of the cookie step by step.
+
+**Step 1: Determine the price per pound of the expensive brand.**
+The normal brand costs $15 per pound. The more expensive brand costs 20% more.
+$\text{Price per pound} = 15 + (0.20 \times 15) = 15 + 3 = \$18$ per pound.
+
+**Step 2: Determine the total amount of rice Bodhi needs to buy.**
+He buys a week's worth of rice, and he uses 2 pounds per day.
+$\text{Total rice} = 
+\begin{aligned}
+&7 \text{ days} \times 2 \text{ pounds/day} \\
+&= 14 \text{ pounds}
+\end{aligned}$
+
+**Step 3: Calculate the cost of the rice with the discount.**
+The store offers a 20% discount on the first 10 pounds. Any rice beyond 10 pounds is sold at the regular price ($18 per pound).
+
+*   **Cost of the first 10 pounds (with 20% discount):**
+    The discounted price per pound is $18 - (0.20 \times 18) = 18 - 3.60 = \$14.40$.
+    $\text{Cost for 10 lbs} = 10 \times 14.40 = \$144$.
+
+*   **Cost of the remaining rice (at regular price):**
+    The remaining rice is $14 - 10 = 4$ pounds.
+    $\text{Cost for 4 lbs} = 4 \times 18 = \$72$.
+
+*   **Total cost for rice:**
+    $\text{Total rice cost} = 144 + 72 = \$216$.
+
+**Step 4: Add the cost of the cookie.**
+Bodhi also buys a cookie for $1.
+$\text{Total amount to pay} = 216 + 1 = \$217$.
+
+Final answer: 217

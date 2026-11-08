@@ -1,0 +1,41 @@
+To find the number of bouncy balls in the tube, we first need to calculate the total number of items Sofia has already gathered for her brother.
+
+1.  **Identify the number of blocks:**
+    Blocks = 33
+
+2.  **Identify the number of stuffed animals:**
+    Stuffed animals = 5
+
+3.  **Calculate the number of action figures:**
+    The problem states the number of action figures is twice the number of blocks and stuffed animals combined.
+    Combined (blocks + stuffed animals) = 33 + 5 = 38
+    Action figures = 2 * 38 = 76
+
+4.  **Identify the number of crayons:**
+    Crayons = 12
+
+5.  **Calculate the number of stickers:**
+    The sticker book has 9 pages, and each page has 13 stickers.
+    Stickers = 9 * 13 = 117
+
+6.  **Identify the number of stacking rings:**
+    Stacking rings = 28
+
+7.  **Calculate the current total of items (excluding bouncy balls):**
+    Total = Blocks + Stuffed animals + Action figures + Crayons + Stickers + Stacking rings
+    Total = 33 + 5 + 76 + 12 + 117 + 28
+
+    Let's sum them step by step:
+    33 + 5 = 38
+    38 + 76 = 114
+    114 + 12 = 126
+    126 + 117 = 243
+    243 + 28 = 271
+
+8.  **Calculate the number of bouncy balls:**
+    The total number of items including the bouncy balls is 320.
+    Bouncy balls = Total items - Current total
+    Bouncy balls = 320 - 271
+    Bouncy balls = 49
+
+Final answer: 49

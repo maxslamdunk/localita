@@ -1,0 +1,32 @@
+To solve this problem, we first determine the probabilities of the individual events.
+
+**Step 1: Calculate the probability of rolling a number greater than 1 on a d4.**
+A d4 has four possible outcomes: {1, 2, 3, 4}.
+The numbers greater than 1 are {2, 3, 4}.
+There are 3 favorable outcomes out of 4.
+$P(\text{greater than 1}) = \frac{3}{4} = 0.75$.
+
+**Step 2: Calculate the probability of rolling a number greater than 1 twice in a row.**
+Since the rolls are independent, we multiply the probabilities:
+$P(\text{twice in a row}) = \left(\frac{3}{4}\right) \times \left(\frac{3}{4}\right) = \frac{9}{16}$.
+Converting to a decimal: $\frac{9}{16} = 0.5625$.
+In percentage: $56.25\%$.
+
+**Step 3: Calculate the probability of rolling an odd number on a d4.**
+The odd numbers in {1, 2, 3, 4} are {1, 3}.
+There are 2 favorable outcomes out of 4.
+$P(\text{odd}) = \frac{2}{4} = \frac{1}{2} = 0.5$.
+
+**Step 4: Calculate the probability of rolling four odd numbers in a row.**
+Since the rolls are independent, we multiply the probabilities:
+$P(\text{four odds}) = \left(\frac{1}{2}\right)^4 = \frac{1}{16}$.
+Converting to a decimal: $\frac{1}{16} = 0.0625$.
+In percentage: $6.25\%$.
+
+**Step 5: Calculate the difference in percentage points.**
+The question asks for the difference in percentage points between the first event and the second event.
+Difference $= 56.25\% - 6.25\% = 50\%$.
+
+The difference is 50 percentage points.
+
+Final answer: 50

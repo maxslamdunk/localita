@@ -1,0 +1,32 @@
+To find out how much longer they have to get to the gym, we need to calculate the total time spent walking and subtract it from their total allotted time.
+
+**Step 1: Calculate the time taken for the first leg of the journey.**
+- Home to Library: 26 minutes
+- Library to Grocery Store: 18 minutes
+- Total time to reach the grocery store initially: $26 + 18 = 44$ minutes.
+
+**Step 2: Calculate the time taken to return home and go back to the grocery store.**
+- They are at the grocery store and realize they forgot their wallets. They must walk back to the library and then back home.
+- Distance from Grocery Store to Home: $26 + 18 = 44$ minutes.
+- Once they reach home, they walk back to the grocery store.
+- Distance from Home to Grocery Store: $26 + 18 = 44$ minutes.
+- Total time spent on the "return and retry" phase: $44 \text{ (back home)} + 44 \text{ (back to store)} = 88$ minutes.
+
+**Step 3: Calculate the total elapsed time once they reach the grocery store for the second time.**
+- Initial walk to the store: 44 minutes.
+- Return trip to home: 44 minutes.
+- Second trip to the store: 44 minutes.
+- Total time elapsed: $44 + 44 + 44 = 132$ minutes.
+
+**Step 4: Calculate the remaining time to reach the gym.**
+- Total time available: 247 minutes.
+- Total time spent so far: 132 minutes.
+- Remaining time: $247 - 132 = 115$ minutes.
+
+**Verification:**
+- Total time = 247
+- Path: Home $\to$ Store (44) $\to$ Home (44) $\to$ Store (44)
+- Total time used = 132
+- Remaining = $247 - 132 = 115$
+
+Final answer: 115

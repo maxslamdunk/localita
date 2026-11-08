@@ -1,0 +1,42 @@
+To solve this problem, we need to determine the total time Emma takes to complete her walk based on the given distances, speeds, and the time spent on the beach.
+
+**1. Identify the given information:**
+- Total distance: 32 km
+- Beach distance ($d_b$): 14 km
+- Sidewalk distance ($d_s$): 18 km
+- Speed relationship: Sidewalk speed ($v_s$) = 3 $\times$ Beach speed ($v_b$)
+- Injury effect: Speeds are halved (this affects both, so the ratio remains the same).
+- Time spent on beach ($t_b$): 56 minutes.
+
+**2. Calculate the current speed on the beach:**
+The time spent on the beach is given as 56 minutes.
+The distance on the beach is 14 km.
+Speed = Distance / Time.
+However, since we want the final answer in minutes, it is easier to work with "kilometers per minute" or simply use the relationship between speed and time.
+$v_b = \frac{14 \text{ km}}{56 \text{ min}} = 2.5 \text{ km/min}$ (Wait, this is a very high speed for walking. Let's re-evaluate the units. If $v_b$ is speed, then $t_b = d_b / v_b$. $56 = 14 / v_b \implies v_b = 14/56 = 0.25$ km/min).
+
+**3. Determine the speed on the sidewalk:**
+The problem states that the sidewalk speed is three times the beach speed.
+$v_s = 3 \times v_b$
+$v_s = 3 \times 0.25 \text{ km/min} = 0.75 \text{ km/min}$.
+
+**4. Calculate the time spent on the sidewalk:**
+The distance on the sidewalk is 18 km.
+$t_s = \frac{d_s}{v_s}$
+$t_s = \frac{18 \text{ km}}{0.75 \text{ km/min}}$
+$t_s = \frac{18}{3/4} = 18 \times \frac{4}{3} = 6 \times 4 = 24$ minutes.
+
+**5. Calculate the total time:**
+Total time = Time on beach + Time on sidewalk
+Total time = $t_b + t_s$
+Total time = $56 \text{ minutes} + 24 \text{ minutes} = 80 \text{ minutes}$.
+
+**Double Check:**
+- Beach speed: $14 / 56 = 0.25$ km/min.
+- Sidewalk speed: $18 / 24 = 0.75$ km/min.
+- Is $0.75 = 3 \times 0.25$? Yes.
+- The injury factor: The problem states the speed decreased by half. This is already reflected in the 56 minutes provided for the beach walk. If the speed hadn't decreased, the time would have been 28 minutes. Since the ratio of speeds (3:1) is maintained, the calculation holds.
+
+Final answer: 80
+
+Final answer: 80

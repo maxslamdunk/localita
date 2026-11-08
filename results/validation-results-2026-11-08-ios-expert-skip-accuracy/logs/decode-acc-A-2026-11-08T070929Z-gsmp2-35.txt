@@ -1,0 +1,35 @@
+To find out how much money Thiago is still missing, we need to calculate the total cost, subtract the amounts covered, and determine the remaining balance.
+
+**Step 1: Calculate the total cost of the science fair.**
+The science fair lasts for 3 days. The costs per day are:
+- Hotel: $250
+- Food: $30
+- Transportation: $30
+
+Total cost per day = $250 + $30 + $30 = $310.
+Total cost for 3 days = $310 * 3 = $930.
+
+**Step 2: Subtract the food costs covered by friends.**
+The friends cover all the food costs.
+Total food cost = $30 * 3 = $90.
+Remaining cost after friends' contribution = $930 - $90 = $840.
+
+**Step 3: Calculate the school's contribution.**
+The school covers 1/4 of the remaining cost ($840).
+School contribution = $840 * (1/4) = $210.
+Remaining cost after school's contribution = $840 - $210 = $630.
+
+**Step 4: Subtract Thiago's own money to find the missing amount.**
+Thiago has $35.
+Missing amount = $630 - $35 = $595.
+
+**Summary of calculations:**
+- Total cost: $930
+- Food (covered): $90
+- Remaining: $840
+- School (1/4 of $840): $210
+- Remaining: $630
+- Thiago's money: $35
+- Final missing amount: $630 - $35 = $595.
+
+Final answer: 595

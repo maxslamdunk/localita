@@ -1,0 +1,26 @@
+To calculate the total cost of a 90-minute call, we need to break down the call duration into the different pricing tiers provided.
+
+**Step 1: Calculate the cost for the first 10 minutes.**
+The price is $0.7 per minute.
+Cost = $10 \times 0.7 = \$7.00$
+
+**Step 2: Calculate the cost for the next 20 minutes (from minute 11 to minute 30).**
+The price drops to $0.5 per minute. The duration is $30 - 10 = 20$ minutes.
+Cost = $20 \times 0.5 = \$10.00$
+
+**Step 3: Calculate the cost for the remaining time (from minute 31 to minute 90).**
+The price drops to $0.1 per two minutes. The duration is $90 - 30 = 60$ minutes.
+Since the price is per two minutes, we divide the duration by 2 to find the number of units.
+Units = $60 / 2 = 30$ units.
+Cost = $30 \times 0.1 = \$3.00$
+
+**Step 4: Calculate the total bill before the discount.**
+Total Bill = $\$7.00 + \$10.00 + \$3.00 = \$20.00$
+
+**Step 5: Apply the discount if applicable.**
+The rule states: "If your total bill is more than $15, you get a 15% discount on your total bill."
+Since $\$20.00 > \$15.00$, the discount applies.
+Discount amount = $15\% \text{ of } \$20.00 = 0.15 \times 20 = \$3.00$
+Final Cost = $\$20.00 - \$3.00 = \$17.00$
+
+Final answer: 17

@@ -1,0 +1,23 @@
+To find the difference in cost between 2 loaves of sourdough and 8 muffins, we follow these steps:
+
+1.  **Calculate the cost of one loaf of sourdough:**
+    The cost of one loaf is given as $10.
+
+2.  **Calculate the cost of one muffin:**
+    The cost of a muffin is one-eighth of a loaf of sourdough.
+    Cost of 1 muffin = $10 / 8 = $1.25.
+
+3.  **Calculate the cost of 8 muffins with the promotion:**
+    The promotion states that if you buy 6 or more muffins, you get a 10% discount on the muffins. Since 8 muffins are being purchased, the discount applies.
+    Total cost of 8 muffins before discount = 8 * $1.25 = $10.00.
+    Discount amount = 10% of $10.00 = 0.10 * $10.00 = $1.00.
+    Total cost of 8 muffins after discount = $10.00 - $1.00 = $9.00.
+
+4.  **Calculate the cost of 2 loaves of sourdough:**
+    Cost of 2 loaves = 2 * $10 = $20.00.
+
+5.  **Calculate how much more the 2 loaves cost than the 8 muffins:**
+    Difference = Cost of 2 loaves - Cost of 8 muffins
+    Difference = $20.00 - $9.00 = $11.00.
+
+Final answer: 11

@@ -1,0 +1,36 @@
+To find the average age of the four people in 4 years, we first need to determine their current ages and then their ages in 4 years.
+
+**Step 1: Determine current ages.**
+*   **Diego:** Given as 21 years old.
+*   **Priya:** In 5 years, Priya will be 2 times as old as Diego is now.
+    *   Diego's current age = 21.
+    *   Priya's age in 5 years = $2 \times 21 = 42$.
+    *   Priya's current age = $42 - 5 = 37$.
+*   **Qasim:** Qasim is 9 years younger than Diego.
+    *   Qasim's current age = $21 - 9 = 12$.
+*   **Mia:** Mia is 10 years older than Qasim.
+    *   Mia's current age = $12 + 10 = 22$.
+
+**Step 2: Determine ages in 4 years.**
+To find the ages in 4 years, we add 4 to each current age:
+*   **Diego's age in 4 years:** $21 + 4 = 25$.
+*   **Priya's age in 4 years:** $37 + 4 = 41$.
+*   **Qasim's age in 4 years:** $12 + 4 = 16$.
+*   **Mia's age in 4 years:** $22 + 4 = 26$.
+
+**Step 3: Calculate the average in 4 years.**
+The average is the sum of the ages divided by the number of people (4).
+*   Sum of ages in 4 years = $25 + 41 + 16 + 26$.
+*   $25 + 41 = 66$.
+*   $66 + 16 = 82$.
+*   $82 + 26 = 108$.
+
+Average = $\frac{108}{4}$.
+*   $108 \div 4 = 27$.
+
+Alternatively, we can find the current average and add 4:
+*   Current sum = $21 + 37 + 12 + 22 = 92$.
+*   Current average = $92 / 4 = 23$.
+*   Average in 4 years = $23 + 4 = 27$.
+
+Final answer: 27

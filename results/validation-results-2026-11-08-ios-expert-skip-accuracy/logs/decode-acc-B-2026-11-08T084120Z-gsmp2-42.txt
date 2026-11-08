@@ -1,0 +1,30 @@
+To find out how much Bodhi has to pay, we follow these steps:
+
+1.  **Calculate the cost of the new brand of rice per pound:**
+    The normal brand costs $15 per pound. The new brand costs 20% more.
+    $\text{Increase} = 0.20 \times 15 = 3$
+    $\text{New price per pound} = 15 + 3 = \$18$
+
+2.  **Calculate the total amount of rice Bodhi needs to buy:**
+    He buys a week's worth of rice (7 days) and uses 2 pounds per day.
+    $\text{Total rice} = 7 \text{ days} \times 2 \text{ lbs/day} = 14 \text{ lbs}$
+
+3.  **Calculate the cost of the rice with the discount applied:**
+    The store offers a 20% discount on the first 10 pounds. Any additional rice is at the regular price ($18/lb).
+    
+    *   **Discounted portion (first 10 lbs):**
+        $\text{Discounted price per pound} = % \text{ of } 18 = 18 \times (1 - 0.20) = 18 \times 0.80 = \$14.40$
+        $\text{Cost for 10 lbs} = 10 \times 14.40 = \$144$
+    
+    *   **Regular price portion (remaining 4 lbs):**
+        $\text{Remaining rice} = 14 - 10 = 4 \text{ lbs}$
+        $\text{Cost for 4 lbs} = 4 \times 18 = \$72$
+    
+    *   **Total cost for rice:**
+        $\text{Total rice cost} = 144 + 72 = \$216$
+
+4.  **Add the cost of the cookie:**
+    Bodhi also buys a cookie for $1.
+    $\text{Total amount to pay} = 216 + 1 = \$217$
+
+Final answer: 217

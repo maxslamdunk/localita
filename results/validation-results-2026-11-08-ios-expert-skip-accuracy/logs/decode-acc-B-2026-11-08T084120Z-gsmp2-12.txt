@@ -1,0 +1,36 @@
+To find the number of additional plates Gabriel needs, we follow these steps:
+
+1.  **Calculate the capacity of each container:**
+    *   Capacity of one plate = 20 almonds.
+    *   Capacity of one bowl = $4 \times 20 = 80$ almonds.
+
+2.  **Determine the remaining containers after breakage:**
+    *   Initial plates = 9.
+    *   Initial bowls = 3.
+    *   Two bowls break, so remaining bowls = $3 - 2 = 1$ bowl.
+    *   Plates remain at 9.
+
+3.  **Calculate the remaining almonds after Gabriel eats some:**
+    *   Total initial almonds = 675.
+    *   Gabriel eats one-fifth of the almonds: $\frac{1}{5} \times 675 = 135$ almonds.
+    *   Remaining almonds = $675 - 135 = 540$ almonds.
+
+4.  **Calculate the capacity of the current containers:**
+    *   Capacity of 9 plates = $9 \times 20 = 180$ almonds.
+    *   Capacity of 1 bowl = $1 \times 80 = 80$ almonds.
+    *   Total current capacity = $180 + 80 = 260$ almonds.
+
+5.  **Calculate how many more almonds need to be accommodated:**
+    *   Remaining almonds to place = 540.
+    *   Current capacity = 260.
+    *   Deficit = $540 - 260 = 280$ almonds.
+
+6.  **Calculate the number of additional plates needed:**
+    *   Each plate holds 20 almonds.
+    *   Number of plates needed = $\frac{280}{20} = 14$ plates.
+
+Final check:
+Total capacity with 14 extra plates: $260 + (14 \times 20) = 260 + 280 = 540$.
+This matches the remaining almonds.
+
+Final answer: 14

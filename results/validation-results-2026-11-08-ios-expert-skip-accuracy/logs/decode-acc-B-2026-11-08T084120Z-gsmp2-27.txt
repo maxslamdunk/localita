@@ -1,0 +1,25 @@
+To solve this problem, we will break it down into steps based on the information provided.
+
+**Step 1: Calculate the number of emails that require a response each day.**
+Sanjay receives 32 emails a day.
+25% of these do not require a response.
+Number of emails requiring response = $32 - (0.25 \times 32)$
+Number of emails requiring response = $32 - 8 = 24$.
+
+**Step 2: Calculate how many emails Sanjay responds to on a regular day.**
+The problem states that from the remaining 24 emails, Sanjay responds to "2 less than 1/2 of them".
+1/2 of the remaining emails = $24 / 2 = 12$.
+Sanjay responds to $12 - 2 = 10$ emails per regular day.
+
+**Step 3: Calculate the number of emails responded to on the last day (overtime).**
+On the last day, Sanjay responds to 20% more emails than usual.
+Usual response = 10 emails.
+Overtime increase = $20\% \text{ of } 10 = 0.20 \times 10 = 2$.
+Last day response = $10 + 2 = 12$ emails.
+
+**Step 4: Calculate the total number of emails responded to in a 4-day work week.**
+The work week consists of 4 days. Since the last day is the 4th day, we have 3 regular days and 1 overtime day.
+Total = (3 days $\times$ 10 emails/day) + (1 day $\times$ 12 emails/day)
+Total = $30 + 12 = 42$.
+
+Final answer: 42

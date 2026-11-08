@@ -1,0 +1,34 @@
+To find the percentage of animals in the garden that were rabbits, we need to determine the total number of animals and the number of rabbits.
+
+**Step 1: Identify the number of each type of animal.**
+*   **Caterpillars:** The problem states there are 13 caterpillars.
+*   **Beetles:** There are nine times as many beetles as caterpillars.
+    $\text{Beetles} = 9 \times 13 = 117$
+*   **White animals:** There are 66 white animals.
+*   **Rabbits:** Half of the white animals are rabbits.
+    $\text{Rabbits} = 66 / 2 = 33$
+*   **Bees:** There are 24 bees.
+
+**Step 2: Calculate the total number of animals in the garden.**
+The total number of animals is the sum of caterpillars, beetles, white animals, and bees.
+Note: The "white animals" category includes the rabbits, so we do not add rabbits separately to the total.
+$\text{Total} = \text{Caterpillars} + \text{Beetles} + \text{White animals} + \text{Bees}$
+$\text{Total} = 13 + 117 + 66 + 24$
+$\text{Total} = 130 + 66 + 24$
+$\text{Total} = 196 + 24$
+$\text{Total} = 220$
+
+**Step 3: Calculate the percentage of rabbits.**
+The number of rabbits is 33. The total number of animals is 220.
+$\text{Percentage} = (\text{Number of rabbits} / \text{Total animals}) \times 100$
+$\text{Percentage} = (33 / 220) \times 100$
+
+Simplify the fraction:
+$33 / 220 = (3 \times 11) / (20 \times 11) = 3 / 20$
+
+Now, convert to percentage:
+$(3 / 20) \times 100 = 3 \times 5 = 15$
+
+Final answer: 15%
+
+Final answer: 15

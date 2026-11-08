@@ -1,0 +1,35 @@
+To find the total number of trips needed, we first calculate the total weight of all the items purchased.
+
+**Step 1: Calculate the weight of each type of item.**
+*   **Corn:** 4 boxes × 6 pounds/box = 24 pounds
+*   **Cucumbers:** 14 bags × 8 pounds/bag = 112 pounds
+*   **Apples:** 35 packs × 42 pounds/pack = 1,470 pounds
+*   **Hay:** 18 sacks × 18 pounds/sack = 324 pounds
+*   **Groceries:** 43 pounds
+*   **Tools:** 27 pounds
+*   **Wood:** 100 pounds
+
+**Step 2: Calculate the total weight of all items.**
+Total Weight = 24 + 112 + 1,470 + 324 + 43 + 27 + 100
+Total Weight = 136 + 1,470 + 324 + 43 + 27 + 100
+Total Weight = 1,606 + 324 + 43 + 27 + 100
+Total Weight = 1,930 + 43 + 27 + 100
+Total Weight = 1,973 + 27 + 100
+Total Weight = 2,000 + 100
+Total Weight = 2,100 pounds
+
+**Step 3: Calculate the capacity per trip.**
+The farmer has three trucks, and each truck can carry 140 pounds.
+Total capacity per trip = 3 trucks × 140 pounds/truck = 420 pounds
+
+**Step 4: Calculate the number of trips needed.**
+Number of trips = Total Weight / Capacity per trip
+Number of trips = 2,100 / 420
+
+To solve 2,100 / 420:
+2,100 / 420 = 210 / 42
+210 / 42 = 5 (since 42 * 5 = 210)
+
+The farmer needs 5 trips to transport all the items.
+
+Final answer: 5

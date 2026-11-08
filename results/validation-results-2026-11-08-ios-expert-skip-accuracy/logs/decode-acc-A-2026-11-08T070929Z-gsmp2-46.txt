@@ -1,0 +1,24 @@
+To find out how many tickets each graduate receives, we need to calculate the remaining available seats and then divide that number by the number of graduates.
+
+**Step 1: Calculate the total number of reserved seats.**
+The reserved seats are for graduates, faculty, and staff:
+- Graduates: 600 seats
+- Faculty: 250 seats
+- Staff: 50 seats
+
+Total reserved seats = $600 + 250 + 50 = 900$ seats.
+
+**Step 2: Calculate the remaining available seats.**
+The total capacity of the Sports Arena is 7500. We subtract the reserved seats from the total capacity:
+Remaining seats = $7500 - 900 = 6600$ seats.
+
+**Step 3: Calculate how many tickets each graduate receives.**
+The 6600 remaining seats are to be split equally among the 600 graduates.
+Tickets per graduate = $\frac{6600}{600}$
+
+To simplify the division:
+$\frac{6600}{600} = \frac{66}{6} = 11$
+
+Each graduate receives 11 tickets.
+
+Final answer: 11

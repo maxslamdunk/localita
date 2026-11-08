@@ -1,0 +1,28 @@
+To find the least amount Leon can spend, we first need to calculate the total cost of the items before any discounts are applied.
+
+**Step 1: Calculate the total cost of the items.**
+- 8 crayons at ¥7.0 each: $8 \times 7 = 56$
+- 8 notebooks at ¥13.75 each: $8 \times 13.75 = 110$
+- 1 ream of bond paper: $10$
+- 4 folders at ¥11 each: $4 \times 11 = 44$
+
+Total cost = $56 + 110 + 10 + 44 = 220$
+
+**Step 2: Calculate the cost if he does NOT become a member.**
+If he does not become a member, he receives a 5% discount.
+- Discount amount: $220 \times 0.05 = 11$
+- Total cost: $220 - 11 = 209$
+
+**Step 3: Calculate the cost if he DOES become a member.**
+If he becomes a member, he pays a one-time ¥20 fee and receives a 20% discount on the purchases.
+- Discount amount: $220 \times 0.20 = 44$
+- Discounted price of items: $220 - 44 = 176$
+- Total cost (including fee): $176 + 20 = 196$
+
+**Step 4: Compare the two options to find the least amount.**
+- Option 1 (No membership): ¥209
+- Option 2 (Membership): ¥196
+
+The least amount Leon can spend is ¥196.
+
+Final answer: 196

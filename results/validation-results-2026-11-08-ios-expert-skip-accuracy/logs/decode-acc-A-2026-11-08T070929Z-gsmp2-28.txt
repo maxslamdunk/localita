@@ -1,0 +1,23 @@
+To solve this problem, we will follow these steps:
+
+1.  **Calculate the initial state of the rooms:**
+    *   Total capacity: $1700$ rooms.
+    *   Occupied rooms: $\frac{1}{5}$ of $1700 = \frac{1700}{5} = 340$ rooms.
+    *   Out of service rooms: $\frac{1}{5}$ of $1700 = \frac{1700}{5} = 340$ rooms.
+
+2.  **Determine the initial number of available (unoccupied) rooms:**
+    *   The rooms that are neither occupied nor out of service are available.
+    *   Available rooms = Total capacity - Occupied rooms - Out of service rooms
+    *   Available rooms = $1700 - 340 - 340 = 1020$ rooms.
+
+3.  **Calculate the number of patients admitted over 2 weeks:**
+    *   Time period: 2 weeks = $14$ days.
+    *   Daily admission rate: $20$ patients per day.
+    *   Total patients admitted = $14 \text{ days} \times 20 \text{ patients/day} = 280$ patients.
+
+4.  **Calculate the final number of unoccupied rooms:**
+    *   Since each new patient occupies one room, we subtract the new patients from the initial available rooms.
+    *   Final unoccupied rooms = Initial available rooms - Total patients admitted
+    *   Final unoccupied rooms = $1020 - 280 = 740$ rooms.
+
+Final answer: 740

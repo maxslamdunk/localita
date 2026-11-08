@@ -1,0 +1,33 @@
+To find out how many ounces of water Luca has left, we need to calculate the total amount of water used for all the ice cubes and subtract that from the initial amount.
+
+**Step 1: Identify the sizes of the cubes.**
+- Giant cube: 14 ounces
+- Medium cube: 3 ounces
+- Small cube: 1/2 ounce (0.5 ounces)
+- Tiny cube: Half the size of a small cube = $0.5 \times 0.5 = 0.25$ ounces
+
+**Step 2: Determine the number of each type of cube made.**
+The problem states Luca makes 47 total cubes. We are given:
+- Giant cubes: 9
+- Medium cubes: 12
+- Small cubes: 14
+- Tiny cubes: To be calculated.
+
+Total cubes accounted for so far = $9 + 12 + 14 = 35$.
+Number of tiny cubes = $47 - 35 = 12$.
+
+**Step 3: Calculate the total water used.**
+- Water for giant cubes: $9 \times 14 = 126$ ounces
+- Water for medium cubes: $12 \times 3 = 36$ ounces
+- Water for small cubes: $14 \times 0.5 = 7$ ounces
+- Water for tiny cubes: $12 \times 0.25 = 3$ ounces
+
+Total water used = $126 + 36 + 7 + 3$
+Total water used = $162 + 7 + 3 = 172$ ounces.
+
+**Step 4: Calculate the remaining water.**
+Initial water = 337 ounces
+Total water used = 172 ounces
+Remaining water = $337 - 172 = 165$ ounces.
+
+Final answer: 165

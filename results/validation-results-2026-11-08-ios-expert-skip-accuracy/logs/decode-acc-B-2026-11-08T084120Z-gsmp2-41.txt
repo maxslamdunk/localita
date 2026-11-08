@@ -1,0 +1,30 @@
+To find the percentage of pink cubes in the pyramid, we follow these steps:
+
+1.  **Identify the number of green cubes:**
+    The problem states there are 9 green cubes.
+
+2.  **Calculate the number of white cubes:**
+    The problem states there are twice as many white cubes as green cubes.
+    $\text{White cubes} = 2 \times 9 = 18$
+
+3.  **Calculate the current total of green and white cubes:**
+    $\text{Green} + \text{White} = 9 + 18 = 27$
+
+4.  **Determine the number of pink cubes:**
+    The total number of cubes in the pyramid is 45. To find the number of pink cubes, subtract the sum of green and white cubes from the total.
+    $\text{Pink cubes} = 45 - 27 = 18$
+
+5.  **Calculate the percentage of pink cubes:**
+    To find the percentage, divide the number of pink cubes by the total number of cubes and multiply by 100.
+    $\text{Percentage of pink cubes} = \left( \frac{18}{45} \right) \times 100$
+
+    Simplify the fraction $\frac{18}{45}$:
+    Both 18 and 45 are divisible by 9.
+    $18 \div 9 = 2$
+    $45 \div 9 = 5$
+    So, $\frac{18}{45} = \frac{2}{5}$
+
+    Now, convert the fraction to a percentage:
+    $\frac{2}{5} \times 100 = 0.4 \times 100 = 40\%$
+
+Final answer: 40

@@ -1,0 +1,34 @@
+To find the number of 30-minute episodes Faisal watched on Friday, we need to calculate the total time spent watching TV on the other days and subtract it from the total of 28 hours.
+
+**Step 1: Calculate the time spent on Wednesday and Thursday.**
+He watched 4-hour episodes each night for two nights.
+$4 \text{ hours} \times 2 = 8 \text{ hours}$.
+
+**Step 2: Calculate the time spent on Saturday.**
+He watched a 5-hour episode and a 15-minute show.
+$5 \text{ hours} + 15 \text{ minutes} = 5 \text{ hours } 15 \text{ minutes}$.
+
+**Step 3: Calculate the time spent on Sunday.**
+He watched four 3-hour episodes.
+$4 \times 3 \text{ hours} = 12 \text{ hours}$.
+
+**Step 4: Calculate the time spent on Monday.**
+He watched three episodes, each 45 minutes long.
+$3 \times 45 \text{ minutes} = 135 \text{ minutes}$.
+Since 60 minutes = 1 hour, $135 \text{ minutes} = 2 \text{ hours and } 15 \text{ minutes}$.
+
+**Step 5: Sum the time spent from Wednesday to Monday (excluding Friday).**
+Total known time = $8\text{h} + 5\text{h } 15\text{m} + 12\text{h} + 2\text{h } 15\text{m}$.
+Summing the hours: $8 + 5 + 12 + 2 = 27 \text{ hours}$.
+Summing the minutes: $15 + 15 = 30 \text{ minutes}$.
+Total known time = $27 \text{ hours and } 30 \text{ minutes}$.
+
+**Step 6: Calculate the time spent on Friday.**
+The total time for the week is 28 hours.
+Friday's time = $28\text{h} - 27\text{h } 30\text{m} = 30 \text{ minutes}$.
+
+**Step 7: Determine the number of 30-minute episodes on Friday.**
+He watched 30-minute episodes on Friday.
+Number of episodes = $\frac{30 \text{ minutes}}{30 \text{ minutes/episode}} = 1$.
+
+Final answer: 1

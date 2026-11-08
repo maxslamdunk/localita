@@ -1,0 +1,31 @@
+To solve this problem, we will follow these steps:
+
+1.  **Identify the number of girls:**
+    The problem states there are 24 girls in the park.
+
+2.  **Calculate the number of boys:**
+    The problem states there are "one-third the number of boys" compared to the girls (or that the number of boys is one-third the number of girls). 
+    *Wait, let's re-read carefully:* "If there are one-third the number of boys in the park..." This phrasing can be slightly ambiguous. It usually means the number of boys is $1/3$ of the number of girls.
+    Number of boys = $\frac{1}{3} \times 24 = 8$.
+
+3.  **Calculate the total number of kids:**
+    Total kids = Number of girls + Number of boys
+    Total kids = $24 + 8 = 32$.
+
+4.  **Calculate the percentage of girls:**
+    To find the percentage of girls, we divide the number of girls by the total number of kids and multiply by 100.
+    Percentage of girls = $(\frac{\text{Number of girls}}{\text{Total kids}}) \times 100$
+    Percentage of girls = $(\frac{24}{32}) \times 100$
+
+5.  **Simplify the fraction:**
+    $\frac{24}{32}$ can be simplified by dividing both the numerator and the denominator by their greatest common divisor, which is 8.
+    $24 \div 8 = 3$
+    $32 \div 8 = 4$
+    So, $\frac{24}{32} = \frac{3}{4}$.
+
+6.  **Convert the fraction to a percentage:**
+    $\frac{ de 3}{4} \times 100 = 0.75 \times 100 = 75\%$.
+
+Final answer: 75% (or 75)
+
+Final answer: 75

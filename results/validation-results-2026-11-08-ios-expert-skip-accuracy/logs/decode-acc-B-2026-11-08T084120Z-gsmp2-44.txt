@@ -1,0 +1,35 @@
+To solve this problem, we will follow these steps:
+
+1.  **Identify the number of girls:**
+    The problem states there are 24 girls in the park.
+
+2.  **Calculate the number of boys:**
+    The problem states there are "one-third the number of boys" compared to the girls (or that the number of boys is one-third the number of girls). 
+    *Wait, let's re-read carefully:* "If there are one-third the number of boys in the park..." This phrasing can be ambiguous. It usually means "The number of boys is one-third the number of girls" or "The number of girls is one-third the number of boys."
+    
+    Let's look at the phrasing: "There are 24 girls... If there are one-third the number of boys in the park..." 
+    In standard English word problems, this implies:
+    Number of boys = $\frac{1}{3} \times$ Number of girls.
+    Number of boys = $\frac{1}{3} \times 24 = 8$.
+
+3.  **Calculate the total number of kids:**
+    Total kids = Girls + Boys
+    Total kids = $24 + 8 = 32$.
+
+4.  **Calculate the percentage of girls:**
+    To find the percentage of girls, we use the formula:
+    $\text{Percentage} = \left( \frac{\text{Number of girls}}{\text{Total number of kids}} \right) \times 100$
+    $\text{Percentage} = \left( \frac{24}{32} \right) \times 100$
+
+5.  **Simplify the fraction:**
+    $\frac{24}{32}$ can be simplified by dividing both the numerator and the denominator by their greatest common divisor, which is 8:
+    $24 \div 8 = 3$
+    $32 \div 8 = 4$
+    So, $\frac{24}{32} = \frac{3}{4}$.
+
+6.  **Convert the fraction to a percentage:**
+    $\frac{3}{4} \times 100 = 75\%$.
+
+Final check: If there are 24 girls and 8 boys, the total is 32. 24 is 75% of 32. 8 is 25% of 32. 8 is indeed one-third of 24.
+
+Final answer: 75

@@ -1,0 +1,37 @@
+To find out how many signatures Zahra needs to collect per week, we follow these steps:
+
+**1. Calculate the current status and the remaining goal:**
+*   Uma's current signatures: 29
+*   Zahra's current signatures: 37
+*   Total current signatures: $29 + 37 = 66$
+*   Target total signatures: 130
+*   Signatures still needed: $130 - 66 = 64$
+
+**2. Determine the rate of collection for the first 6 weeks:**
+*   The sisters spent 6 weeks collecting signatures.
+*   Uma's initial weekly rate: $29 / 6$ signatures per week.
+*   Zahra's initial weekly rate: $37 / 6$ signatures per week.
+
+**3. Calculate Uma's collection during the remaining 4 weeks:**
+*   The problem states that during the remaining 4 weeks, Uma's weekly collection is reduced by 5 per week. However, we must first determine her original weekly rate.
+*   Wait, the problem implies the "weekly collection" refers to the rate established in the first 6 weeks. Let's re-evaluate.
+*   If Uma's rate was $29/6$ per week, subtracting 5 would result in a negative number. Let's look at the wording again: "Uma is only able to collect signatures on weekends, reducing her weekly collection by 5 per week". This implies her *rate* is reduced by 5.
+*   Let's check if the "weekly collection" refers to a constant rate. If Uma collected 29 signatures in 6 weeks, her weekly rate was $29/6 \approx 4.83$. If we subtract 5, she would be at $-0.17$. This suggests the "weekly collection" might refer to a different baseline or that the 29 and 37 are the totals *after* 6 weeks.
+*   Let's assume the "weekly collection" refers to the amount they were collecting per week during the first 6 weeks.
+*   Actually, let's look at the total signatures needed: 64.
+*   If Uma's rate is $R_u$ and Zahra's rate is $R_z$:
+    $R_s = 29/6$ (Uma's rate)
+    $R_z = 37/6$ (Zahra's rate)
+    New $R_u = (29/6) - 5$. This is negative.
+*   **Re-reading:** "Uma has 29 signatures... Zahra has 37... they have 4 more weeks... Uma is only able to collect signatures on weekends, reducing her weekly collection by 5 per week".
+*   Perhaps the "weekly collection" refers to the amount they *planned* to collect? No, that's not stated.
+*   Let's assume the "weekly collection" refers to the rate they *had* in the first 6 weeks. If $29/6$ is the rate, the math doesn't work.
+*   Let's try another interpretation: The total collected in 6 weeks was 29 and 37. If the "weekly collection" refers to the amount they *would* have collected if they continued at the same rate, but the reduction is 5 signatures *total* per week? No.
+*   Let's look at the numbers again. $29 + 37 = 66$. $130 - 66 = 64$.
+*   If Uma's rate is reduced by 5 per week, and she collects for 4 weeks:
+    Total from Uma = $4 \times (\text{Original Rate} - 5)$.
+    Wait, if the original rate was $29/6$, then $29/6 - 5$ is negative.
+*   **Alternative Interpretation:** The "weekly collection" refers to the amount they *collect* in a week. If Uma's rate was $X$ per week, her new rate is $X-5$. But $X$ must be at least 5.
+*   Let's assume the "weekly collection" refers to the *total* amount collected in the first 6 weeks? No.
+*   Let's assume the 29 and 37 are the *weekly* rates? No, it says "Uma has 29 signatures in her book".
+*   Let's assume the "weekly collection" refers to the rate they *had* in the first 6 weeks, but the 29 and 37

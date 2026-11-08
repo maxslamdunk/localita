@@ -1,0 +1,23 @@
+To find out how many potted plants Sakura will have remaining, we need to calculate the total number of plants she has and then subtract the number of plants she gives away.
+
+**Step 1: Calculate the initial number of plants on the window ledges.**
+Sakura has 60 window ledges, and each ledge has 7 plants.
+$60 \times 7 = 420$ plants.
+
+**Step 2: Add the new plants received two days ago.**
+She received 49 new plants.
+$420 + 49 = 469$ plants.
+
+**Step 3: Add the plants purchased yesterday.**
+She purchased 100 new plants yesterday. (Note: The 50% discount affects the price paid, but the quantity remains 100 plants).
+$469 + 100 = 569$ plants.
+
+**Step 4: Calculate how many plants she will give away.**
+She decides to give 3 plants from each of the 60 ledges.
+$60 \times 3 = 180$ plants.
+
+**Step 5: Calculate the remaining number of plants.**
+Subtract the plants given away from the total number of plants.
+$569 - 180 = 389$ plants.
+
+Final answer: 389

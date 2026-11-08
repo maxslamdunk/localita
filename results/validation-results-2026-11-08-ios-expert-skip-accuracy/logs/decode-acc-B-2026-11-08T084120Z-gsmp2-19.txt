@@ -1,0 +1,26 @@
+To find the total number of points Aisha is sure to get, we first determine the number of questions in each subject.
+
+1.  **Calculate the number of questions per subject:**
+    *   Total questions = 100
+    *   Chemistry: 40% of 100 = $0.40 \times 100 = 40$ questions.
+    *   Geography: 20% of 100 = $0.20 \times 100 = 20$ questions.
+    *   Remaining questions: $100 - (40 + 20) = 40$ questions.
+    *   The remaining questions are divided equally between History and Algebra:
+        *   History: $40 / 2 = 20$ questions.
+        *   Algebra: $40 / 2 = 20$ questions.
+
+2.  **Calculate the number of correct answers Aisha is sure to get in each subject:**
+    *   **Chemistry:** She gets 100% correct.
+        $1.00 \times 40 = 40$ points.
+    *   **Geography:** She gets 25% correct.
+        $0.25 \times 20 = 5$ points.
+    *   **History:** She gets a tenth (10%) correct.
+        $0.10 \times 20 = 2$ points.
+    *   **Algebra:** She gets a tenth (10%) correct.
+        $0.10 \times 20 = 2$ points.
+
+3.  **Calculate the total points:**
+    Total points = Chemistry + Geography + History + Algebra
+    Total points = $40 + 5 + 2 + 2 = 49$ points.
+
+Final answer: 49

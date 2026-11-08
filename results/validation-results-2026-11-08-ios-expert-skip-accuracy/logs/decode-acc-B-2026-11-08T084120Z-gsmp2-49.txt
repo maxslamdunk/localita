@@ -1,0 +1,28 @@
+To find out how much money Qasim makes in a week, we follow these steps:
+
+**Step 1: Calculate the number of apartments in each complex.**
+*   The first 4 complexes have 100 apartments each.
+*   The 5th complex is 30% bigger than the first 4 combined.
+    *   Sum of first 4 complexes = $4 \times 100 = 400$ apartments.
+    *   Size of 5th complex = $400 + (0.30 \times 400) = 400 + 120 = 520$ apartments.
+
+**Step 2: Account for the vacancies this week.**
+*   5 apartments from each of the first 4 complexes were vacant.
+    *   New count for each of the first 4 complexes = $100 - 5 = 95$ apartments.
+*   The 5th complex remains at 520 apartments (the problem states 5 apartments from the *first 4* were vacant).
+*   Total apartments requiring service = $(4 \times 95) + 520 = 380 + 520 = 900$ apartments.
+
+**Step 3: Calculate the total number of collections per week.**
+*   Qasim collects garbage 2 times a week from each apartment.
+*   Total collections = $900 \text{ apartments} \times 2 \text{ collections/apartment} = 1800$ collections.
+
+**Step 4: Calculate the base pay.**
+*   He gets paid ₣0.3 per collection.
+*   Base pay = $1800 \times 0.3 = 540$ ₣.
+
+**Step 5: Calculate the total earnings including tips.**
+*   He earns an additional 10% in tips.
+*   Tips = $0.10 \times 540 = 54$ ₣.
+*   Total money = $540 + 54 = 594$ ₣.
+
+Final answer: 594

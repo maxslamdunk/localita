@@ -1,0 +1,31 @@
+To find out how much money Sakura has left, we need to calculate her total expenses and subtract them from her initial amount.
+
+**Step 1: Calculate the cost of the saltwater taffy.**
+The sale offer is: "Buy 16 kgs at €22 per kg, get 4 kgs 1/4 off."
+Sakura bought 22 kgs in total. Let's break down the pricing based on the offer:
+- The first 16 kgs are at the full price: $16 \times 22 = €352$.
+- The next 4 kgs are 1/4 off. 
+  - Discount per kg: $22 \times \frac{1}{4} = 5.50$.
+  - Sale price per kg: $22 - 5.50 = 16.50$.
+  - Cost for these 4 kgs: $4 \times 16.50 = €66$.
+- The remaining kgs (since she bought 22 kgs total): $22 - 16 - 4 = 2$ kgs.
+  - These 2 kgs are at the full price (as the discount only applied to the 4 kgs after the initial 16): $2 \times 22 = €44$.
+
+Total cost for taffy: $352 + 66 + 44 = €462$.
+
+**Step 2: Calculate the cost of other items.**
+- Mixed bag of starfish: €11.0
+- 12 keychains at €20.0 each: $12 \times 20 = €240$.
+- Charity donation: €5.
+
+**Step 3: Calculate total expenses.**
+Total Expenses = Taffy + Starfish + Keychains + Donation
+Total Expenses = $462 + 11 + 240 + 5$
+Total Expenses = $718$.
+
+**Step 4: Calculate the remaining money.**
+Initial amount: €1300
+Remaining money = $1300 - 718$
+Remaining money = $582$.
+
+Final answer: 582

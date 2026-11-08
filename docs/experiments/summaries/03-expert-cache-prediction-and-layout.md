@@ -19,7 +19,7 @@ capacity and memory cost.
 | Fresh preallocated expert artifact | Unexecuted hypothesis |
 | Next-layer early read from the hidden state | Production since 2026-10-03, with the fitted guess: about +17–20% tok/s on iPhone at +11–18% bytes/token |
 | LFU count aging (decay and a reset per conversation) | Production; +23% tok/s over an 11-chat session on iPhone, nothing on a fresh single prompt |
-| Cache-conditional expert skipping (drop a low-weight expert only when it misses) | Research switch; −39% waited-for reads at half the KL of one INT4 rounding (Mac); +18 to +33% tok/s on iPhone, [CACHE-12](#cache-12) |
+| Cache-conditional expert skipping (drop a low-weight expert only when it misses) | Research switch; −39% waited-for reads at half the KL of one INT4 rounding (Mac); +18 to +33% tok/s on iPhone, 47 of 50 graded problems in both arms, [CACHE-12](#cache-12) |
 
 ## Cache policy and capacity
 
@@ -265,7 +265,7 @@ capacity and memory cost.
   over a session is invisible to it. Replay sessions, not only prompts.
 
 <a id="cache-12"></a>
-### CACHE-12: Cache-conditional expert skipping (quality measured on the Mac, speed on the phone)
+### CACHE-12: Cache-conditional expert skipping (KL on the Mac; speed and graded answers on the phone)
 
 - **Hypothesis:** Gemma 4's router weights are flat: ranks 1–8 average
   0.26 … 0.07. So dropping a low-weight expert only when it would be a
@@ -321,10 +321,19 @@ capacity and memory cost.
   - Every predicted range and every control held. Each removed read took
     2.1–2.7 ms off `io`, the phone's serial read time.
   - The replies read as coherent and complete.
-  - It stays off by default. Before a default decision, a task-accuracy check
-    with graded answers should measure the drift that teacher-forced KL
-    cannot.
   - See `results/benchmark-results-2026-11-08-ios-expert-skip/results.md`.
+- **Graded answers on the phone (2026-11-08, 50 GSM-Symbolic P2 problems,
+  free generation):**
+  - **47 of 50 right in both arms.** They disagreed on 2 problems, one each
+    way (McNemar p = 1.000). B's loss was a reply that ran out of tokens on an
+    ambiguous clause; A's was an arithmetic slip.
+  - The replies diverge early (median first difference at character 197), yet
+    the answers hold. That is the drift teacher-forced KL cannot see, and it
+    did not compound.
+  - It cannot resolve a loss of 1–3 problems in 50, and it covers English
+    arithmetic only.
+  - It stays off by default; the default is the user's quality decision.
+  - See `results/validation-results-2026-11-08-ios-expert-skip-accuracy/results.md`.
 - **Lesson:** A lossy change can be priced against the quantization the
   project already accepts. Measure it with a teacher-forced KL meter against
   a one-rounding yardstick, not by eye and not against "no change".

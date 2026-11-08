@@ -1,0 +1,30 @@
+To find out how much Diego is going to make, we need to calculate the total number of pineapples he has by the end of the week and then determine how many boxes he can fill.
+
+**Step 1: Calculate the number of pineapples picked each day.**
+*   **Wednesday:** 67 pineapples.
+*   **Thursday:** 176 pineapples.
+*   **Friday:** He picks quintuple (5 times) the number from Wednesday.
+    $67 \times 5 = 335$ pineapples.
+*   **Saturday:** He picks half the amount of what he picked in the past 3 days combined (Wednesday + Thursday + Friday).
+    Sum of past 3 days: $67 + 176 + 335 = 578$ pineapples.
+    Saturday's amount: $578 / 2 = 289$ pineapples.
+
+**Step 2: Calculate the total number of pineapples.**
+Total = Wednesday + Thursday + Friday + Saturday
+Total = $67 + 176 + 335 + 289$
+Total = $578 + 289 = 867$ pineapples.
+
+**Step 3: Calculate the number of boxes.**
+Diego sells pineapples in boxes of 17.
+Number of boxes = $867 / 17$
+$867 \div 17 = 51$ boxes.
+(Calculation check: $17 \times 50 = 850$, $17 \times 1 = 17$, $850 + 17 = 867$).
+
+**Step 4: Calculate the total money made.**
+Each box is sold for $12.
+Total money = $51 \times 12$
+$51 \times 10 = 510$
+$51 \times 2 = 102$
+$510 + 102 = 612$.
+
+Final answer: 612

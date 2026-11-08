@@ -1,0 +1,42 @@
+To find Wei's average daily earning, we first need to determine the number of cupcakes and plum pies sold each day.
+
+**Step 1: Determine the sales for Monday and Tuesday.**
+*   **Monday:**
+    *   Cupcakes: 28 boxes.
+    *   Plum pies: The problem states he sold 19 fewer boxes of plum pie on Monday than on Tuesday. Since Tuesday's plum pie sales are 27, Monday's plum pies = $27 - 19 = 8$ boxes.
+*   **Tuesday:**
+    *   Cupcakes: The problem states he sold 14 more boxes of cupcakes on Tuesday than on Monday. Since Monday's cupcakes are 28, Tuesday's cupcakes = $28 + 14 = 42$ boxes.
+    *   Plum pies: 27 boxes.
+
+**Step 2: Calculate the earnings for Monday and Tuesday.**
+*   **Monday's Earnings:**
+    *   $(28 \text{ cupcakes} \times \$11) + (8 \text{ plum pies} \times \$23)$
+    *   $308 + 184 = \$492$
+*   **Tuesday's Earnings:**
+    *   $(42 \text{ cupcakes} \times \$11) + (27 \text{ plum pies} \times \$23)$
+    *   $462 + 621 = \$1083$
+
+**Step 3: Calculate the earnings for Wednesday.**
+*   The problem states that on Wednesday, he sold as much as he did in the past two days combined. This refers to the total amount (earnings) from Monday and Tuesday.
+*   **Wednesday's Earnings:**
+    *   $\$492 + \$1083 = \$1575$
+
+**Step 4: Calculate the average daily earning over the three days.**
+*   Total earnings for Monday, Tuesday, and Wednesday:
+    *   $\$492 + \$1083 + \$1575 = \$3150$
+*   Average daily earning:
+    *   $\text{Total Earnings} / 3 \text{ days} = \$3150 / 3 = \$1050$
+
+Alternatively, since Wednesday's earnings are the sum of Monday and Tuesday's, the total is $2 \times (\text{Monday} + \text{Tuesday})$. The average is $\frac{\text{Monday} + \text{Tuesday} + (\text{Monday} + \text{Tuesday})}{3} = \frac{2(\text{Monday} + \text{Tuesday})}{3}$.
+Wait, let's re-read: "On Wednesday, he sold as much as he did in the past two days combined." This usually implies the quantity/value.
+Total = $492 + 1083 + 1575 = 3150$.
+Average = $3150 / 3 = 1050$.
+
+Final check of the math:
+Monday: $28 \times 11 = 308$; $27-19=8$; $8 \times 23 = 184$. Total = 492.
+Tuesday: $28+14=42$; $42 \times 11 = 462$; $27 \times 23 = 621$. Total = 1083.
+Wednesday: $492 + 1083 = 1575$.
+Total: $492 + 1083 + 1575 = 3150$.
+Average: $3150 / 3 = 1050$.
+
+Final answer: 1050

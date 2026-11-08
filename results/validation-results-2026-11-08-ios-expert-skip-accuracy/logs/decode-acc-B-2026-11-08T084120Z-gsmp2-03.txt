@@ -1,0 +1,40 @@
+To solve this problem, we will follow a step-by-step process to determine the number of students in each category and then calculate the final percentage.
+
+**Step 1: Identify the given values.**
+- Total number of students: $290$
+- Students who like to paint: $12$
+- Students who like to play chess: $8$
+- Students who like to swim: $13$
+- Students who like to play cricket: $39$
+
+**Step 2: Calculate the number of students who like to hike.**
+The problem states that the number of students who like to hike is 5 less than two times the number that prefer playing cricket.
+- Number of cricket players = $39$
+- Calculation: $(2 \times 39) - 5$
+- $78 - 5 = 73$
+- So, $73$ students like to hike.
+
+**Step 3: Calculate the number of students who like to play video games.**
+The "rest" of the students (after accounting for painting, chess, swimming, cricket, and hiking) like to play video games.
+First, let's sum the students accounted for so far:
+- $12$ (paint) + $8$ (chess) + $13$ (swim) + $39$ (cricket) + $73$ (hike)
+- $12 + 8 = 20$
+- $20 + 13 = 33$
+- $33 + 39 = 72$
+- $72 + 73 = 145$
+
+Now, subtract this sum from the total number of students to find the number of students who play video games:
+- Total students - Sum of other hobbies = Video game players
+- $290 - 145 = 145$
+
+**Step 4: Calculate the percentage of students who like to play video games.**
+The formula for percentage is: $(\text{Part} / \text{Whole}) \times 100$
+- Part (video games) = $145$
+- Whole (total students) = $290$
+- Percentage = $(145 / 290) \times 100$
+
+Simplify the fraction:
+- $145 / 290 = 1/2 = 0.5$
+- $0.5 \times 100 = 50\%$
+
+Final answer: 50

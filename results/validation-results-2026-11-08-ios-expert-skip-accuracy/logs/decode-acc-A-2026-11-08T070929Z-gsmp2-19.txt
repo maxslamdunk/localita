@@ -1,0 +1,25 @@
+To solve this problem, we first determine the number of questions in each subject based on the total of 100 items.
+
+1.  **Calculate the number of questions per subject:**
+    *   **Chemistry:** 40% of 100 = $0.40 \times 100 = 40$ questions.
+    *   **Geography:** 20% of 100 = $0.20 \times 100 = 20$ questions.
+    *   **Remaining questions:** $100 - (40 + 20) = 40$ questions.
+    *   The remaining questions are divided equally between history and algebra:
+        *   **History:** $40 / 2 = 20$ questions.
+        *   **Algebra:** $40 / 2 = 20$ questions.
+
+2.  **Calculate the number of questions Aisha is sure to get correct:**
+    *   **Chemistry:** She gets 100% correct.
+        $1.00 \times 40 = 40$ points.
+    *   **Geography:** She gets 25% correct.
+        $0.25 \times 20 = 5$ points.
+    *   **History:** She gets a tenth (10%) correct.
+        $0.10 \times 20 = 2$ points.
+    *   **Algebra:** She gets a tenth (10%) correct.
+        $0.10 \times 20 = 2$ points.
+
+3.  **Calculate the total points:**
+    Total points = $40 (\text{chemistry}) + 5 (\text{geography}) + 2 (\text{history}) + 2 (\text{algebra})$
+    Total points = $40 + 5 + 2 + 2 = 49$
+
+Final answer: 49

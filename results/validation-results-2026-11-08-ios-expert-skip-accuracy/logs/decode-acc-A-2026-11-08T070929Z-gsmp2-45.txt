@@ -1,0 +1,41 @@
+To solve this problem, we need to determine how many plants Kimia needs in total, how many she needs to buy, and the final cost after the discount.
+
+**Step 1: Determine the total number of plants that can fit in the flower bed.**
+The problem states that each plant is 7 feet wide and there must be 14 feet between every plant (including the width). This means each "unit" of space for one plant is the width of the plant plus the space following it.
+However, the wording "14 feet between every plant (including the plants width)" implies that the distance from the start of one plant to the start of the next is 14 feet.
+Let's check the math:
+If the first plant takes 7 feet and we need 14 feet of space "including the width", it means the distance from the beginning of Plant 1 to the beginning of Plant 2 is 14 feet.
+Total length = 126 feet.
+Number of plants = Total length / Space per plant
+Number of plants = $126 / 14 = 9$
+
+Let's verify:
+Plant 1: 0-7 ft (Space: 7-14 ft)
+Plant 2: 14-21 ft (Space: 21-28 ft)
+...
+Plant 9: $14 \times 8 = 112$ to $112 + 7 = 119$ ft.
+The next plant would start at $14 \times 9 = 126$ ft, which is the end of the bed.
+So, 9 plants can fit in the 126-foot bed.
+
+**Step 2: Determine how many plants Kimia needs to buy.**
+Kimia needs 9 plants in total.
+She already owns 6 flowers.
+Number of plants to buy = $9 - 6 = 3$ plants.
+
+**Step 3: Calculate the cost of the plants.**
+Each plant costs ₣4.
+Cost for 3 plants = $3 \times 4 = 12$ ₣.
+
+**Step 4: Apply the discount.**
+The problem states: "if she buys more than 2 plants, she'll receive a ₣5 discount on the entire purchase."
+Since Kimia is buying 3 plants (which is more than 2), she qualifies for the discount.
+Total cost = $12 - 5 = 7$ ₣.
+
+Final calculation:
+Total plants needed: 9
+Plants to buy: 3
+Cost before discount: $3 \times 4 = 12$
+Discount: 5
+Final cost: $12 - 5 = 7$
+
+Final answer: 7

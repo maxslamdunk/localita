@@ -1,0 +1,28 @@
+To find the average percentage of each whale's body length covered by the remoras, we follow these steps:
+
+**Step 1: Calculate the total length of remoras for the first whale.**
+- The first whale is 32 feet long.
+- It initially had 16 remoras, each 12 inches long.
+- 1/2 of the remoras swam away, so $16 \times \frac{1}{2} = 8$ remoras remained.
+- Each remora is 12 inches long. Since 12 inches = 1 foot, each remora is 1 foot long.
+- Total length of remoras on the first whale = $8 \text{ remoras} \times 1 \text{ foot/remora} = 8 \text{ feet}$.
+
+**Step 2: Calculate the percentage of the first whale's length covered.**
+- Percentage = $(\text{Total remora length} / \text{Whale length}) \times 100$
+- Percentage = $(8 / 32) \times 100 = 0.25 \times 100 = 25\%$.
+
+**Step 3: Calculate the total length of remoras for the second whale.**
+- The second whale is 10 feet long.
+- It has 6 remoras, each 8 inches long.
+- To convert 8 inches to feet: $8 / 12 = 2/3$ feet.
+- Total length of remoras on the second whale = $6 \text{ remoras} \times (2/3) \text{ feet/remora} = 4 \text{ feet}$.
+
+**Step 4: Calculate the percentage of the second whale's length covered.**
+- Percentage = $(4 / 10) \times 100 = 0.4 \times 100 = 40\%$.
+
+**Step 5: Calculate the average percentage.**
+- The question asks for the average of the percentages calculated for each whale.
+- Average = $(\text{Percentage 1} + \text{Percentage 2}) / 2$
+- Average = $(25\% + 40\%) / 2 = 65\% / 2 = 32.5\%$.
+
+Final answer: 32.5

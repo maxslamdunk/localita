@@ -1,0 +1,24 @@
+To find out how much more money Valeria has left than Viktor, we need to calculate the total spending and the remaining balance for each person.
+
+**1. Calculate Valeria's spending and remaining balance:**
+*   **Initial amount:** ₣97.37
+*   **Cost of anchors:** 15 anchors × ₣0.35/anchor = ₣5.25
+*   **Cost of nails:** 8 nails × ₣0.64/nail = ₣5.12
+*   **Cost of paint:** 8 gallons × ₣7.0/gallon = ₣56.00
+*   **Total spending for Valeria:** 5.25 + 5.12 + 56.00 = ₣66.37
+*   **Remaining balance for Valeria:** 97.37 - 66.37 = ₣31.00
+
+**2. Calculate Viktor's spending and remaining balance:**
+*   **Initial amount:** ₣90.00
+*   **Cost of paint (with member discount):**
+    *   Base price: 10 gallons × ₣7.0/gallon = ₣70.00
+    *   Discount (10% of 70): 0.10 × 70 = ₣7.00
+    *   Discounted price: 70.00 - 7.00 = ₂63.00
+*   **Cost of pencils:** 4 pencils × ₣2/pencil = ₣8.00
+*   **Total spending for Viktor:** 63.00 + 8.00 = ₣71.00
+*   **Remaining balance for Viktor:** 90.00 - 71.00 = ₣19.00
+
+**3. Calculate the difference between Valeria's and Viktor's remaining money:**
+*   **Difference:** 31.00 - 19.00 = ₣12.00
+
+Final answer: 12

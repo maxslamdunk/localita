@@ -1,0 +1,35 @@
+To find the total number of pizzas eaten in two months, we calculate the consumption for each month step by step.
+
+**Step 1: Calculate the daily consumption in the first month.**
+- Uncle's consumption: 16 pizzas/day
+- Spouse's consumption: 16 pizzas/day
+- Combined consumption (Uncle + Spouse): $16 + 16 = 32$ pizzas/day
+- Grandchild's consumption: $\frac{1}{2} \times 32 = 16$ pizzas/day
+- Total daily consumption for the family: $32 + 16 = 48$ pizzas/day
+
+**Step 2: Calculate the total consumption for the first month.**
+Assuming a standard month of 30 days (as is common in such word problems unless specified otherwise):
+- Total pizzas in Month 1: $48 \text{ pizzas/day} \times 30 \text{ days} = 1440$ pizzas.
+
+**Step 3: Calculate the daily consumption for the second month.**
+The second month is divided into two halves (15 days each).
+- **First half (Days 1-15):**
+  The consumption is reduced by 25%.
+  Reduction: $48 \times 0.25 = 12$ pizzas/day.
+  New daily rate: $48 - 12 = 36$ pizzas/day.
+  Total for first half: $36 \text{ pizzas/day} \times 15 \text{ days} = 540$ pizzas.
+
+- **Second half (Days 16-30):**
+  The consumption is reduced by an *additional* 50% from the current rate (36 pizzas/day).
+  Reduction: $36 \times 0.50 = 18$ pizzas/day.
+  New daily rate: $36 - 18 = 18$ pizzas/day.
+  Total for second half: $18 \text{ pizzas/day} \times 15 \text{ days} = 270$ pizzas.
+
+**Step 4: Calculate the total consumption for the second month.**
+- Total pizzas in Month 2: $540 + 270 = 810$ pizzas.
+
+**Step 5: Calculate the total consumption for both months.**
+- Total = Month 1 + Month 2
+- Total = $1440 + 810 = 2250$ pizzas.
+
+Final answer: 2250

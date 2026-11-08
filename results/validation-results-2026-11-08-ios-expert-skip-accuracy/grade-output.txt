@@ -1,0 +1,54 @@
+acc-A (decode-acc-A-2026-11-08T070929Z.log, expertSkip=off): 47 of 50 right; stops {'endOfTurn': 49, 'maxTokens': 1}; no `Final answer` line: ['gsmp2-33']; new tokens mean 498; decode 5.057 tok/s over 82.1 min
+acc-B (decode-acc-B-2026-11-08T084120Z.log, expertSkip=miss:0.08): 47 of 50 right; stops {'endOfTurn': 48, 'maxTokens': 2}; no `Final answer` line: ['gsmp2-33', 'gsmp2-45']; new tokens mean 505; decode 5.516 tok/s over 76.3 min
+paired over 50: both right 46, both wrong 2, A only 1 ['gsmp2-45'], B only 1 ['gsmp2-47']; exact McNemar p = 1.000
+texts identical: 2; first differing character, median 197 (quartiles 74–451)
+  gsmp2-00: gold 32.5  A 32.5  ok  B 32.5  ok
+  gsmp2-01: gold 300  A 300.0  ok  B 300.0  ok
+  gsmp2-02: gold 50  A 50.0  ok  B 50.0  ok
+  gsmp2-03: gold 50  A 50.0  ok  B 50.0  ok
+  gsmp2-04: gold 944  A 944.0  ok  B 944.0  ok
+  gsmp2-05: gold 68  A 68.0  ok  B 68.0  ok
+  gsmp2-06: gold 3472  A 3472.0  ok  B 3472.0  ok
+  gsmp2-07: gold 5  A 5.0  ok  B 5.0  ok
+  gsmp2-08: gold 36  A 36.0  ok  B 36.0  ok
+  gsmp2-09: gold 49  A 49.0  ok  B 49.0  ok
+  gsmp2-10: gold 17  A 17.0  ok  B 17.0  ok
+  gsmp2-11: gold 165  A 165.0  ok  B 165.0  ok
+  gsmp2-12: gold 14  A 14.0  ok  B 14.0  ok
+  gsmp2-13: gold 389  A 389.0  ok  B 389.0  ok
+  gsmp2-14: gold 115  A 115.0  ok  B 115.0  ok
+  gsmp2-15: gold 89  A 89.0  ok  B 89.0  ok
+  gsmp2-16: gold 1050  A 1050.0  ok  B 1050.0  ok
+  gsmp2-17: gold 80  A 80.0  ok  B 80.0  ok
+  gsmp2-18: gold 196  A 196.0  ok  B 196.0  ok
+  gsmp2-19: gold 49  A 49.0  ok  B 49.0  ok
+  gsmp2-20: gold 612  A 612.0  ok  B 612.0  ok
+  gsmp2-21: gold 1  A 1.0  ok  B 1.0  ok
+  gsmp2-22: gold 28  A 28.0  ok  B 28.0  ok
+  gsmp2-23: gold 106  A 106.0  ok  B 106.0  ok
+  gsmp2-24: gold 300  A 300.0  ok  B 300.0  ok
+  gsmp2-25: gold 59  A 56.0  WRONG  B 56.0  WRONG
+  gsmp2-26: gold 2250  A 2250.0  ok  B 2250.0  ok
+  gsmp2-27: gold 42  A 42.0  ok  B 42.0  ok
+  gsmp2-28: gold 740  A 740.0  ok  B 740.0  ok
+  gsmp2-29: gold 27  A 27.0  ok  B 27.0  ok
+  gsmp2-30: gold 12  A 12.0  ok  B 12.0  ok
+  gsmp2-31: gold 14  A 14.0  ok  B 14.0  ok
+  gsmp2-32: gold 66000  A 66000.0  ok  B 66000.0  ok
+  gsmp2-33: gold 11  A 29.0  WRONG  B 37.0  WRONG
+  gsmp2-34: gold 73326  A 73326.0  ok  B 73326.0  ok
+  gsmp2-35: gold 595  A 595.0  ok  B 595.0  ok
+  gsmp2-36: gold 865  A 865.0  ok  B 865.0  ok
+  gsmp2-37: gold 3  A 3.0  ok  B 3.0  ok
+  gsmp2-38: gold 11  A 11.0  ok  B 11.0  ok
+  gsmp2-39: gold 40  A 40.0  ok  B 40.0  ok
+  gsmp2-40: gold 582  A 582.0  ok  B 582.0  ok
+  gsmp2-41: gold 40  A 40.0  ok  B 40.0  ok
+  gsmp2-42: gold 217  A 217.0  ok  B 217.0  ok
+  gsmp2-43: gold 15  A 15.0  ok  B 15.0  ok
+  gsmp2-44: gold 75  A 75.0  ok  B 75.0  ok
+  gsmp2-45: gold 7  A 7.0  ok  B 1.0  WRONG  <-- differs
+  gsmp2-46: gold 11  A 11.0  ok  B 11.0  ok
+  gsmp2-47: gold 18  A 21.0  WRONG  B 18.0  ok  <-- differs
+  gsmp2-48: gold 137  A 137.0  ok  B 137.0  ok
+  gsmp2-49: gold 594  A 594.0  ok  B 594.0  ok

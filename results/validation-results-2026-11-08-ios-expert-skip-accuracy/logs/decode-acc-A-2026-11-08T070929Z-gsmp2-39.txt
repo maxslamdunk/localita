@@ -1,0 +1,29 @@
+To solve this problem, we need to calculate the total time spent cleaning and compare it to the total time available.
+
+**Step 1: Calculate the new time per room.**
+The original time per room was 6 minutes. Because the janitor is slower and it takes twice as long, the new time per room is:
+$6 \text{ minutes} \times 2 = 12 \text{ minutes per room}$.
+
+**Step 2: Calculate the total cleaning time for all rooms.**
+There are 80 rooms in total.
+$\text{Total cleaning time} = 80 \text{ rooms} \times 12 \text{ minutes/room} = 960 \text{ minutes}$.
+
+**Step 3: Calculate the total available working time.**
+The janitor works for 4 days, and each day consists of 10 hours.
+$\text{Total hours} = 4 \text{ days} \times 10 \text{ hours/day} = 40 \text{ hours}$.
+To compare this with the cleaning time, convert the hours into minutes:
+$\text{Total available minutes} = text{40 hours} \times 60 \text{ minutes/hour} = 2400 \text{ minutes}$.
+
+**Step 4: Calculate the percentage of the day spent cleaning.**
+The percentage is the ratio of the time spent cleaning to the total available time, multiplied by 100.
+$\text{Percentage} = \left( \frac{\text{Total cleaning time}}{\text{Total available time}} \right) \times 100$
+$\text{Percentage} = \left( \frac{960}{2400} \right) \times 100$
+
+Simplify the fraction:
+$\frac{960}{2400} = \frac{96}{240}$
+Divide both by 24:
+$\frac{96 \div 24}{240 \div 24} = \frac{4}{10} = 0.4$
+
+$\text{Percentage} = 0.4 \times 100 = 40\%$.
+
+Final answer: 40

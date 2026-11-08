@@ -1,0 +1,33 @@
+To solve this problem, we will calculate the number of students in each group step by step.
+
+**Step 1: Calculate the number of soccer players.**
+The class has 100 students. 46% are soccer players.
+$100 \times 0.46 = 46$ soccer players.
+
+**Step 2: Calculate the remaining students and the other two groups.**
+The remaining students are:
+$100 - 46 = 54$ students.
+Out of these 54 students, 50% are robotics club members or dancers.
+$54 \times 0.50 = 27$ students.
+These 27 students are divided into two groups (robotics and dancers).
+
+**Step 3: Account for the absent soccer players.**
+Half of the soccer players are absent.
+$46 / 2 = 23$ soccer players are present and available to leave.
+
+**Step 4: Identify the groups leaving early.**
+The groups leaving are:
+1. The present soccer players: 23 students.
+2. The robotics/dancers group: 27 students.
+
+**Step 5: Calculate the number of cheerleaders.**
+The problem states that 3 cheerleaders will accompany *each* of these groups.
+There are 2 groups (the soccer group and the robotics/dancers group).
+$2 \text{ groups} \times 3 \text{ cheerleaders/group} = 6$ cheerleaders.
+
+**Step 6: Calculate the total number of students leaving early.**
+Total = (Present soccer players) + (Robotics/dancers) + (Cheerleaders)
+Total = $23 + 27 + 6$
+Total = $50 + 6 = 56$
+
+Final answer: 56

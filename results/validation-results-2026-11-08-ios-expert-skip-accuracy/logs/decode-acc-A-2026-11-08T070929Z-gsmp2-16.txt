@@ -1,0 +1,39 @@
+To find Wei's average daily earning, we first need to determine the number of cupcakes and plum pies sold each day.
+
+**Step 1: Determine the sales for Monday and Tuesday.**
+*   **Monday:**
+    *   Cupcakes: 28 boxes.
+    *   Plum pies: The problem states he sold 19 fewer boxes of plum pie on Monday than on Tuesday. We know Tuesday's plum pie sales are 27.
+    *   Monday Plum pies = $27 - 19 = 8$ boxes.
+*   **Tuesday:**
+    *   Cupcakes: The problem states he sold 14 more boxes of cupcakes on Tuesday than on Monday.
+    *   Tuesday Cupcakes = $28 + 14 = 42$ boxes.
+    *   Plum pies: 27 boxes.
+
+**Step 2: Calculate the earnings for Monday and Tuesday.**
+*   **Monday Earnings:**
+    *   $(28 \text{ cupcakes} \times \$11) + (8 \text{ plum pies} \times \$23)$
+    *   $308 + 184 = \$492$
+*   **Tuesday Earnings:**
+    *   $(42 \text{ cupcakes} \times \$11) + (27 \text{ plum pies} \times \$23)$
+    *   $462 + 621 = \$1083$
+
+**Step 3: Calculate the earnings for Wednesday.**
+*   The problem states that on Wednesday, he sold as much as he did in the past two days combined. This refers to the total value/earnings.
+*   Wednesday Earnings = Monday Earnings + Tuesday Earnings
+*   Wednesday Earnings = $\$492 + \$1083 = \$1575$
+
+**Step 4: Calculate the average daily earning over the three days.**
+*   Total Earnings = Monday + Tuesday + Wednesday
+*   Total Earnings = $\$492 + \$1083 + \$1575 = \$3150$
+*   Average Daily Earning = Total Earnings / 3 days
+*   Average Daily Earning = $\$3150 / 3 = \$1050$
+
+Alternatively, since Wednesday is the sum of Monday and Tuesday, the total is $2 \times (\text{Monday} + \text{Tuesday})$. The average is $\frac{\text{Monday} + \text{Tuesday} + (\text{Monday} + \text{Tuesday})}{3} = \frac{2(\text{Monday} + \text{Tuesday})}{3}$.
+Wait, let's re-read: "On Wednesday, he sold as much as he did in the past two days combined." This means the total amount earned on Wednesday is the sum of Monday and Tuesday.
+Total = $M + T + (M + T) = 2(M + T)$.
+Average = $\frac{2(M + T)}{3}$.
+$M + T = 492 + 1083 = 1575$.
+Average = $\frac{2(1575)}{3} = \frac{3150}{3} = 1050$.
+
+Final answer: 1050

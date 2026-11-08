@@ -1,0 +1,26 @@
+To find the total number of popcorn pieces and how many each person receives, we follow the steps based on the time intervals provided.
+
+**Step 1: Calculate the number of kernels popped in each 10-second interval.**
+*   **First 10 seconds:** 80 kernels.
+*   **Second 10 seconds:** 4 times the initial amount = $80 \times 4 = 320$ kernels.
+*   **Third 10 seconds:** 6 times the initial amount = $80 \times 6 = 480$ kernels.
+*   **Fourth 10 seconds:** Half the rate of the previous 10 seconds = $480 / 2 = 240$ kernels.
+
+**Step 2: Calculate the residual heat pops.**
+*   After the heat is turned off, a quarter of the number of kernels that popped in the final 10 seconds pop.
+*   Residual pops = $240 / 4 = 60$ kernels.
+
+**Step 3: Calculate the total number of popped kernels.**
+*   Total = $80 + 320 + 480 + 240 + 60 = 1180$ kernels.
+
+**Step 4: Distribute the popcorn between Andre and Jin.**
+*   Jin receives 1/10 of the total: $1180 \times (1/10) = 118$ kernels.
+*   Andre receives the remainder: $1180 - 118 = 1062$ kernels.
+
+**Step 5: Calculate how many more pieces Andre has than Jin.**
+*   Difference = $1062 - 118 = 944$.
+
+Alternatively, since Jin gets $1/10$ and Andre gets $9/10$, the difference is $8/10$ of the total:
+$1180 \times (8/10) = 118 \times 8 = 944$.
+
+Final answer: 944

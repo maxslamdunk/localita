@@ -1,0 +1,31 @@
+To find out how many more ounces of bread Carlos needs to consume than Zahra, we must first determine their respective calorie targets and their remaining calorie needs.
+
+**Step 1: Calculate the daily calorie targets.**
+The target is 15 calories per pound of body weight.
+- Carlos's target: $200 \text{ lbs} \times 15 \text{ cal/lb} = 3000 \text{ calories}$.
+- Zahra's target: $150 \text{ lbs} \times 15 \text{ cal/lb} = 2250 \text{ calories}$.
+
+**Step 2: Calculate the remaining calories needed for each person.**
+- Carlos's current status:
+  - Consumed: 900 calories.
+  - Burned: 150 calories.
+  - Remaining calories needed: $3000 - (900 - 150) = 3000 - 750 = 2250 \text{ calories}$.
+- Zahra's current status:
+  - Consumed: $900 \text{ (food)} + 225 \text{ (ice cream)} = 1125 \text{ calories}$.
+  - Remaining calories needed: $2250 - 1125 = 1125 \text{ calories}$.
+
+**Step 3: Determine the calorie density of the bread per ounce.**
+- Total calories in a bag: $225 \text{ calories/serving} \times 5 \text{ servings} = 1125 \text{ calories}$.
+- Total weight of the bag: 300 ounces.
+- Calories per ounce: $1125 \text{ calories} / 300 \text{ ounces} = 3.75 \text{ calories/ounce}$.
+
+**Step 4: Calculate the ounces of bread needed for each person.**
+- Carlos needs 2250 calories.
+  - Ounces needed: $2250 / 3.75 = 600 \text{ ounces}$.
+- Zahra needs 1125 calories.
+  - Ounces needed: $1125 / 3.75 = 300 \text{ ounces}$.
+
+**Step 5: Calculate the difference.**
+- Difference in ounces: $600 - 300 = 300 \text{ ounces}$.
+
+Final answer: 300

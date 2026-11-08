@@ -1,0 +1,11 @@
+acc-A: cases 50, tok/s 5.057, bytes 216.261, hit 76.133, reads 67.516, io 109.219, cb1-wait 68.465, head 11.585, wall 198.159, read-mean 4.745, dropped —, mass —; thermal {'nominal': 261, 'fair': 199, 'serious': 1217}
+acc-B: cases 50, tok/s 5.516, bytes 170.931, hit 81.960, reads 53.364, io 70.707, cb1-wait 85.579, head 13.819, wall 181.659, read-mean 3.952, dropped 0.531, mass 0.031; thermal {'serious': 1698}
+B vs A tok/s: +9.1%
+B vs A bytes: -21.0%
+B vs A reads: -21.0%
+B vs A io: -35.3%
+B vs A cb1-wait: +25.0%
+B vs A head: +19.3%
+B vs A wall: -8.3%
+B vs A read-mean: -16.7%
+B vs A hit: +5.8 pt; foreground reads/tok 38.52 -> 24.36 (-36.7%)

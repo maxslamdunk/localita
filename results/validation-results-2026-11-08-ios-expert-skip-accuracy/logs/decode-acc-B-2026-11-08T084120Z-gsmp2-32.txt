@@ -1,0 +1,23 @@
+To find out how much more the total cost will be than Mrs. Smith's budget, we follow these steps:
+
+**1. Calculate the discounted selling price:**
+The original selling price is $500,000.
+Mrs. Smith gets a 20% discount on this price.
+Discount amount = $500,000 \times 0.20 = $100,000.
+New selling price = $500,000 - $100,000 = $400,000.
+
+**2. Calculate the fees based on the new selling price:**
+The problem states the fees are percentages of the selling price. Since the price is discounted, we apply the fees to the new price of $400,000.
+Brokerage fee = 7% of $400,000 = $400,000 \times 0.07 = $28,000.
+Transfer fee = 12% of $400,000 = $400,000 \times 0.12 = $48,000.
+
+**3. Calculate the total cost:**
+Total cost = New selling price + Brokerage fee + Transfer fee
+Total cost = $400,000 + $28,000 + $48,000 = $476,000.
+
+**4. Calculate how much the total cost exceeds the budget:**
+Mrs. Smith's budget is $410,000.
+Difference = Total cost - Budget
+Difference = $476,000 - $410,000 = $66,000.
+
+Final answer: 66000

@@ -1,0 +1,24 @@
+To find the total number of marked balls, we will calculate the number of marked golf balls and the number of marked tennis balls separately and then sum them.
+
+**Step 1: Calculate the number of golf balls and tennis balls.**
+- Total balls = 480
+- Golf balls = $\frac{1}{10} \times 480 = 48$
+- Tennis balls = $480 - 48 = 432$
+
+**Step 2: Calculate the number of marked golf balls.**
+- Purple golf balls = $\frac{1}{2} \times 48 = 24$
+- Marked purple golf balls = $\frac{1}{6} \times 24 = 4$
+- (Note: The problem implies only the purple golf balls can be marked based on the phrasing "1/2 of the golf balls are purple, of which 1/6 are marked". We assume no other golf balls are marked.)
+
+**Step 3: Calculate the number of marked tennis balls.**
+- Indigo tennis balls = $\frac{1}{9} \times 432 = 48$
+- The problem states "all except a third of those indigo balls are marked".
+- If 1/3 are NOT marked, then $1 - \frac{1}{3} = \frac{2}{3}$ are marked.
+- Marked indigo tennis balls = $\frac{ de 2}{3} \times 48 = 2 \times 16 = 32$
+- (Note: We assume no other tennis balls are marked.)
+
+**Step 4: Calculate the total number of marked balls.**
+- Total marked balls = (Marked golf balls) + (Marked tennis balls)
+- Total marked balls = $4 + 32 = 36$
+
+Final answer: 36

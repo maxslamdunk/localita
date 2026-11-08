@@ -1,0 +1,49 @@
+To find the percentage of all puppies that have spots, we need to calculate the total number of puppies and the total number of puppies with spots.
+
+**Step 1: Calculate the initial number of puppies and spotted puppies for each owner.**
+
+*   **Mateo:**
+    *   Total puppies: 149
+    *   Initial spotted puppies: 25
+    *   Initial unspotted puppies: $149 - 25 = 124$
+
+*   **Mohammed:**
+    *   Total puppies: 49
+    *   Spotted puppies: 12
+
+*   **Ibrahim:**
+    *   Total dogs: 54
+    *   Puppies per dog: 13
+    *   Total puppies: $54 \times 13 = 702$
+    *   Spotted puppies per dog: 13 (The problem states "each having 13 puppies with spots", which implies all puppies from Ibrahim's dogs have spots).
+    *   Wait, let's re-read: "Ibrahim has 54 dogs, each having 13 puppies with spots." This means every single puppy Ibrahim has is spotted.
+    *   Total puppies: $54 \times 13 = 702$
+    *   Total spotted puppies: 702
+
+**Step 2: Account for Mateo's discovery.**
+Mateo discovered that half of his unspotted puppies actually have spots.
+*   Unspotted puppies: 124
+*   Newly discovered spotted puppies: $124 / 2 = 62$
+*   New total spotted puppies for Mateo: $25 + 62 = 87$
+
+**Step 3: Calculate the total number of puppies and the total number of spotted puppies.**
+
+*   **Total Puppies:**
+    *   Mateo: 149
+    *   Mohammed: 49
+    *   Ibrahim: 702
+    *   Total = $149 + 49 + 702 = 900$
+
+*   **Total Spotted Puppies:**
+    *   Mateo: 87
+    *   Mohammed: 12
+    *   Ibrahim: 702
+    *   Total = $87 + 12 + 702 = 801$
+
+**Step 4: Calculate the percentage.**
+The percentage of all puppies that have spots is:
+$$\text{Percentage} = \left( \frac{\text{Total Spotted}}{\text{Total Puppies}} \right) \times 100$$
+$$\text{Percentage} = \left( \frac{801}{900} \right) \times 100$$
+$$\text{Percentage} = \frac{801}{9} = 89\%$$
+
+Final answer: 89

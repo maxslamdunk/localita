@@ -1,0 +1,34 @@
+To find Dr. Miller's net proceeds after two years, we follow these steps:
+
+**Step 1: Calculate the total expenses from the sale.**
+The selling price is $490,000.
+- Legal fees: $1\% \text{ of } 490,000 = 0.01 \times 490,000 = \$4,900$
+- Realtor fee: $5\% \text{ of } 490,000 = 0.05 \times 490,000 = \$24,500$
+- Loan amount: $\$390,000$
+- Closing costs: $\$10,000$
+
+**Step 2: Calculate the net proceeds from the sale.**
+The net proceeds are the selling price minus all expenses:
+$\text{Net proceeds} = 490,000 - (4,900 + 24,500 + 390,000 + 10,000)$
+$\text{Net proceeds} = 490,000 - 429,400$
+$\text{Net proceeds} = \$60,600$
+
+**Step 3: Calculate the investment growth over two years.**
+Dr. Miller invested the $60,600 in stocks that gained 10% each year for two years. This is a compound interest calculation.
+- After Year 1:
+  $\text{Value} = 60,600 \times (1 + 0.10) = 60,600 \times 1.1 = \$66,660$
+- After Year 2:
+  $\text{Value} = 66,660 \times (1 + 0.10) = 66,660 \times 1.1 = \$73,326$
+
+Alternatively, using the formula $A = P(1 + r)^n$:
+$A = 60,600 \times (1.1)^2$
+$A = 60,600 \times 1.21$
+$A = 73,326$
+
+Final calculation check:
+$60,600 \times 1 = 60,600$
+$60,600 \times 0.2 = 12,120$
+$60,600 \times 0.01 = 606$
+$60,600 + 12,120 + 606 = 73,326$
+
+Final answer: 73326

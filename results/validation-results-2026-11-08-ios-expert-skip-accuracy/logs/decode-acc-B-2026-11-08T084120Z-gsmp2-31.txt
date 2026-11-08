@@ -1,0 +1,25 @@
+To solve this problem, we will determine the current ages of Ravi, Pavel, and Leilani step by step.
+
+**Step 1: Find Ravi's current age.**
+The problem states that Ravi will be 47 in 8 years.
+Current age of Ravi = $47 - 8 = 39$.
+
+**Step 2: Find Pavel's current age.**
+The problem states that Ravi and Pavel are 22 years apart, and Ravi is younger than Pavel.
+Current age of Pavel = $39 + 22 = 61$.
+
+**Step 3: Find Leilani's current age.**
+The problem states that Ravi and Leilani are 10 years apart, and Ravi is older than Leilani.
+Current age of Leilani = $39 - 10 = 29$.
+
+**Step 4: Calculate the average age of all three.**
+The ages are 39, 61, and 29.
+Sum of ages = $39 + 61 + 29 = 129$.
+Average age = $\frac{129}{3} = 43$.
+
+**Step 5: Calculate how much younger Leilani is than the average age.**
+Leilani's age = 29.
+Average age = 43.
+Difference = $43 - 29 = 14$.
+
+Final answer: 14

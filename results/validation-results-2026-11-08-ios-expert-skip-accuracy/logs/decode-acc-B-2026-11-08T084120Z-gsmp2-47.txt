@@ -1,0 +1,31 @@
+To find the number of pancakes remaining in the yard, we will calculate the quantities step by step.
+
+**Step 1: Calculate the initial number of pancakes and the amount hidden.**
+Viktor starts with 9 dozen pancakes.
+1 dozen = 12 pancakes.
+Initial amount = $9 \times 12 = 108$ pancakes.
+He eats 3 pancakes: $108 - 3 = 105$ pancakes.
+These 105 pancakes are hidden in the yard.
+
+**Step 2: Calculate how many pancakes each person finds.**
+*   **Liam** finds 5 pancakes.
+*   **Yusuf** finds two times as many as Liam: $2 \times 5 = 10$ pancakes.
+*   **Pavel** finds 4 less than Yusuf: $10 - 4 = 6$ pancakes.
+*   **Daphne** finds half as many as Pavel: $6 / 2 = 3$ pancakes.
+*   **James** finds four dozen pancakes more than Yusuf and Liam combined:
+    *   Yusuf + Liam = $10 + 5 = 15$ pancakes.
+    *   Four dozen = $4 \times 12 = 48$ pancakes.
+    *   James finds: $15 + 48 = 63$ pancakes.
+
+**Step 3: Calculate the total number of pancakes found.**
+Total found = Liam + Yusuf + Pavel + Daphne + James
+Total found = $5 + 10 + 6 + 3 + 63$
+Total found = $15 + 6 + 3 + 63$
+Total found = $21 + 3 + 63$
+Total found = $24 + 63 = 87$ pancakes.
+
+**Step 4: Calculate the remaining pancakes in the yard.**
+Remaining = Initial hidden amount - Total found
+Remaining = $105 - 87 = 18$ pancakes.
+
+Final answer: 18

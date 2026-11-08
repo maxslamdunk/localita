@@ -1,0 +1,36 @@
+To find the cost of the mini cheesecakes per dozen, we will follow these steps:
+
+**Step 1: Calculate the total cost before the discount.**
+Nadia paid $1540 after a 20% discount. Let $X$ be the total cost before the discount.
+The relationship is: $X \times (1 - 0.20) = 1540$
+$X \times 0.80 = 1540$
+$X = \frac{1540}{0.80}$
+$X = 1925$
+So, the total cost before the discount was $1925.
+
+**Step 2: Calculate the cost of the donuts.**
+Nadia bought 60 donuts. Since they are priced per dozen:
+Number of dozens = $60 / 12 = 5$ dozens.
+Cost of donuts = $5 \times 14 = 70$.
+
+**Step 3: Calculate the cost of the mini cupcakes.**
+Nadia bought 60 mini cupcakes.
+Number of dozens = $62 / 12 = 5$ dozens.
+Cost of mini cupcakes = $5 \times 25 = 125$.
+
+**Step 4: Calculate the total cost of the mini cheesecakes.**
+The total cost is the sum of the costs of donuts, cupcakes, and cheesecakes.
+Total cost = Cost of donuts + Cost of cupcakes + Cost of cheesecakes
+$1925 = 70 + 125 + \text{Cost of cheesecakes}$
+$1925 = 195 + \text{Cost of cheesecakes}$
+Cost of cheesecakes = $1925 - 195 = 1730$.
+
+**Step 5: Calculate the cost of mini cheesecakes per dozen.**
+Nadia bought 24 mini cheesecakes.
+Number of dozens = $24 / 12 = 2$ dozens.
+Let $C$ be the cost per dozen of mini cheesecakes.
+$2 \times C = 1730$
+$C = \frac{1730}{2}$
+$C = 865$.
+
+Final answer: 865

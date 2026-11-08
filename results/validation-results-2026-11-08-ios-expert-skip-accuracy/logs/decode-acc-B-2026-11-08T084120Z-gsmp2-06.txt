@@ -1,0 +1,24 @@
+To find the total number of apricots and grapes harvested in two years, we follow these steps:
+
+**1. Calculate the apricot harvest:**
+*   **Field size:** 20 hectares.
+*   **Yield rate:** 28 apricots per two-fourths (0.5) of a hectare.
+    *   Yield per hectare = $28 \times 2 = 56$ apricots per hectare.
+*   **Total yield per harvest:** $20 \text{ hectares} \times 56 \text{ apricots/hectare} = 1120$ apricots.
+*   **Harvest frequency:** Every 6 months.
+*   **Total harvests in two years:** Two years is 24 months. $24 / 6 = 4$ harvests.
+*   **Total apricots harvested:** $1120 \times 4 = 4480$ apricots.
+
+**2. Calculate the grape harvest:**
+*   **Field size:** 12 hectares.
+*   **Yield rate:** 14 grapes per hectare.
+*   **Total yield per harvest:** $12 \text{ hectares} \times 14 \text{ grapes/hectare} = 168$ grapes.
+*   **Harvest frequency:** Every 4 months.
+*   **Total harvests in two years:** Two years is 24 months. $24 / 4 = 6$ harvests.
+*   **Total grapes harvested:** $168 \times 6 = 1008$ grapes.
+
+**3. Calculate the difference:**
+*   **Difference:** Total apricots - Total grapes
+*   $4480 - 1008 = 3472$
+
+Final answer: 3472
