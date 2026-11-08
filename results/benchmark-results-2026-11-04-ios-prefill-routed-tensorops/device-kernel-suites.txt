@@ -1,0 +1,235 @@
+◇ Test run started.
+✔ Test tokenExpertPairLayoutIsStable() passed after 27.610 seconds.
+✔ Test tokenExpertPairsAreTokenMajor() passed after 30.147 seconds.
+✔ Test blockGemma4RouterNearTieMatchesScalarPath() passed after 30.180 seconds.
+✔ Test streamedParamsLayoutIsStable() passed after 30.180 seconds.
+✔ Test blockGemma4RouterMatchesRepeatedScalarRows() passed after 30.180 seconds.
+✔ Test tensorTilesSplitLongRunsAndSkipUnboundExperts() passed after 30.180 seconds.
+✔ Test "vForce ref matches scalar ref" with 4 test cases passed after 30.180 seconds.
+✔ Test "Recursive WHT matches iterative" with 3 test cases passed after 30.180 seconds.
+✔ Test "INT4 affine round-trip stays within derived bound" with 3 test cases passed after 30.180 seconds.
+✔ Test "vDSP ref matches scalar ref" with 4 test cases passed after 30.180 seconds.
+✔ Test "WHT is an involution" with 3 test cases passed after 30.180 seconds.
+✔ Test streamedBatchedMatchesReferenceAcrossPartialMicrobatch(threadPerRow:) with 2 test cases passed after 30.180 seconds.
+✔ Test proportionalNeoxMatchesFullAttentionReference() passed after 30.180 seconds.
+✔ Test "Accelerate ref matches scalar" with 3 test cases passed after 30.180 seconds.
+✔ Test streamedMetadataAllocatesOnlySortedPairs() passed after 30.180 seconds.
+✔ Test defaultNeoxMatchesSWAReference() passed after 30.180 seconds.
+✔ Test gemv_sweep(m:n:) with 24 test cases passed after 30.180 seconds.
+✔ Test gemv_m64_n64() passed after 30.180 seconds.
+✔ Test gemv_d128_n128() passed after 30.180 seconds.
+✔ Test gemv_weightsAt2AlignedNot4AlignedOffset() passed after 30.180 seconds.
+✔ Test readsSelectedHiddenRow() passed after 30.180 seconds.
+✔ Test rawGreedyMatchesCPUReference() passed after 30.180 seconds.
+✔ Test greedyMatchesCPUReferenceAcrossVocabSizes(v:) with 3 test cases passed after 30.181 seconds.
+✔ Test embedLookupInt4_withSqrtDScale_matchesReference() passed after 30.181 seconds.
+✔ Test "Partial rotation leaves passthrough region byte-identical" passed after 30.181 seconds.
+✔ Test tiesResolveToLowestIndex() passed after 30.181 seconds.
+✔ Test allInvalidCandidatesFallBackToZero() passed after 30.181 seconds.
+✔ Test tensorOps2DFullAttentionMatchesReferenceAtTileBoundaries(_:) with 13 test cases passed after 30.181 seconds.
+✔ Test prefillAttentionMasksFutureChunkTokens() passed after 30.181 seconds.
+✔ Test prefillAttentionRingCapacityMatchesLinearReference() passed after 30.181 seconds.
+✔ Test embedLookupInt4_unitScale_matchesRawDequant() passed after 30.181 seconds.
+✔ Test prefillAttentionMatchesCPUReferenceFullAndSWA() passed after 30.181 seconds.
+✔ Test gemv_m1024_n2816() passed after 30.181 seconds.
+✔ Test prefillAttentionParamsLayoutMatchesMSL() passed after 30.181 seconds.
+✔ Test slidingAttentionMakesImageBlockBidirectionalWithinWindow() passed after 30.181 seconds.
+✔ Test preferredPathUsesTiledWhenTensorOpsIsUnavailable() passed after 30.181 seconds.
+✔ Test fullAttentionRemainsCausalForImageBlock() passed after 30.181 seconds.
+✔ Test blockQKVEpiloguePreservesFullLayerSharedRawKVQuirk() passed after 30.181 seconds.
+✔ Test attentionFull_groupedVector_matchesReference(seqLen:) with 11 test cases passed after 30.181 seconds.
+✔ Test preferredTensorOpsPathRejectsAWindowThatActuallyClips() passed after 30.181 seconds.
+✔ Test blockQKVEpilogueMatchesRepeatedScalarSWA() passed after 30.181 seconds.
+✔ Test preferredTensorOpsPathUsesSafeHardwareFallback() passed after 30.182 seconds.
+✔ Test attentionFull_groupedVector_defaultScale() passed after 30.182 seconds.
+✔ Test tensorExpertsMatchFP32ReferenceWithTwoByteAlignedGateUp() passed after 30.182 seconds.
+✔ Test attentionFull_groupedVector_wideScoreRange(seqLen:) with 3 test cases passed after 30.182 seconds.
+✔ Test attentionSWA_smallShape() passed after 30.182 seconds.
+✔ Test tensorExpertsMatchFP32ReferenceWithLargeActivations() passed after 30.183 seconds.
+✔ Test int4QMMMatchesRepeatedGEMV() passed after 30.182 seconds.
+✔ Test tokenMajorReduceMatchesCPUReference() passed after 30.182 seconds.
+✔ Test attentionSWA_unitScale_matchesReference_andDiffersFromDefault() passed after 30.182 seconds.
+✔ Test attentionFull_groupedVector_rejectsOtherShapes() passed after 30.182 seconds.
+✔ Test productionRoutedPipelineAndHitSplitMatchReference() passed after 30.182 seconds.
+✔ Test blockLayerTailMatchesRepeatedFusedRows() passed after 30.182 seconds.
+✔ Test int4QMMRejectsNonGroupAlignedK_contract() passed after 30.182 seconds.
+✔ Test attentionSWA_ringCapacityMatchesLinearKernelAtWrapRealShape() passed after 30.182 seconds.
+✔ Test attentionFull_groupedVector_isDeterministic() passed after 30.182 seconds.
+✔ Test prefillAttentionTiledProductionBoundarySmoke() passed after 30.182 seconds.
+✔ Test attentionSWA_ringCapacityMatchesLinearReference() passed after 30.182 seconds.
+✔ Test generationConfigRejectsAPenaltyThatCannotBeApplied() passed after 30.182 seconds.
+✔ Test attentionSWA_shorterThanWindow() passed after 30.182 seconds.
+✔ Test attentionFull_smallShape() passed after 30.182 seconds.
+✔ Test "Lookup matches direct dequant of the same row" with 3 test cases passed after 30.182 seconds.
+✔ Test attentionFull_groupedVector_dispatchesPerKVHead() passed after 30.182 seconds.
+✔ Test attentionFull_kvShared_smallShape() passed after 30.182 seconds.
+✔ Test generationConfigRejectsSamplerStatesTheKernelCannotHonor() passed after 30.182 seconds.
+✔ Test attentionFull_kvShared_realShape() passed after 30.182 seconds.
+✔ Test tiesAndPartialTailMatchCurrentSampler() passed after 30.182 seconds.
+✔ Test truncationDefaultsDoNotDisableGreedyEligibility() passed after 30.182 seconds.
+✔ Test attentionSWA_realShape() passed after 30.183 seconds.
+✔ Test attentionFull_realShape() passed after 30.183 seconds.
+✔ Test topPUsesFullVocabularyMassBeforeTopK() passed after 30.183 seconds.
+✔ Test attentionFull_groupedVector_sharedKV() passed after 30.183 seconds.
+✔ Test attentionSplitGeometry_reportsEffectiveDispatchShape() passed after 30.183 seconds.
+✔ Test prefillAttentionProductionDimsBoundedVisibility() passed after 30.183 seconds.
+✔ Test fusedQKVGEMV_matchesThreeGEMVs_offsetWeights() passed after 30.183 seconds.
+✔ Test fusedQKVGEMV_matchesThreeGEMVs_smallShape() passed after 30.183 seconds.
+✔ Test productionVocabularyMatchesCurrentSampler() passed after 30.183 seconds.
+✔ Test productionRouterMatchesReference() passed after 30.183 seconds.
+✔ Test parallelSoftmaxStaysWithinRoundingOfSerialPhase() passed after 30.183 seconds.
+✔ Test rowMajorInputsAreHonouredEvenWhenTheFusedLayoutIsAvailable() passed after 30.183 seconds.
+✔ Test mppWithoutThePaddedStoreStillRunsTheMPPKernel() passed after 30.183 seconds.
+✔ Test blockNoScalePerHeadNormMatchesRepeatedScalarVShapes() passed after 30.183 seconds.
+✔ Test blockBF16PerHeadNormMatchesRepeatedScalarQKShapes() passed after 30.183 seconds.
+✔ Test productionRouterResolvesNearTieLikeReference() passed after 30.183 seconds.
+✔ Test singleAxisReductionsMatch() passed after 30.183 seconds.
+✔ Test int4QMMProductionShapesMatchRepeatedGEMV() passed after 30.184 seconds.
+✔ Test rmsNorm_bf16w_d256() passed after 30.183 seconds.
+✔ Test rmsNorm_noScale_perHead_offsetsCoverEachHeadInIsolation() passed after 30.183 seconds.
+✔ Test fusedLayerTail_matchesCpuReferenceTolerance_realShape() passed after 30.183 seconds.
+✔ Test finalRowHeadLogitsMatchesScalarOffsetPath() passed after 30.183 seconds.
+✔ Test rmsNorm_perHead_offsetsCoverEachHeadInIsolation() passed after 30.183 seconds.
+✔ Test rmsNorm_bf16wPerHead_matchesLoop() passed after 30.183 seconds.
+✔ Test rmsNorm_bf16w_d2816() passed after 30.183 seconds.
+✔ Test blockSharedExpertThenPostF1NormMatchesRepeatedScalarRows() passed after 30.183 seconds.
+✔ Test rmsNorm_noScalePerHead_matchesLoop() passed after 30.183 seconds.
+✔ Test "Reference rejects mismatched lengths" passed after 30.183 seconds.
+✔ Test rmsNorm_noScale_d2816() passed after 30.183 seconds.
+✔ Test sharedExpertPhaseSplitMatchesCurrentPrefillBlock() passed after 30.183 seconds.
+✔ Test "Reference handles zero-mean small magnitudes" passed after 30.183 seconds.
+✔ Test "Accelerate ref matches scalar ref" with 3 test cases passed after 30.183 seconds.
+✔ Test "vDSP ref matches scalar" with 4 test cases passed after 30.183 seconds.
+✔ Test theShippedCapMatchesThePlatformItShipsOn() passed after 30.183 seconds.
+✔ Test blockSharedExpertMatchesRepeatedScalarRows() passed after 30.183 seconds.
+✔ Test "INT8 affine round-trip stays within derived bound" with 3 test cases passed after 30.183 seconds.
+✔ Test theQuotedRingCostsAreWhatTheCapActuallyBuys() passed after 30.183 seconds.
+✔ Test rmsNorm_noScale_d256() passed after 30.183 seconds.
+✔ Test schedulerConfigValidatesSlotBudget() passed after 30.183 seconds.
+✔ Test theArchShapeTheseFiguresRestOnIsWhatWeThinkItIs() passed after 30.183 seconds.
+✔ Test schedulerAllowsSecondLookaheadWhenDepthBudgetAllowsIt() passed after 30.183 seconds.
+✔ Test halfCacheIssuesFirstTileWithoutPendingWork() passed after 30.183 seconds.
+✔ Test halfCachePrefetchesWhenAvoidingSlotPlanExists() passed after 30.183 seconds.
+✔ Test theAllowedListAndTheCapAgree() passed after 30.183 seconds.
+✔ Test capsUpToThePooledFloorCostNothing() passed after 30.183 seconds.
+✔ Test halfCacheDrainsWhenAvoidingSlotPlanIsUnavailable() passed after 30.183 seconds.
+✔ Test halfCacheDrainsWhenPendingTileHasNoAssignedSlots() passed after 30.183 seconds.
+✔ Test blockDefaultNeoxMatchesRepeatedScalarAbsolutePositions() passed after 30.183 seconds.
+✔ Test halfCachePreservesPendingSlotAvoidanceOrder() passed after 30.183 seconds.
+✔ Test blockProportionalNeoxMatchesRepeatedScalarAbsolutePositions() passed after 30.183 seconds.
+✔ Test sharedExpertInt4MatchesAffineReference() passed after 30.183 seconds.
+✔ Test blockDefaultNeoxMatchesScalarAtNativeMaximumPosition(endPosition:) with 4 test cases passed after 30.183 seconds.
+✔ Test blockProportionalNeoxMatchesScalarAtNativeMaximumPosition(endPosition:) with 4 test cases passed after 30.183 seconds.
+✔ Test fusedQKVEpilogue_matchesLegacyChainBitwise_fullShape() passed after 30.183 seconds.
+✔ Test fusedQKVEpilogue_matchesLegacyChainBitwise_swaShape() passed after 30.183 seconds.
+✔ Test temperature_zero_picksArgmax() passed after 30.183 seconds.
+✔ Test sharedExpertInt8_matchesReference_swaShape() passed after 30.183 seconds.
+✔ Test gemv_router_shape() passed after 30.183 seconds.
+✔ Test gumbelFastPath_staysInRangeAndConcentrates() passed after 30.183 seconds.
+✔ Test seededRng_isDeterministic() passed after 30.183 seconds.
+✔ Test blockPostAttentionSetupMatchesRepeatedScalarFusedRows() passed after 30.183 seconds.
+✔ Test schedulerDrainsAtConfiguredPendingDepth() passed after 30.183 seconds.
+✔ Test top_k_zerosOutMassOutsideTop() passed after 30.183 seconds.
+✔ Test blockRMSNormMatchesScalarRows() passed after 30.183 seconds.
+✔ Test gemv_sweep(m:n:) with 18 test cases passed after 30.183 seconds.
+✔ Test embedBlockMatchesPerTokenEmbed() passed after 30.183 seconds.
+✔ Test shipsFittedGuessForGemma4AndSupergemma4() passed after 30.183 seconds.
+✔ Test rejectsFileForAnotherModel() passed after 30.183 seconds.
+✔ Test guessScoresMatchDequantizedReference() passed after 30.183 seconds.
+✔ Test needDescriptionRoundsToASizeThatActuallyBacksTheContext() passed after 30.183 seconds.
+✔ Test earlyReadIsOnByDefaultAndTheEnvironmentOverrides() passed after 30.183 seconds.
+✔ Test admissionBoundaryIsInclusive() passed after 30.183 seconds.
+✔ Test "vDSP ref matches scalar" with 4 test cases passed after 30.183 seconds.
+✔ Test productionSlidingRingRowsMatchTheRunnersChunkFloor() passed after 30.183 seconds.
+✔ Test contextCeilingComesFromTheCheckpoint() passed after 30.183 seconds.
+✔ Test gemv_lmHeadSubShape() passed after 30.184 seconds.
+✔ Test singleHugeLogit_isSoftcapped() passed after 30.183 seconds.
+✔ Test uniformLogits_producesUniformProbs() passed after 30.183 seconds.
+✔ Test projectedFootprintIsKVPlusTheMeasuredNonKVRuntime() passed after 30.183 seconds.
+✔ Test randomLogits_matchesReference() passed after 30.183 seconds.
+✔ Test fp16KVBytesMatchesTheRuntimeAllocationAtEverySize() passed after 30.183 seconds.
+✔ Test eightGigabyteHostBacks128KButNot256K() passed after 30.183 seconds.
+✔ Test extraCacheSlotsAreChargedAtTheAdmissionBoundary(slots:) with 2 test cases passed after 30.183 seconds.
+✔ Test smallerCacheDoesNotDiscountTheMeasuredRuntimeAllowance() passed after 30.183 seconds.
+✔ Test onlyFullAttentionLayersGrowWithContext() passed after 30.183 seconds.
+✔ Test needDescriptionNamesBothTheRequirementAndTheHost() passed after 30.183 seconds.
+✔ Test registerMatchesMPPReductionAtProductionK() passed after 30.183 seconds.
+✔ Test nativePathsProduceExpectedConstantProduct() passed after 30.183 seconds.
+✔ Test sixteenGigabyteHostBacksEverySize() passed after 30.184 seconds.
+✔ Test productionPrefillSupportsPublicChunkSizes(_:) with 3 test cases passed after 30.183 seconds.
+✔ Test fusedPostAttentionSetup_matchesPrimitiveChainBitwise_realShape() passed after 30.183 seconds.
+✔ Test groupingRejectsInvalidMetadataBeforeKernelUse() passed after 30.183 seconds.
+✔ Test groupingIsDeterministicAcrossInputOrderAndPreservesWeightBits() passed after 30.183 seconds.
+✔ Test productionDefaultsAreStable() passed after 30.183 seconds.
+✔ Test groupingSortsPairsAndBuildsOffsetsCountsAndTiles() passed after 30.183 seconds.
+✔ Test aContextShorterThanTheRingClampsItFirst() passed after 30.183 seconds.
+✔ Test retainedControlsReachTypedRuntime() passed after 30.184 seconds.
+✔ Test groupingToleratesRealTracePairPressureAtT32() passed after 30.183 seconds.
+✔ Test registerPathHandlesNonconstantTailShape() passed after 30.184 seconds.
+✔ Test groupingCanOrderTilesByExpertSortKeysWhileKeepingPairRangesContiguous() passed after 30.183 seconds.
+✔ Test int4QMMSelectedChunkShapesMatchRepeatedGEMV() passed after 30.186 seconds.
+✔ Test fullShapeFusedPipelineMatchesThreeGEMVChainBitwise() passed after 30.183 seconds.
+✔ Test "FFN runs without divergence on small shape" passed after 30.183 seconds.
+✔ Test "gelu_pytorch_tanh matches scalar definition" passed after 30.183 seconds.
+✔ Test affineThreadgroupCandidateMatchesFP32AffineReference() passed after 30.183 seconds.
+✔ Test fullProductionShapeIsByteStableAcross32Dispatches() passed after 30.183 seconds.
+✔ Test apple10GeometryPreservesAffineReferenceAndFallsBackForShortM() passed after 30.183 seconds.
+✔ Test anUnavailableVariantNamesItsOwnFunction() passed after 30.183 seconds.
+✔ Test unsupportedOrUnalignedInputsReportFallback() passed after 30.183 seconds.
+✔ Suite PrefillGroupedRoutedMoETests passed after 30.255 seconds.
+✔ Suite RoPEReferenceTests passed after 30.255 seconds.
+✔ Suite WHTReferenceTests passed after 30.255 seconds.
+✔ Suite DequantInt4GEMVReferenceTests passed after 30.255 seconds.
+✔ Suite RoPETests passed after 30.257 seconds.
+✔ Suite LogitSoftcapSoftmaxReferenceTests passed after 30.257 seconds.
+✔ Suite DequantInt4GEMVTests passed after 30.257 seconds.
+✔ Suite LMHeadChainInt4Tests passed after 30.257 seconds.
+✔ Suite EmbedLookupTests passed after 30.257 seconds.
+✔ Suite PrefillAttentionTests passed after 30.257 seconds.
+✔ Suite PrefillQKVEpilogueTests passed after 30.257 seconds.
+✔ Suite PrefillAffineTests passed after 30.257 seconds.
+✔ Suite PrefillMoETests passed after 30.257 seconds.
+✔ Suite MoEFusedFFNTests passed after 30.257 seconds.
+✔ Suite PrefillLayerTailTests passed after 30.257 seconds.
+✔ Suite SampleTopK64Tests passed after 30.257 seconds.
+✔ Suite EmbedLookupReferenceTests passed after 30.257 seconds.
+✔ Suite FusedQKVGEMVTests passed after 30.257 seconds.
+✔ Suite RouterTopKTests passed after 30.257 seconds.
+✔ Suite PrefillPerHeadNormTests passed after 30.257 seconds.
+✔ Suite RMSNormTests passed after 30.257 seconds.
+✔ Suite FusedLayerTailTests passed after 30.257 seconds.
+✔ Suite PrefillFinalRowHeadTests passed after 30.257 seconds.
+✔ Suite PrefillSharedExpertTests passed after 30.257 seconds.
+✔ Suite RMSNormReferenceTests passed after 30.257 seconds.
+✔ Suite DequantInt8GEMVReferenceTests passed after 30.257 seconds.
+✔ Suite KVRingChunkCapTests passed after 30.257 seconds.
+✔ Suite PrefillRoutedTileSchedulerTests passed after 30.257 seconds.
+✔ Suite PrefillRoPETests passed after 30.257 seconds.
+✔ Suite SharedExpertInt4Tests passed after 30.258 seconds.
+✔ Suite FusedQKVEpilogueTests passed after 30.258 seconds.
+✔ Suite SampleTests passed after 30.258 seconds.
+✔ Suite SharedExpertInt8Tests passed after 30.258 seconds.
+✔ Suite DequantInt8GEMVTests passed after 30.258 seconds.
+✔ Suite PrefillPostAttentionSetupTests passed after 30.258 seconds.
+✔ Suite PrefillPrimitiveTests passed after 30.258 seconds.
+✔ Suite NextLayerGuessWeightsTests passed after 30.258 seconds.
+✔ Suite ContextAdmissionTests passed after 30.258 seconds.
+✔ Suite AttentionReferenceTests passed after 30.258 seconds.
+✔ Suite LogitSoftcapSoftmaxTests passed after 30.258 seconds.
+✔ Suite VisionLinearBF16Tests passed after 30.258 seconds.
+✔ Suite RuntimeConfigurationTests passed after 30.258 seconds.
+✔ Suite FusedPostAttentionSetupTests passed after 30.258 seconds.
+✔ Suite PrefillMoEGroupingTests passed after 30.258 seconds.
+✔ Suite FusedQKVPipelineTests passed after 30.258 seconds.
+✔ Suite MoEReferenceTests passed after 30.258 seconds.
+✔ Test apple10BF16ProjectorPreservesBF16AffineSemantics() passed after 30.290 seconds.
+✔ Suite VisionAttentionTests passed after 35.246 seconds.
+✔ Suite AttentionTests passed after 39.984 seconds.
+✔ Test selectedProductionAttentionShapesMatchCurrentPolicy() passed after 42.729 seconds.
+✔ Suite MPPPrefillInt4QMMTests passed after 42.733 seconds.
+✔ Test twoKeyRecurrence() passed after 0.036 seconds.
+✔ Suite GroupedAttentionIdentityTests passed after 51.038 seconds.
+✔ Test theGPUFilterIsByteIdenticalToTheCPUOracle() passed after 57.462 seconds.
+✔ Suite VisionResizeParityTests passed after 57.464 seconds.
+✔ Test run with 186 tests in 52 suites passed after 57.465 seconds.
+** TEST SUCCEEDED **

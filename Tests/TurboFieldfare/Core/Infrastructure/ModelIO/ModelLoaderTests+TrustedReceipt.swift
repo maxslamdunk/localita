@@ -274,4 +274,21 @@ extension ModelLoaderTests {
     }
   }
 
+  @Test func trustedReceiptModeCanWaiveTheDirectoryPathOnLoad() throws {
+    // The iOS harness's `--trust-install`: an app container never matches
+    // the receipt's path, so the load binds the receipt by content only.
+    let dir = try Self.writeToySynthetic()
+    defer { try? FileManager.default.removeItem(at: dir) }
+    try Self.writeVerifiedInstallReceipt(directoryURL: dir)
+    try Self.mutateReceipt(directoryURL: dir) { root in
+      root["modelDirectoryPath"] = "/private/var/mobile/Containers/Data/Application/OTHER/gemma4.gturbo"
+    }
+    let device = try #require(MTLCreateSystemDefaultDevice())
+    _ = try Model.load(
+      directoryURL: dir,
+      device: device,
+      expecting: .gemma4Toy(),
+      integrityPolicy: .sizeCheckTrustedReceipt,
+      requiringReceiptDirectoryPath: false)
+  }
 }

@@ -1,0 +1,36 @@
+A: decode-gate2-A-2026-11-04T222124Z.log
+B: decode-gate2-B-2026-11-04T224741Z.log, decode-gate2-B-r2-2026-11-04T235840Z.log
+case                 end     nll A     nll B      dNLL  top1 A  top1 B  B gap
+long-synthesis      3065    0.0000    0.0000    0.0000  236759  236759 12.671
+long-synthesis      3115    0.1344    0.1315    0.0029    2558    2558  2.105
+long-synthesis      3165    0.0016    0.0013    0.0003     532     532  6.613
+long-synthesis      3215    0.0000    0.0000   -0.0000   15612   15612 11.926
+long-synthesis      3265    0.0000    0.0000   -0.0000   13267   13267 16.250
+long-synthesis      3315    0.0001    0.0001   -0.0000     644     644  8.975
+long-synthesis      3365    0.0001    0.0001   -0.0000  236806  236806  9.742
+long-synthesis      3415    0.3744    0.3546    0.0198   13403   13403  1.208
+long-synthesis      3465    0.0019    0.0020   -0.0000     532     532  6.246
+long-synthesis      3515    0.2151    0.1856    0.0295   41133   41133  1.721
+long-synthesis      3565    0.3924    0.3810    0.0114    2352    2352  0.912
+long-synthesis      3615    0.7098    0.7470   -0.0372  236761  236761  0.208
+medium-review        483    0.0006    0.0006   -0.0000    1638    1638  7.433
+medium-review        535    0.2462    0.2469   -0.0007     740     740  1.828
+medium-review        588    0.0202    0.0213   -0.0010   15612   15612  4.333
+medium-review        640    0.0000    0.0000    0.0000  236829  236829 17.661
+medium-review        693    0.0001    0.0001    0.0000     107     107  9.870
+medium-review        745    0.0473    0.0503   -0.0029    9397    9397  2.968
+medium-review        798    0.3682    0.3639    0.0043   61343   61343  1.563
+medium-review        850    0.0109    0.0099    0.0010    2086    2086  5.090
+medium-review        903    0.0426    0.0434   -0.0008    5330    5330  3.454
+medium-review        955    0.1331    0.1448   -0.0117   60493   60493  2.974
+medium-review       1008    0.6746    0.6806   -0.0061   37327   37327  1.537
+medium-review       1060    0.6019    0.6391   -0.0372  236761  236761  0.498
+
+scored endpoints 24; mean dNLL -0.00119; worst |dNLL| 0.03720
+Q1 held (mean within 0.01, worst within 0.05)
+top-1 agreement 24/24; disagreements at B gap > 0.1: []
+Q2 held
+
+Q1' held (mean -0.00119, within 0.02)
+Q2' held (worst |dNLL| 0.03720 over 24 endpoints with B NLL <= 5)
+Q3' held

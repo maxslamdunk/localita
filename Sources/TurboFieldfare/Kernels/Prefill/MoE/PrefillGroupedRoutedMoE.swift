@@ -10,6 +10,17 @@ enum PrefillGroupedRoutedMoEBufferIndex {
     static let downScratch = 8
     static let expertArgumentState = 9
     static let params = 10
+    /// Same-expert pair tiles for the matrix-unit kernels.
+    static let tensorTiles = 11
+}
+
+/// One same-expert run of up to `PrefillGroupedRoutedMoE.tensorTilePairs`
+/// pairs within a microbatch. Mirrors `PrefillRoutedTensorTileMSL`.
+struct PrefillRoutedTensorTile: Equatable {
+    var pair: UInt32
+    var count: UInt32
+    var slot: UInt32
+    var reserved: UInt32 = 0
 }
 
 struct PrefillGroupedRoutedMoEStreamedMetadataBuffers {
@@ -339,7 +350,24 @@ enum PrefillGroupedRoutedMoEError: Error, Equatable, CustomStringConvertible {
 final class PrefillGroupedRoutedMoE {
     private let batchedPhase1PSO: MTLComputePipelineState
     private let batchedDownPSO: MTLComputePipelineState
+    /// Routed experts as tiled matrix multiplies on the matrix units (gate/up,
+    /// then down), ported from zw5/ane-fieldfare. `nil` where the MSL tensor
+    /// pipelines do not build, or when `tensorOpsEnvironmentKey` is `0`; the
+    /// thread-per-row kernels above run instead.
+    private let tensorGateUpPSO: MTLComputePipelineState?
+    private let tensorDownPSO: MTLComputePipelineState?
     private let streamedArgEncoder: MTLArgumentEncoder
+
+    /// `0` keeps prefill's routed experts on the thread-per-row kernels, for
+    /// an A/B in one binary. Anything else, or unset, uses the matrix units
+    /// where available.
+    static let tensorOpsEnvironmentKey = "TURBO_FIELDFARE_PREFILL_ROUTED_TENSOROPS"
+    static let tensorTilePairs = 32
+    static let tensorTileRows = 64
+    /// The matrix-unit kernels hold at most 16 activation blocks of 64 rows.
+    static let tensorMaxIntermediate = 1024
+
+    var usesTensorOps: Bool { tensorGateUpPSO != nil && tensorDownPSO != nil }
 
     func makeStreamedArgumentBuffer(device: MTLDevice,
                                            binding: PrefillStreamedTileBinding) throws -> PrefillStreamedTileArgumentBuffer {
@@ -358,9 +386,23 @@ final class PrefillGroupedRoutedMoE {
         return PrefillStreamedTileArgumentBuffer(buffer: buffer)
     }
 
-    init(context: MetalContext) throws {
+    convenience init(context: MetalContext) throws {
+        let disabled = ProcessInfo.processInfo.environment[Self.tensorOpsEnvironmentKey] == "0"
+        try self.init(context: context, simulatingMissingTensorOps: disabled)
+    }
+
+    /// Tests can force the thread-per-row path on a host where the tensor
+    /// pipelines build.
+    init(context: MetalContext, simulatingMissingTensorOps: Bool) throws {
         self.batchedPhase1PSO = try context.pipeline("prefill_grouped_routed_moe_batched_phase1")
         self.batchedDownPSO = try context.pipeline("prefill_grouped_routed_moe_batched_down")
+        if simulatingMissingTensorOps {
+            self.tensorGateUpPSO = nil
+            self.tensorDownPSO = nil
+        } else {
+            self.tensorGateUpPSO = try? context.pipeline("prefill_routed_gate_up_tensorops")
+            self.tensorDownPSO = try? context.pipeline("prefill_routed_down_tensorops")
+        }
         guard let streamedFn = context.library.makeFunction(name: "prefill_grouped_routed_moe_batched_phase1") else {
             throw MetalError.missingFunction("prefill_grouped_routed_moe_batched_phase1")
         }
@@ -402,6 +444,27 @@ final class PrefillGroupedRoutedMoE {
         guard params.pairCount > 0,
               params.liveExpertCount == UInt32(binding.views.count),
               pairMicrobatchRows > 0 else { return 0 }
+        if let gateUpPSO = tensorGateUpPSO, let downPSO = tensorDownPSO,
+           params.d % UInt32(Self.tensorTileRows) == 0,
+           params.routedIntermediate % UInt32(Self.tensorTileRows) == 0,
+           params.routedIntermediate <= UInt32(Self.tensorMaxIntermediate),
+           sortedPairs.storageMode == .shared {
+            return encodeStreamedTensorOps(commandBuffer: commandBuffer,
+                                           gateUpPSO: gateUpPSO,
+                                           downPSO: downPSO,
+                                           hidden: hidden,
+                                           hiddenOffset: hiddenOffset,
+                                           sortedPairs: sortedPairs,
+                                           sortedPairsOffset: sortedPairsOffset,
+                                           routePartials: routePartials,
+                                           routePartialsOffset: routePartialsOffset,
+                                           actScratch: gateUpActScratch,
+                                           actScratchOffset: gateUpActScratchOffset,
+                                           argumentBuffer: argumentBuffer,
+                                           binding: binding,
+                                           params: params,
+                                           pairMicrobatchRows: pairMicrobatchRows)
+        }
         var consumed: UInt32 = 0
         var microbatchCount = 0
         while consumed < params.pairCount {
@@ -458,6 +521,108 @@ final class PrefillGroupedRoutedMoE {
             microbatchCount += 1
         }
         return microbatchCount
+    }
+
+    /// Same-expert runs of at most `tensorTilePairs` pairs, in order, for the
+    /// expert-sorted `pairs`. Pairs whose expert is not in `binding` are
+    /// skipped, as the thread-per-row kernels skip them.
+    static func tensorTiles(pairs: UnsafeBufferPointer<PrefillTokenExpertPair>,
+                            binding: PrefillStreamedTileBinding) -> [PrefillRoutedTensorTile] {
+        var slotOf: [UInt32: UInt32] = [:]
+        for (slot, expert) in binding.expertIDs.enumerated() {
+            slotOf[UInt32(expert)] = UInt32(slot)
+        }
+        var tiles: [PrefillRoutedTensorTile] = []
+        var i = 0
+        while i < pairs.count {
+            let expert = pairs[i].expert
+            var j = i + 1
+            while j < pairs.count, j - i < tensorTilePairs, pairs[j].expert == expert { j += 1 }
+            if let slot = slotOf[expert] {
+                tiles.append(PrefillRoutedTensorTile(pair: UInt32(i),
+                                                     count: UInt32(j - i),
+                                                     slot: slot))
+            }
+            i = j
+        }
+        return tiles
+    }
+
+    /// Microbatches of up to `pairMicrobatchRows` pairs, each cut into
+    /// same-expert tiles. `actScratch` holds one microbatch's FP16 activations
+    /// followed by their FP32 block scales: `pairs * F` halves, then
+    /// `pairs * F / 64` floats.
+    private func encodeStreamedTensorOps(commandBuffer: MTLCommandBuffer,
+                                         gateUpPSO: MTLComputePipelineState,
+                                         downPSO: MTLComputePipelineState,
+                                         hidden: MTLBuffer,
+                                         hiddenOffset: Int,
+                                         sortedPairs: MTLBuffer,
+                                         sortedPairsOffset: Int,
+                                         routePartials: MTLBuffer,
+                                         routePartialsOffset: Int,
+                                         actScratch: MTLBuffer,
+                                         actScratchOffset: Int,
+                                         argumentBuffer: PrefillStreamedTileArgumentBuffer,
+                                         binding: PrefillStreamedTileBinding,
+                                         params: PrefillGroupedRoutedMoEStreamedParams,
+                                         pairMicrobatchRows: Int) -> Int {
+        let allPairs = sortedPairs.contents()
+            .advanced(by: sortedPairsOffset)
+            .assumingMemoryBound(to: PrefillTokenExpertPair.self)
+        var consumed: UInt32 = 0
+        var microbatchCount = 0
+        while consumed < params.pairCount {
+            var p = params
+            p.pairStart = params.pairStart + consumed
+            p.pairCount = min(UInt32(pairMicrobatchRows), params.pairCount - consumed)
+            consumed += p.pairCount
+            microbatchCount += 1
+            precondition(Self.tensorActScratchBytes(pairs: Int(p.pairCount),
+                                                    intermediate: Int(p.routedIntermediate))
+                         <= actScratch.length - actScratchOffset,
+                         "routed activation scratch too small for the microbatch")
+            var tiles = Self.tensorTiles(
+                pairs: UnsafeBufferPointer(start: allPairs + Int(p.pairStart),
+                                           count: Int(p.pairCount)),
+                binding: binding)
+            guard !tiles.isEmpty else { continue }
+            let tileBytes = tiles.count * MemoryLayout<PrefillRoutedTensorTile>.stride
+            precondition(tileBytes <= 4096, "too many tensor tiles for setBytes")
+            for (pso, rows) in [(gateUpPSO, p.routedIntermediate), (downPSO, p.d)] {
+                guard let enc = commandBuffer.makeComputeCommandEncoder() else { continue }
+                enc.setComputePipelineState(pso)
+                enc.setBuffer(hidden, offset: hiddenOffset, index: PrefillGroupedRoutedMoEBufferIndex.hidden)
+                enc.setBuffer(sortedPairs, offset: sortedPairsOffset,
+                              index: PrefillGroupedRoutedMoEBufferIndex.sortedPairs)
+                enc.setBuffer(routePartials, offset: routePartialsOffset,
+                              index: PrefillGroupedRoutedMoEBufferIndex.routePartials)
+                enc.setBuffer(actScratch, offset: actScratchOffset,
+                              index: PrefillGroupedRoutedMoEBufferIndex.gateUpActScratch)
+                enc.setBuffer(argumentBuffer.buffer, offset: 0,
+                              index: PrefillGroupedRoutedMoEBufferIndex.expertArgumentState)
+                enc.setBytes(&p,
+                             length: MemoryLayout<PrefillGroupedRoutedMoEStreamedParams>.stride,
+                             index: PrefillGroupedRoutedMoEBufferIndex.params)
+                enc.setBytes(&tiles, length: tileBytes,
+                             index: PrefillGroupedRoutedMoEBufferIndex.tensorTiles)
+                for view in binding.views {
+                    enc.useResource(view.buffer, usage: .read)
+                }
+                enc.dispatchThreadgroups(MTLSize(width: Int(rows) / Self.tensorTileRows,
+                                                 height: tiles.count,
+                                                 depth: 1),
+                                         threadsPerThreadgroup: MTLSize(width: 128, height: 1, depth: 1))
+                enc.endEncoding()
+            }
+        }
+        return microbatchCount
+    }
+
+    /// Bytes of activation scratch one matrix-unit microbatch needs.
+    static func tensorActScratchBytes(pairs: Int, intermediate: Int) -> Int {
+        pairs * intermediate * MemoryLayout<Float16>.stride
+            + pairs * (intermediate / tensorTileRows) * MemoryLayout<Float>.stride
     }
 
 }

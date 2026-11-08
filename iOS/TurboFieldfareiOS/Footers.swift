@@ -3,7 +3,7 @@ import TurboFieldfare
 
 // Copied verbatim from `Sources/TurboFieldfareCLI/Run.swift`, minus the
 // trailing newline the CLI writes to stderr. Do not reimplement, reformat, or
-// "improve" these four functions.
+// "improve" these five functions.
 //
 // They are the reason an on-device number can be compared against a row in
 // `MEASUREMENTS.md` at all. Everything they read is public on the runtime
@@ -127,4 +127,44 @@ func readLatencyFooter(_ stats: RawDecodeResult) -> String {
     }
     return "[read-latency decode \(describe(stats.decodeExpertIO))"
         + " | prefill \(describe(stats.prefillExpertIO))]"
+}
+
+/// Sixth stderr footer line: where chunked prefill's time goes, in seconds
+/// over the whole prefill. The first group is CPU-side wall per phase, in
+/// sequence within a layer (`fetch` and `drain` are inside `routed`). The
+/// second is GPU execution from command-buffer timestamps; the attention
+/// block is split into five pieces only on a profiled run, which is not a
+/// speed measurement. The third is the union of the expert reads and how much
+/// of it the GPU was busy for.
+func prefillTimeFooter(_ stats: RawDecodeResult) -> String {
+    let p = stats.prefillPhaseTimings
+    func s(_ nanos: UInt64) -> String {
+        String(format: "%.2f", Double(nanos) / 1_000_000_000.0)
+    }
+    return "[prefill-time s chunks=\(p.chunks) profiled=\(p.profiledChunks)"
+        + " wall=\(s(p.wallNanos))"
+        + " attn-block=\(s(p.attentionBlockNanos))"
+        + " route-plan=\(s(p.routePlanNanos))"
+        + " shared=\(s(p.sharedNanos))"
+        + " routed=\(s(p.routedNanos))"
+        + " fetch=\(s(p.fetchNanos))"
+        + " drain=\(s(p.drainNanos))"
+        + " tail=\(s(p.tailNanos))"
+        + " head=\(s(p.headNanos))"
+        + " | gpu embed=\(s(p.gpuEmbedNanos))"
+        + " attn-block=\(s(p.gpuAttentionBlockTotalNanos))"
+        + " qkv-proj=\(s(p.gpuQKVProjectionNanos))"
+        + " qkv-epilogue=\(s(p.gpuQKVEpilogueNanos))"
+        + " attention=\(s(p.gpuAttentionNanos))"
+        + " o-proj=\(s(p.gpuOutputProjectionNanos))"
+        + " router=\(s(p.gpuRouterNanos))"
+        + " shared=\(s(p.gpuSharedNanos))"
+        + " routed=\(s(p.gpuRoutedNanos))"
+        + " tail=\(s(p.gpuTailNanos))"
+        + " head=\(s(p.gpuHeadNanos))"
+        + " busy=\(s(p.gpuBusyNanos))"
+        + " | storage busy=\(s(p.storageBusyNanos))"
+        + " overlap-gpu=\(s(p.storageGPUOverlapNanos))"
+        + " both-idle=\(s(p.bothIdleNanos))"
+        + " | wall phases in sequence; gpu parts may overlap, busy is their union]"
 }

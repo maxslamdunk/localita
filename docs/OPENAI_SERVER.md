@@ -70,7 +70,7 @@ slots, LFU eviction, chunked prefill on with 128-token chunks, and read advice
 off. `--prefill-chunk-tokens auto` runs at the cap,
 256, on the server: a per-request size is the smallest allowed size covering the
 span being prefilled, so the cap prefills every prompt in exactly those spans,
-and it costs about 32.5 MB of prefill scratch against about 16.4 MB at the 128
+and it costs about 35.3 MB of prefill scratch against about 17.7 MB at the 128
 default. Values are validated before the model loads, so an unsupported one
 exits with the usage text rather than failing partway through startup. Chunked
 prefill needs at least 16 expert-cache slots, so `--expert-cache-slots 8`

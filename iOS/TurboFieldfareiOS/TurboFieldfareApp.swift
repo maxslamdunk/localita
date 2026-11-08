@@ -46,6 +46,9 @@ struct TurboFieldfareiOSApp: App {
             .onChange(of: keepsScreenOn, initial: true) { _, on in
                 UIApplication.shared.isIdleTimerDisabled = on
             }
+            .onChange(of: scenePhase, initial: true) { _, _ in
+                Self.lockTextSize()
+            }
             // `initial` so a launch counts as a return: a download that iOS
             // stopped, or that died with the app, resumes when it opens.
             .onChange(of: scenePhase, initial: true) { _, phase in
@@ -91,6 +94,21 @@ struct TurboFieldfareiOSApp: App {
                 Suspension.log.warning(
                     "memory warning; turn running: \(model.isRunning, privacy: .public)")
             }
+        }
+    }
+
+    /// Holds every screen at iOS's default text size, whatever Larger Text is
+    /// set to.
+    ///
+    /// The layouts were only ever checked at the default size, and a friend
+    /// with larger text saw New Chat drawn wrong on an iPhone 15 Pro.
+    /// Following the setting again, replies first, is deferred, not rejected.
+    /// The override is on the scene rather than `.dynamicTypeSize` on the root
+    /// view because `SideDrawer` hosts its panes in UIKit, which reads the
+    /// trait and not the SwiftUI environment.
+    private static func lockTextSize() {
+        for case let scene as UIWindowScene in UIApplication.shared.connectedScenes {
+            scene.traitOverrides.preferredContentSizeCategory = .large
         }
     }
 

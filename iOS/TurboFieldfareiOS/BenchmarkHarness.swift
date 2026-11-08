@@ -312,6 +312,25 @@ struct HarnessSettings {
     /// `--prefill-chunk-tokens 128` must pin 128 rather than silently becoming
     /// `auto`.
     var prefillChunkExplicit = false
+    /// `--trust-install`: load with `.sizeCheckTrustedReceipt` even though
+    /// the receipt's path cannot match on iOS, so no layer file is hashed on
+    /// first touch. For measuring what that hashing costs; the model must be
+    /// one already verified on this device.
+    var trustInstall = false
+    /// `--score-endpoints <n>`: instead of generating, prefill each case's
+    /// prompt to `n` endpoints from an empty KV and log every endpoint's NLL
+    /// of the prompt's own next token and its top 5. A quality gate for
+    /// prefill kernels that reorder floating-point work
+    /// (`PrefillEndpointScoring`); two arms are compared offline.
+    var scoreEndpoints: Int?
+    /// `--score-continuation`, with `--score-endpoints`: append
+    /// `Documents/<case>-continuation.txt`, a reference reply, to each case's
+    /// prompt and place the endpoints in the reply alone. Inside a user turn
+    /// this instruction-tuned model's next-token distribution is near
+    /// degenerate (the NLL of the prompt's own next word runs 10–30 nats, in
+    /// prefill and token-by-token decode alike), so rounding-sized changes
+    /// move it by nats; its own reply is where it is in distribution.
+    var scoreContinuation = false
     /// The next-layer early read is on by default (`RuntimeConfiguration`).
     /// `--early-expert-read` forces it on and `--no-early-expert-read` turns
     /// it off, through this environment variable, which the runtime reads
@@ -346,6 +365,11 @@ struct HarnessSettings {
             settings.prefillChunkTokens = v
             settings.prefillChunkExplicit = true
         }
+        if args.contains("--trust-install") { settings.trustInstall = true }
+        if let v = value("--score-endpoints").flatMap(Int.init), v > 0 {
+            settings.scoreEndpoints = v
+        }
+        if args.contains("--score-continuation") { settings.scoreContinuation = true }
         if args.contains("--early-expert-read") {
             setenv(earlyExpertReadEnvironmentKey, "next-layer", 1)
         }
@@ -376,6 +400,20 @@ struct HarnessSettings {
         }
         if let v = value("--early-expert-reads") {
             setenv(earlyExpertReadsEnvironmentKey, v, 1)
+        }
+        // Splits prefill's attention block for timing; a profiling run. See
+        // `RealForwardRunner.prefillProfileEnvironmentKey`.
+        if args.contains("--prefill-profile") {
+            setenv(RealForwardRunner.prefillProfileEnvironmentKey, "1", 1)
+        }
+        // Keeps prefill's routed experts on the thread-per-row kernels. See
+        // `PrefillGroupedRoutedMoE.tensorOpsEnvironmentKey`.
+        if args.contains("--no-routed-tensorops") {
+            setenv("TURBO_FIELDFARE_PREFILL_ROUTED_TENSOROPS", "0", 1)
+        }
+        // Keeps every prompt chunk by chunk. See `PrefillLayerMajorPolicy`.
+        if args.contains("--no-layer-major-prefill") {
+            setenv("TURBO_FIELDFARE_PREFILL_LAYER_MAJOR", "0", 1)
         }
         return settings
     }
@@ -655,20 +693,25 @@ final class Harness: ObservableObject {
         // that falls back here has SHA-256 of 12.01 GiB smeared through its
         // `io` figures, so its timings are NOT comparable with MEASUREMENTS.md.
         var integrityPolicy: ModelIntegrityPolicy = .fullSha256
-        do {
-            let receipt = try VerifiedInstallReceiptReader.load(directoryURL: modelURL)
-            let actualPath = modelURL.standardizedFileURL.path
-            if receipt.modelDirectoryPath == actualPath {
-                integrityPolicy = .sizeCheckTrustedReceipt
-            } else {
-                emit("receipt-path-mismatch",
-                     "receipt names \(receipt.modelDirectoryPath) but the model is at "
-                        + "\(actualPath) — falling back to fullSha256, so io timings "
-                        + "from this run are contaminated")
+        if settings.trustInstall {
+            integrityPolicy = .sizeCheckTrustedReceipt
+            emit("trust-install", "skipping SHA-256 of the layer files (--trust-install)")
+        } else {
+            do {
+                let receipt = try VerifiedInstallReceiptReader.load(directoryURL: modelURL)
+                let actualPath = modelURL.standardizedFileURL.path
+                if receipt.modelDirectoryPath == actualPath {
+                    integrityPolicy = .sizeCheckTrustedReceipt
+                } else {
+                    emit("receipt-path-mismatch",
+                         "receipt names \(receipt.modelDirectoryPath) but the model is at "
+                            + "\(actualPath) — falling back to fullSha256, so io timings "
+                            + "from this run are contaminated")
+                }
+            } catch {
+                emit("no-install-receipt", "\(String(describing: error)) — falling back to "
+                    + "fullSha256, so io timings from this run are contaminated")
             }
-        } catch {
-            emit("no-install-receipt", "\(String(describing: error)) — falling back to "
-                + "fullSha256, so io timings from this run are contaminated")
         }
         let loadStarted = DispatchTime.now().uptimeNanoseconds
         let model = try Model.load(
@@ -677,7 +720,10 @@ final class Harness: ObservableObject {
             streamingMode: .pread(slotCount: runtime.expertCacheSlots),
             expertCachePolicy: runtime.modelExpertCachePolicy,
             integrityPolicy: integrityPolicy,
-            expertReadsBypassFileCache: runtime.expertReadsBypassFileCache)
+            expertReadsBypassFileCache: runtime.expertReadsBypassFileCache,
+            // The receipt's absolute path cannot match an app container
+            // (see above); `--trust-install` binds it by content only.
+            requiringReceiptDirectoryPath: !settings.trustInstall)
         emit("model-loaded",
              "policy=\(integrityPolicy == .fullSha256 ? "fullSha256" : "trustedReceipt") "
                 + "ms=\((DispatchTime.now().uptimeNanoseconds - loadStarted) / 1_000_000)")
@@ -708,6 +754,53 @@ final class Harness: ObservableObject {
             + "expertCacheAging="
             + "\(PreadExpertStreamer.usesCountAging(environment: ProcessInfo.processInfo.environment))"
             + (session.map { " session=\($0.joined(separator: ","))" } ?? ""))
+
+        if let endpointCount = settings.scoreEndpoints {
+            let vocab = model.config.vocabSize
+            guard let logits = context.device.makeBuffer(
+                length: vocab * MemoryLayout<Float16>.stride, options: .storageModeShared) else {
+                throw ModelError.residentBufferWrapFailed
+            }
+            for encoded in cases {
+                var tokens = encoded.promptIds
+                var endpoints = PrefillEndpointScoring.endpoints(
+                    tokenCount: tokens.count, count: endpointCount)
+                if settings.scoreContinuation {
+                    let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                        .appendingPathComponent("\(encoded.caseID ?? "ad-hoc")-continuation.txt")
+                    let data = try Data(contentsOf: url)
+                    let reply = tokenizer.encode(String(decoding: data, as: UTF8.self), addBOS: false)
+                    let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+                    emit("continuation", "tokens=\(reply.count) sha256=\(digest)" + tag(encoded.caseID))
+                    // Each endpoint predicts a token of the reply; none at its end.
+                    endpoints = PrefillEndpointScoring.endpoints(
+                        tokenCount: reply.count - 1, count: endpointCount)
+                        .map { $0 + tokens.count }
+                    tokens += reply
+                }
+                let caseTag = tag(encoded.caseID)
+                let started = DispatchTime.now().uptimeNanoseconds
+                _ = try await PrefillEndpointScoring.run(
+                    runner: runner,
+                    tokens: tokens,
+                    endpoints: endpoints,
+                    config: runtimeConfiguration(chunkTokens: encoded.chunkTokens).prefillConfig,
+                    logits: logits,
+                    vocab: vocab) { score in
+                    let top = zip(score.topIDs, score.topLogProbs)
+                        .map { "\($0):\(String(format: "%.6f", $1))" }
+                        .joined(separator: ",")
+                    emit("endpoint", "endpoint=\(score.endpoint) "
+                        + "target=\(score.target.map(String.init) ?? "end") "
+                        + "nll=\(score.nll.map { String(format: "%.6f", $0) } ?? "n/a") "
+                        + "top=\(top) thermal=\(DeviceState.thermal())" + caseTag)
+                }
+                emit("endpoints-done", "endpoints=\(endpoints.count) "
+                    + "ms=\((DispatchTime.now().uptimeNanoseconds - started) / 1_000_000)"
+                    + caseTag)
+            }
+            return []
+        }
 
         var outcomes: [HarnessCaseOutcome] = []
         for (index, encoded) in cases.enumerated() {
@@ -798,6 +891,7 @@ final class Harness: ObservableObject {
         emit("phase-time", phaseTimeFooter(stats) + caseTag)
         emit("gpu-time", gpuTimeFooter(stats) + caseTag)
         emit("read-latency", readLatencyFooter(stats) + caseTag)
+        emit("prefill-time", prefillTimeFooter(stats) + caseTag)
         // The text itself, beside the log, and its hash in it. Token counts and
         // byte counters match between two runs whose text differs late, so an
         // A/B that claims identical output needs the output. A session writes

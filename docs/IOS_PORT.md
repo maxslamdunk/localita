@@ -286,7 +286,7 @@ Steps:
    download still works that way.
 
    ✅ **A reply can keep generating in the background since 2026-10-09**
-   (`BackgroundGeneration`, opt-in; tried by hand on the phone, no
+   (`BackgroundGeneration`, on by default since 2026-11-08; tried by hand on the phone, no
    scripted run). The probes in
    `results/validation-results-2026-10-09-ios-background-probes/` found one way for a
    backgrounded app to use the GPU: showing Picture in Picture. So when the
@@ -300,13 +300,31 @@ Steps:
    token again when the GPU is back. That is safe because the KV advances
    only after a whole forward succeeds. A prefill refusal resumes after the
    chunks that committed.
+   - **A long first message resumes from its first unfinished layer**
+     (2026-11-06). Layer-at-a-time prefill
+     (`results/benchmark-results-2026-11-06-ios-prefill-layer-major/`)
+     commits nothing before its last layer, so at first a refusal there
+     restarted the prefill from zero. Now the runner keeps the refused
+     prefill (`PrefillLayerMajorSuspension`) and the retry carries on from
+     the layer it was in (`RawCompletionStart.resumeSuspendedPrefill`), so a
+     pause loses at most one layer, about 1.5 s on the long prompt. A layer
+     used to overwrite its input rows as it went, so the residual stream is
+     now two prompt-wide buffers that alternate by layer: +5,632 B a token,
+     about +17 MB on the long prompt
+     (`results/benchmark-results-2026-11-06-ios-prefill-resume/`).
+     Tried by hand on 2026-11-08: the prefill carried on after unlock, and
+     one long first message survived three locks. But iOS ended the app
+     twice while it waited, locked at 3.69 and 3.63 GB, and each left an
+     empty chat. Two to-dos below follow from that.
    - **Lock:** the reply pauses, and unlocking resumes it.
    - **Closing the window:** suspends the app, and coming back resumes the
      reply.
    - **Leaving without a window** (it failed to open, and the phone is not
      locked): stops the turn and saves it, as before.
-   - **The setting** "Keep generating in background" is off by default,
-     which keeps the old stop-on-leave behavior.
+   - **The setting** "Keep generating in background" was off by default
+     until 2026-11-08, then turned on for everyone, existing installs
+     included, to match the welcome screen. Off keeps the old stop-on-leave
+     behavior.
    - **Returning** through the app icon closes the window cleanly. Its
      full-screen button still grows the window to full screen before it
      goes, which was judged acceptable.
@@ -315,6 +333,65 @@ Steps:
    3 GB app after a few minutes (probe run 2). The window uses the private
    `controlsStyle` key and has no video, which App Review would refuse. The
    app is side-loaded.
+
+   **To do: a Continue action for a stopped reply** (proposed 2026-11-06,
+   not built). With the setting off, a lock, Control Center, a
+   call or a quick app switch all end the reply. The only way on is to send
+   "continue", which leaves a fake user turn in the chat. The model may also
+   restart, repeat or summarize rather than finish the sentence. The runtime
+   already keeps what Continue needs:
+   - A stopped run ends with reason `.cancelled`, and the KV keeps every
+     generated token except the last one shown.
+   - That token is held as `uncommittedBoundary` with `boundaryNeedsReplay`
+     set.
+   - The model's turn is left open, with no end-of-turn written.
+   - The token IDs are saved with the turn.
+
+   Today the next message replays that token, closes the model turn and
+   prefills only the new user turn (`MultimodalConversation.swift`, around
+   518–522). Continue would replay the token and keep decoding inside the
+   same open turn. Nothing is re-read or added to the transcript, and the
+   reply grows in place. If iOS ended the app meanwhile, the conversation is
+   first rebuilt from the saved tokens, one full prefill, and then
+   continues. Needs: a runtime entry point next to `generate`, the button on
+   a reply that stopped with `.cancelled` (and `.maxTokens`, if the app caps
+   replies), and tests in the mock-runner suites. Making background
+   generation the default would cover some of the same cases, but it is a
+   separate decision.
+
+   **To do: keep the user's message when a first turn does not finish**
+   (found 2026-11-08, not built). The chat file is created, with its name,
+   when the first message is sent (`AppModelHistory.swift`, `store.create`).
+   The message and the reply are written only when the turn completes
+   (`persistCompletedTurn`). A stop during the reply is written, because it
+   ends at a token. A stop during prefill, a failure, or the app being ended
+   writes nothing, and on a first turn that leaves a name with no turns.
+   It reopens empty, and because zero turns give no token count, it is
+   marked "This chat can't be continued. It has no replay record"
+   (`ConversationContinuability`, `.tokenCountUnknown`). The text the user
+   typed is gone. Seen in the lock test of 2026-11-08: the app was ended
+   twice while locked mid-prefill, and both chats came back empty. Needs:
+   - the user's text saved at send time, without its token IDs, so it never
+     claims to be in the KV;
+   - a chat with no completed turns opened as an ordinary new chat, with
+     that text back in the message box, not refused;
+   - tests in the AppCore history suites.
+
+   **To do: a smaller footprint while a turn waits on a lock** (found
+   2026-11-08, not sized). In the same lock test, the app was ended at
+   3.69 GB and 3.63 GB, both times the second turn after a model load, with
+   a full expert cache plus the layer-at-a-time prefill buffers. Locks at
+   3.13 GB and under survived, up to 94 s. No jetsam or crash report was
+   written for either, so memory is the likely cause, not a confirmed one.
+   The expert-cache slots are about 2.4 GB of that (24 slots × 30 layers ×
+   3,358,720 B), and they can be refilled from storage. While the turn waits
+   in `GPUWorkGate`, the slots could be handed back to iOS and the cache
+   emptied, then refilled after unlock, at the cost of hit rate on the
+   tokens that follow. The slots are `makeBuffer(bytesNoCopy:)` over the
+   app's own allocations, so Metal's purgeable state does not apply.
+   `madvise(MADV_FREE_REUSABLE)` is a candidate. Before building it: predict
+   and measure the footprint while locked, and how long the app survives a
+   lock, against today's.
 
    ✅ **Community models from a pasted link since 2026-10-07.** Add Model in
    the composer's model menu takes a Hugging Face link or `owner/name`.

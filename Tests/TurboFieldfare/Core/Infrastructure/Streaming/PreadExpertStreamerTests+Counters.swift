@@ -173,10 +173,10 @@ extension PreadExpertStreamerTests {
 
   @Test func readLatencyWindowExcludesReadsBeforeIt() {
     let counters = ExpertIOCounters()
-    counters.recordReadLatency(nanos: 300_000)
+    counters.recordRead(started: 1_000, ended: 301_000)
     let atWindowStart = counters.snapshot()
-    counters.recordReadLatency(nanos: 2_500_000)
-    counters.recordReadLatency(nanos: 3_500_000)
+    counters.recordRead(started: 1_000, ended: 2_501_000)
+    counters.recordRead(started: 1_000, ended: 3_501_000)
 
     // Prefill's fast reads must not leak into decode's histogram, or a
     // file-cache share would be charged to the wrong phase.
@@ -186,5 +186,18 @@ extension PreadExpertStreamerTests {
     #expect(window.readLatencyNanos == 6_000_000)
     #expect(window.meanReadLatencyMilliseconds == 3.0)
     #expect(ExpertIOStats.zero.meanReadLatencyMilliseconds == nil)
+  }
+
+  @Test func readIntervalLogRecordsOnlyWhileOpen() {
+    let counters = ExpertIOCounters()
+    counters.recordRead(started: 10, ended: 20)
+    counters.beginReadIntervalLog()
+    counters.recordRead(started: 30, ended: 50)
+    counters.recordRead(started: 40, ended: 70)
+    let log = counters.takeReadIntervals()
+    #expect(log.map(\.start) == [30, 40])
+    #expect(log.map(\.end) == [50, 70])
+    counters.recordRead(started: 80, ended: 90)
+    #expect(counters.takeReadIntervals().isEmpty)
   }
 }

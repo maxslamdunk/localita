@@ -100,10 +100,10 @@ extension ResponseTypography {
     /// How replies read on the phone: New York at 17 pt, the iPhone's body
     /// size and the size of the user's own messages, with room between lines,
     /// paragraphs and list items. Chosen on the device after trying 14 and
-    /// 16. It scales with the text-size setting, read when a renderer is made,
-    /// which is at launch.
+    /// 16. It does not follow Larger Text, which the app holds at the default
+    /// size (`TurboFieldfareiOSApp.lockTextSize`).
     static var phone: ResponseTypography {
-        .reading(bodySize: UIFontMetrics(forTextStyle: .body).scaledValue(for: 17))
+        .reading(bodySize: 17)
     }
 }
 

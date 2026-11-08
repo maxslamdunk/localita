@@ -1,0 +1,12 @@
+01:35:06 start A medium-review
+01:35:34 done A medium-review exit 0: prefill bytes=8885.47MB hit-rate=0.0% reads=2774 
+01:35:34 start A long-synthesis
+01:37:09 done A long-synthesis exit 0: prefill bytes=11118.05MB hit-rate=0.0% reads=3471 
+01:37:09 start B medium-review
+01:37:55 done B medium-review exit 0: prefill bytes=25512.89MB hit-rate=0.0% reads=7965 
+01:37:55 start B long-synthesis
+01:42:27 done B long-synthesis exit 0: prefill bytes=183539.06MB hit-rate=0.0% reads=57300 
+327852ac12eb583bcc50b7d368050a9915ca8e015003ccc954741e5ae8533c32  results/benchmark-results-2026-11-06-ios-prefill-layer-major/mac-check/long-synthesis-A.txt
+327852ac12eb583bcc50b7d368050a9915ca8e015003ccc954741e5ae8533c32  results/benchmark-results-2026-11-06-ios-prefill-layer-major/mac-check/long-synthesis-B.txt
+38a3bf147d16ba3454df23b31c99bf9605cd44e5cd9826f8f2231ac54cf170c7  results/benchmark-results-2026-11-06-ios-prefill-layer-major/mac-check/medium-review-A.txt
+38a3bf147d16ba3454df23b31c99bf9605cd44e5cd9826f8f2231ac54cf170c7  results/benchmark-results-2026-11-06-ios-prefill-layer-major/mac-check/medium-review-B.txt

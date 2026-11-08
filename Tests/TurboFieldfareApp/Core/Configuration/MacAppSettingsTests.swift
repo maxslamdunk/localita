@@ -108,7 +108,7 @@ import TurboFieldfare
         #expect(settings.newlineShortcut == .return)
         #expect(settings.showPromptExamples)
         #expect(settings.visionResidencyPolicy == .onDemand)
-        #expect(!settings.backgroundGeneration)
+        #expect(settings.backgroundGeneration)
     }
 
     /// Additive, like every field around it: a settings file written before the
@@ -405,6 +405,32 @@ import TurboFieldfare
         #expect(decoded == initial)
     }
 
+    /// Every file written while the default was off holds
+    /// `"backgroundGeneration": false`, chosen or not. It is not read, so an
+    /// update turns the setting on; a choice made after that is kept.
+    @Test func anOffSavedUnderTheOldKeyIsNotRead() throws {
+        let root = try makeTemporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let model = root.appendingPathComponent("gemma4.gturbo", isDirectory: true)
+        let fileURL = MacAppSettingsFileStore.fileURL(forModelDirectory: model)
+        let json = """
+        {"version":3,"contextTokens":8192,"expertCacheSlots":24,\
+        "temperature":0.4,"topKEnabled":true,"topK":64,"topPEnabled":true,\
+        "topP":0.95,"prefillEnabled":true,"backgroundGeneration":false}
+        """
+        try Data(json.utf8).write(to: fileURL)
+
+        let settings = MacAppSettingsFileStore.loadOrCreate(forModelDirectory: model)
+        #expect(settings.backgroundGeneration)
+        #expect(settings.temperature == 0.4)
+
+        var chosen = settings
+        chosen.backgroundGeneration = false
+        try MacAppSettingsFileStore.save(chosen, forModelDirectory: model)
+        #expect(!MacAppSettingsFileStore.loadOrCreate(forModelDirectory: model)
+            .backgroundGeneration)
+    }
+
     @MainActor
     @Test func backgroundGenerationIsSavedWhenSwitched() throws {
         let root = try makeTemporaryRoot()
@@ -414,13 +440,13 @@ import TurboFieldfare
             at: modelDirectory,
             withIntermediateDirectories: true)
         let model = AppModel(modelDirectory: modelDirectory, settingsPersistenceEnabled: true)
-        #expect(!model.backgroundGeneration)
+        #expect(model.backgroundGeneration)
 
-        model.setBackgroundGeneration(true)
+        model.setBackgroundGeneration(false)
 
-        #expect(MacAppSettingsFileStore.loadOrCreate(forModelDirectory: modelDirectory)
+        #expect(!MacAppSettingsFileStore.loadOrCreate(forModelDirectory: modelDirectory)
             .backgroundGeneration)
-        #expect(AppModel(modelDirectory: modelDirectory, settingsPersistenceEnabled: true)
+        #expect(!AppModel(modelDirectory: modelDirectory, settingsPersistenceEnabled: true)
             .backgroundGeneration)
     }
 

@@ -294,6 +294,112 @@ failed the M2 long-row gate.
 - **Lesson:** Reordered floating-point kernels need a direct numerical oracle
   plus model-quality gates, not identity with one reduction order.
 
+<a id="pf-18"></a>
+### PF-18: Prefill time breakdown on the iPhone 17
+
+- **Hypothesis:** On the phone, routed-expert work and expert reads would
+  dominate prefill. Storage was busy only ~20 of the long prompt's 68 s, so the
+  rest needed splitting before any kernel was ported from
+  [zw5/ane-fieldfare](https://github.com/zw5/ane-fieldfare).
+- **Variants tested:** The `[prefill-time …]` footer, with and without
+  `--prefill-profile` (the attention block split into five timed command
+  buffers), and with and without `--trust-install` (no SHA-256 of the layer
+  files). Seven runs: `medium-review` and `long-synthesis`, 24 slots.
+- **Evidence:** The long prefill is GPU-bound: GPU busy 61–67 s of 68–79 s.
+  It splits into three parts of about equal size:
+  - routed experts, 23–27 s;
+  - the shared expert, ~17 s, because it runs the decode GEMV once per token;
+  - attention, ~17 s, almost all of it the sliding-window layers on the
+    scalar tiled kernel.
+
+  Projections take ~4 s. Storage is busy 16–26 s, about 70% of it under GPU
+  work. The first-touch SHA-256 of the layer files warms the file cache, so
+  the long prefill is 5–11 s faster with it than without. It costs +0.8 s on
+  medium. Profiling changed no output and no wall time beyond noise.
+- **What changed the conclusion:** The shared expert's share (25%) is far
+  above the ~10% assumed when a Core ML shared FFN was ruled out. Attention
+  is as large as routed work.
+- **Final disposition:** Instrumentation kept: the footer, plus
+  `TURBO_FIELDFARE_PREFILL_PROFILE`, see
+  [Runtime controls](../../RUNTIME_CONTROLS.md). The sizing sets the port order
+  (`results/benchmark-results-2026-11-04-ios-prefill-breakdown/`).
+- **Lesson:** Split a phase by GPU timestamps before porting a kernel for it.
+  The storage-busy estimate left 48 s unattributed, and that time was GPU
+  compute in three equal parts, not one.
+
+<a id="pf-19"></a>
+### PF-19: Routed experts on the matrix units (iPhone 17)
+
+- **Hypothesis:** The long prefill's routed GPU time (23 s of 68,
+  [PF-18](#pf-18)) would fall several-fold on the A19's matrix hardware, and
+  the routed phase would then be bounded by its expert reads.
+- **Variants tested:** zw5/ane-fieldfare's `587953b` kernels against the
+  thread-per-row kernels, in one binary (`--no-routed-tensorops`). Long and
+  medium A B B A, short A B. The kernels use:
+  - same-expert tiles of ≤32 pairs;
+  - 32×64×32 `matmul2d` with FP32 accumulation;
+  - FP16 activations at a power-of-two scale per pair and 64-row block;
+  - gate/up loads split to `ushort` for the load-width rule.
+
+  Two endpoint quality gates.
+- **Evidence:**
+  - Long prefill 67.13 → 55.19 s (−17.8%), medium −14.6%, short +0.73 s on
+    one pair.
+  - GPU routed time 23.2 → 4.3 s. `drain` 11.8 → 0.8 s; `fetch` unchanged at
+    ~16 s.
+  - Prefill bytes within 0.15%. Text identical over 32 tokens.
+  - The gate inside the model's own reply passed: mean ΔNLL −0.0012 nats,
+    top-1 24/24.
+  - The 186 device kernel tests pass on the A19.
+  - On the M1 a 43-token prompt's routed GPU time rose 0.88 → 1.70 s.
+- **What changed the conclusion:** The first gate, with endpoints inside the
+  user turn, failed: ΔNLL up to 3.55 nats. The model's distributions there
+  are near degenerate (8–23 nats on the prompt's own next word, the same on
+  the Mac and with `--prefill off`), so rounding moved them by nats. Scoring
+  inside the reply, where the model is in distribution, separated rounding
+  from defects.
+- **Final disposition:** Production where the tensor pipelines build.
+- **Lesson:** A quality gate has to sit where the model is in distribution.
+  Endpoints in an instruction-tuned model's user turn measure chaos, not
+  kernels.
+
+<a id="pf-20"></a>
+### PF-20: Layer at a time across chunks (iPhone 17)
+
+- **Hypothesis:** After [PF-19](#pf-19)
+  the long prompt's routed phase was bound by its reads. Each of its three
+  1024-token chunks re-read about 106 of each layer's 128 experts, which 24
+  slots cannot keep. Running a layer's routed experts once over the whole
+  prompt would read each expert once per layer: about −60% bytes.
+- **Variants tested:** The idea is from zw5/ane-fieldfare `c17d0c2`, which
+  moves layers outside chunks. That alone reads the same bytes here, because
+  the expert cache is per layer. So each layer's attention block and shared
+  expert run chunk by chunk, into prompt-wide rows (62,000 B a token), and
+  then its routed experts, reduce and tail run once over the prompt. Only a
+  prompt from an empty KV qualifies, up to 4096 tokens. The A/B was
+  `--no-layer-major-prefill` in one binary: long and medium A B B A, hashed,
+  then long A B B A with `--trust-install`.
+- **Evidence:**
+  - Long prefill bytes 30,561.02 → 11,140.47 MiB (−63.5%, 3,478 reads).
+  - Wall 54.52 → 44.81 s hashed (−17.8%), and 67.27 → 50.73 s trusted
+    (−24.6%).
+  - Text identical on the phone and on the M1. Medium (one chunk)
+    unchanged. Peak footprint +132 MB.
+  - On the M1 at chunk 128, long bytes fell −93.9%.
+- **What changed the conclusion:** With the first-load SHA-256, the routed
+  reads came mostly from the file cache: storage was busy 1.58 s for 11 GB.
+  The hash reads each layer file sequentially just before that layer's
+  routed step. A loaded model does not hash, so the trusted set, with real
+  reads at about 11 ms, is the closer guide to a new chat.
+- **Final disposition:** Production, both platforms.
+- **Follow-up:** It commits nothing before its last layer, so a GPU refusal
+  (a lock mid-prefill) first restarted it from zero. Since 2026-11-06 the
+  retry resumes from the first unfinished layer. That needed the residual
+  stream in two alternating buffers, so the rows are now 67,632 B a token
+  (`results/benchmark-results-2026-11-06-ios-prefill-resume/`).
+- **Lesson:** A literal port can save nothing when the cache design differs.
+  Here what matters is when each expert is read, not which loop is outermost.
+
 [Previous: Attention and KV cache](05-attention-and-kv-cache.md) |
 [Experiment inventory](../EXPERIMENT_INVENTORY.md) |
 [Optimization journey](../../OPTIMIZATION_JOURNEY.md) |

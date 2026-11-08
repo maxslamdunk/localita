@@ -9,6 +9,9 @@ struct PrefillChunkScratchLayout: Sendable, Equatable {
     let routedIntermediate: Int
     let topK: Int
     let routedPairMicrobatchRows: Int
+    /// Pairs one matrix-unit microbatch processes: up to 2048, fewer, fuller
+    /// dispatches, but never more than a chunk can route.
+    let routedTensorPairMicrobatchRows: Int
 
     init(config: ArchConfig,
                 chunkTokens: Int,
@@ -23,6 +26,7 @@ struct PrefillChunkScratchLayout: Sendable, Equatable {
         self.routedIntermediate = config.moeIntermediateSize
         self.topK = config.topKExperts
         self.routedPairMicrobatchRows = max(1, min(routedPairMicrobatchRows, 128))
+        self.routedTensorPairMicrobatchRows = min(2048, self.chunkTokens * self.topK)
     }
 
 
@@ -41,7 +45,15 @@ struct PrefillChunkScratchLayout: Sendable, Equatable {
     var routeIDElements: Int { chunkTokens * topK }
     var routeWeightElements: Int { routeIDElements }
     var sharedExpertScratchElements: Int { sharedIntermediate }
-    var routedGateUpActElements: Int { 3 * routedPairMicrobatchRows * routedIntermediate }
+    /// Shared by both routed paths: the thread-per-row kernels' gate, up and
+    /// activation rows, or the matrix-unit kernels' FP16 activations and block
+    /// scales (`PrefillGroupedRoutedMoE.tensorActScratchBytes`).
+    var routedGateUpActElements: Int {
+        let tensorBytes = PrefillGroupedRoutedMoE.tensorActScratchBytes(
+            pairs: routedTensorPairMicrobatchRows, intermediate: routedIntermediate)
+        return max(3 * routedPairMicrobatchRows * routedIntermediate,
+                   (tensorBytes + 1) / MemoryLayout<Float16>.stride)
+    }
     var routedDownOutputElements: Int { routedPairMicrobatchRows * hiddenSize }
 
     var devicePrivateBytes: Int {

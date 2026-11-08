@@ -377,6 +377,7 @@ extension Model {
                             expertCachePolicy: ExpertCachePolicy = PreadExpertStreamer.cachePolicyDefault,
                             integrityPolicy: ModelIntegrityPolicy? = nil,
                             expertReadsBypassFileCache: Bool = PreadExpertStreamer.readsBypassFileCacheByDefault,
+                            requiringReceiptDirectoryPath: Bool = true,
                             loadStats: UnsafeMutablePointer<ModelLoadStats>? = nil) throws -> Model {
         var stats = ModelLoadStats()
         defer {
@@ -414,7 +415,8 @@ extension Model {
             try VerifiedInstallReceiptReader.validateManifestBinding(
                 loadedReceipt,
                 directoryURL: directoryURL,
-                manifestSha256: manifestSha)
+                manifestSha256: manifestSha,
+                requiringDirectoryPath: requiringReceiptDirectoryPath)
             stats.receiptValidationNanos &+= clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - receiptStart
             receipt = loadedReceipt
         } else {
@@ -429,7 +431,8 @@ extension Model {
                                                       directoryURL: directoryURL,
                                                       manifest: manifest,
                                                       manifestSha256: manifestSha,
-                                                      manifestSize: manifestSize)
+                                                      manifestSize: manifestSize,
+                                                      requiringDirectoryPath: requiringReceiptDirectoryPath)
             stats.receiptValidationNanos &+= clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - receiptStart
         }
 
