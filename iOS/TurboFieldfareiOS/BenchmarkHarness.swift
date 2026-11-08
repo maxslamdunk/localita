@@ -415,6 +415,12 @@ struct HarnessSettings {
         if args.contains("--no-layer-major-prefill") {
             setenv("TURBO_FIELDFARE_PREFILL_LAYER_MAJOR", "0", 1)
         }
+        // Research only: `--expert-skip miss:0.08` drops some routed experts
+        // in decode, which changes the output. The spec grammar is
+        // `ExpertSkipPolicy`'s; an invalid one fails the runner's load.
+        if let v = value("--expert-skip") {
+            setenv("TURBO_FIELDFARE_EXPERT_SKIP", v, 1)
+        }
         return settings
     }
 }
@@ -752,7 +758,8 @@ final class Harness: ObservableObject {
             + "expertReadNoCache="
             + "\(PreadExpertStreamer.readsBypassFileCache(environment: ProcessInfo.processInfo.environment, enabledByDefault: runtime.expertReadsBypassFileCache)) "
             + "expertCacheAging="
-            + "\(PreadExpertStreamer.usesCountAging(environment: ProcessInfo.processInfo.environment))"
+            + "\(PreadExpertStreamer.usesCountAging(environment: ProcessInfo.processInfo.environment)) "
+            + "expertSkip=\(runner.expertSkipDescription ?? "off")"
             + (session.map { " session=\($0.joined(separator: ","))" } ?? ""))
 
         if let endpointCount = settings.scoreEndpoints {
@@ -888,6 +895,10 @@ final class Harness: ObservableObject {
             + "decode=\(String(format: "%.2f", stats.decodeSeconds))s "
             + "tok/s=\(String(format: "%.3f", tokensPerSecond))]" + caseTag)
         emit("expert-io", expertIOFooter(stats) + caseTag)
+        // Cumulative since load, so in a `--session` it covers every case so far.
+        if let skip = runner.expertSkipSummary {
+            emit("expert-skip", skip + caseTag)
+        }
         emit("phase-time", phaseTimeFooter(stats) + caseTag)
         emit("gpu-time", gpuTimeFooter(stats) + caseTag)
         emit("read-latency", readLatencyFooter(stats) + caseTag)

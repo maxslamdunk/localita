@@ -29,6 +29,15 @@ import Testing
         #expect(try ExpertSkipPolicy(environment: [:]) == nil)
     }
 
+    /// The line the Mac meter and the iOS harness both log, and that the
+    /// results scripts parse.
+    @Test func countsSummaryIsPerLayerStep() {
+        let counts = ExpertSkipCounts(layerSteps: 4, dropped: 3, droppedMass: 0.1, substituted: 1)
+        #expect(counts.summary == "dropped/layer 0.750, dropped mass/layer 0.0250, substituted/layer 0.250")
+        #expect(ExpertSkipCounts().summary
+            == "dropped/layer 0.000, dropped mass/layer 0.0000, substituted/layer 0.000")
+    }
+
     @Test func parsesKindValueAndNonorm() throws {
         let key = ExpertSkipPolicy.environmentKey
         #expect(try ExpertSkipPolicy(environment: [key: "miss:0.08"])

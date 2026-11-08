@@ -243,10 +243,7 @@ print("# score: slots=\(slots) prefill-chunk=\(chunk) lossy=\(lossy) "
                  hit, decodeSeconds / Double(max(1, forwards)), Double(io.prefillBytes) / 1_048_576))
     let skip = runner.expertSkipCounts
     if skip.layerSteps > 0 {
-        print(String(format: "skip: dropped/layer %.3f, dropped mass/layer %.4f, substituted/layer %.3f",
-                     Double(skip.dropped) / Double(skip.layerSteps),
-                     skip.droppedMass / Double(skip.layerSteps),
-                     Double(skip.substituted) / Double(skip.layerSteps)))
+        print("skip: " + skip.summary)
     }
     if let path = options["positions-out"], !positionsLines.isEmpty {
         try ("# seq index kl nll refnll top1agree\n" + positionsLines.joined(separator: "\n") + "\n")

@@ -325,4 +325,11 @@ package struct ExpertSkipCounts: Sendable, Equatable {
     package var dropped = 0
     package var droppedMass = 0.0
     package var substituted = 0
+
+    /// Per layer step, as `TurboFieldfareScore` and the iOS harness log it.
+    package var summary: String {
+        let steps = Double(max(1, layerSteps))
+        return String(format: "dropped/layer %.3f, dropped mass/layer %.4f, substituted/layer %.3f",
+                      Double(dropped) / steps, droppedMass / steps, Double(substituted) / steps)
+    }
 }

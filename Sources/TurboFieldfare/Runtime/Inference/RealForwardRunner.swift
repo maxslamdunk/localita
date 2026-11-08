@@ -229,7 +229,11 @@ public final class RealForwardRunner: ChunkedPrefillRunner, SuspendedPrefillResu
     package private(set) var expertSkipCounts = ExpertSkipCounts()
     /// Running average of the router's logit range, for `bias:` reranking.
     private var expertSkipAverageLogitRange: Float = 0
-    package var expertSkipDescription: String? { expertSkip?.description }
+    public var expertSkipDescription: String? { expertSkip?.description }
+    /// The policy and what it did since load, for a log line; nil when off.
+    public var expertSkipSummary: String? {
+        expertSkip.map { "policy=\($0.description) \(expertSkipCounts.summary)" }
+    }
     /// `TURBO_FIELDFARE_PREFILL_PROFILE=1` commits each prefill layer's
     /// attention block in five pieces and waits on each, so their GPU time
     /// can be read apart in `PrefillPhaseTimings`. Profiling only.
