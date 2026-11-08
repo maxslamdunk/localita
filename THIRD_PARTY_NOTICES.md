@@ -10,6 +10,31 @@ attribution aid, not legal advice. Anyone distributing a compiled product must
 also preserve the license and NOTICE material required by the exact dependency
 versions included in that product.
 
+## Code adapted from other projects
+
+Prefill's matrix-unit routed-expert kernels, `prefill_routed_gate_up_tensorops`
+and `prefill_routed_down_tensorops` in
+`Sources/TurboFieldfare/Metal/Prefill/prefill.metal`, and the same-expert tile
+builder and microbatch dispatch in
+`Sources/TurboFieldfare/Kernels/Prefill/MoE/PrefillGroupedRoutedMoE.swift`, are
+adapted from [zw5/ane-fieldfare](https://github.com/zw5/ane-fieldfare) commit
+`587953b` ("Prefill: routed experts on the tensor units, 2048-pair
+microbatches"), by zw5, licensed under the Apache License 2.0. That commit
+says it was itself ported from the Flint fork. ane-fieldfare is a fork of
+upstream Turbo Fieldfare. Changes here: gate and up weights are read with
+2-byte loads (this repository's load-width rule), the old kernels remain as a
+fallback behind `TURBO_FIELDFARE_PREFILL_ROUTED_TENSOROPS`, and the
+microbatch is capped by what a chunk can route. The FP32-reference kernel
+test in `Tests/TurboFieldfare/Core/Kernels/Prefill/PrefillGroupedRoutedMoETests+TensorOps.swift`
+follows that commit's test.
+
+Layer-at-a-time prefill across chunks (`PrefillLayerMajorPolicy` and
+`RealForwardRunner.prefillLayerMajor`) takes its idea from zw5/ane-fieldfare
+commit `c17d0c2`, which runs prefill's layers outside its chunks. No code is
+taken from it. Here the routed experts also run once over the whole prompt
+per layer, because this runtime's expert cache is per layer, and the order
+applies only to a prompt that starts an empty KV.
+
 ## Model weights
 
 Model weights are not included in this repository. The installer downloads

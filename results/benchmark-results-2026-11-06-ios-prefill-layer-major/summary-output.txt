@@ -1,0 +1,84 @@
+== decode-long-A1-2026-11-06T012649Z.log
+  progress lines=30 thermal=nominal peak footprint=3.514GB max compressor=3553MB
+  [stop=maxTokens prefill=3015tok new=32tok decode=7.07s tok/s=4.524]
+  prefill bytes=11140.47MB hit-rate=0.0% reads=3478
+  generated sha256=30e14eae5166
+  wall=44.10 attn-block=21.63 shared=18.04 routed=4.07 (fetch=1.60 drain=2.42) route-plan=0.19 tail=0.15
+  gpu attn-block=20.01 shared=16.73 routed=3.27 busy=40.15 | storage busy=1.58 overlap-gpu=0.91 both-idle=3.28
+== decode-long-A2-2026-11-06T014505Z.log
+  progress lines=30 thermal=nominal peak footprint=3.512GB max compressor=3616MB
+  [stop=maxTokens prefill=3015tok new=32tok decode=7.15s tok/s=4.475]
+  prefill bytes=11140.47MB hit-rate=0.0% reads=3478
+  generated sha256=30e14eae5166
+  wall=45.51 attn-block=22.85 shared=18.06 routed=4.25 (fetch=1.61 drain=2.58) route-plan=0.19 tail=0.15
+  gpu attn-block=21.25 shared=16.71 routed=3.49 busy=41.59 | storage busy=1.58 overlap-gpu=0.94 both-idle=3.28
+== decode-long-B1-2026-11-06T013255Z.log
+  progress lines=3 thermal=nominal peak footprint=3.380GB max compressor=2631MB
+  [stop=maxTokens prefill=3015tok new=32tok decode=6.98s tok/s=4.587]
+  prefill bytes=30561.02MB hit-rate=0.0% reads=9541
+  generated sha256=30e14eae5166
+  wall=54.49 attn-block=19.35 shared=18.15 routed=16.62 (fetch=15.73 drain=0.82) route-plan=0.16 tail=0.19
+  gpu attn-block=19.18 shared=16.78 routed=4.39 busy=40.49 | storage busy=15.63 overlap-gpu=3.58 both-idle=1.94
+== decode-long-B2-2026-11-06T013900Z.log
+  progress lines=3 thermal=nominal peak footprint=3.382GB max compressor=2844MB
+  [stop=maxTokens prefill=3015tok new=32tok decode=7.00s tok/s=4.572]
+  prefill bytes=30561.02MB hit-rate=0.0% reads=9541
+  generated sha256=30e14eae5166
+  wall=54.55 attn-block=19.31 shared=18.13 routed=16.75 (fetch=15.90 drain=0.78) route-plan=0.16 tail=0.19
+  gpu attn-block=19.12 shared=16.82 routed=4.34 busy=40.42 | storage busy=15.80 overlap-gpu=3.58 both-idle=1.90
+== decode-medium-A1-2026-11-06T015110Z.log
+  progress lines=1 thermal=nominal peak footprint=3.227GB max compressor=2669MB
+  [stop=maxTokens prefill=430tok new=32tok decode=6.00s tok/s=5.335]
+  prefill bytes=8882.27MB hit-rate=0.0% reads=2773
+  generated sha256=28ca6ef4e447
+  wall=10.27 attn-block=1.19 shared=2.59 routed=6.45 (fetch=6.00 drain=0.42) route-plan=0.01 tail=0.02
+  gpu attn-block=1.08 shared=2.48 routed=1.03 busy=4.61 | storage busy=0.80 overlap-gpu=0.58 both-idle=5.44
+== decode-medium-A2-2026-11-06T020718Z.log
+  progress lines=1 thermal=nominal peak footprint=3.227GB max compressor=2769MB
+  [stop=maxTokens prefill=430tok new=32tok decode=5.92s tok/s=5.409]
+  prefill bytes=8882.27MB hit-rate=0.0% reads=2773
+  generated sha256=28ca6ef4e447
+  wall=10.21 attn-block=1.26 shared=2.62 routed=6.29 (fetch=5.83 drain=0.43) route-plan=0.01 tail=0.02
+  gpu attn-block=1.08 shared=2.50 routed=1.08 busy=4.69 | storage busy=0.91 overlap-gpu=0.63 both-idle=5.25
+== decode-medium-B1-2026-11-06T015633Z.log
+  progress lines=1 thermal=nominal peak footprint=3.228GB max compressor=2629MB
+  [stop=maxTokens prefill=430tok new=32tok decode=5.81s tok/s=5.506]
+  prefill bytes=8882.27MB hit-rate=0.0% reads=2773
+  generated sha256=28ca6ef4e447
+  wall=10.06 attn-block=1.19 shared=2.60 routed=6.23 (fetch=5.77 drain=0.44) route-plan=0.01 tail=0.02
+  gpu attn-block=1.08 shared=2.48 routed=1.05 busy=4.64 | storage busy=0.80 overlap-gpu=0.60 both-idle=5.22
+== decode-medium-B2-2026-11-06T020156Z.log
+  progress lines=1 thermal=nominal peak footprint=3.228GB max compressor=2594MB
+  [stop=maxTokens prefill=430tok new=32tok decode=5.97s tok/s=5.359]
+  prefill bytes=8882.27MB hit-rate=0.0% reads=2773
+  generated sha256=28ca6ef4e447
+  wall=9.77 attn-block=1.17 shared=2.59 routed=5.97 (fetch=5.54 drain=0.41) route-plan=0.01 tail=0.02
+  gpu attn-block=1.08 shared=2.47 routed=1.02 busy=4.60 | storage busy=0.84 overlap-gpu=0.60 both-idle=4.93
+== decode-trust-A1-2026-11-06T021247Z.log
+  progress lines=30 thermal=nominal peak footprint=3.513GB max compressor=3355MB
+  [stop=maxTokens prefill=3015tok new=32tok decode=7.05s tok/s=4.538]
+  prefill bytes=11140.47MB hit-rate=0.0% reads=3478
+  generated sha256=30e14eae5166
+  wall=46.94 attn-block=19.94 shared=17.98 routed=8.65 (fetch=8.39 drain=0.23) route-plan=0.20 tail=0.15
+  gpu attn-block=19.77 shared=16.49 routed=3.13 busy=39.54 | storage busy=8.38 overlap-gpu=2.92 both-idle=1.94
+== decode-trust-A2-2026-11-06T023150Z.log
+  progress lines=30 thermal=fair,nominal peak footprint=3.511GB max compressor=3512MB
+  [stop=maxTokens prefill=3015tok new=32tok decode=7.69s tok/s=4.161]
+  prefill bytes=11140.47MB hit-rate=0.0% reads=3478
+  generated sha256=30e14eae5166
+  wall=54.52 attn-block=24.83 shared=20.29 routed=9.07 (fetch=8.37 drain=0.67) route-plan=0.15 tail=0.16
+  gpu attn-block=24.61 shared=18.97 routed=4.12 busy=47.86 | storage busy=8.34 overlap-gpu=3.46 both-idle=1.77
+== decode-trust-B1-2026-11-06T021854Z.log
+  progress lines=3 thermal=fair,nominal peak footprint=3.379GB max compressor=3196MB
+  [stop=maxTokens prefill=3015tok new=32tok decode=7.04s tok/s=4.545]
+  prefill bytes=30561.02MB hit-rate=0.0% reads=9541
+  generated sha256=30e14eae5166
+  wall=65.59 attn-block=21.47 shared=19.77 routed=23.94 (fetch=23.52 drain=0.34) route-plan=0.16 tail=0.23
+  gpu attn-block=21.08 shared=18.38 routed=4.71 busy=44.35 | storage busy=23.47 overlap-gpu=4.41 both-idle=2.18
+== decode-trust-B2-2026-11-06T022521Z.log
+  progress lines=3 thermal=fair,nominal peak footprint=3.378GB max compressor=3282MB
+  [stop=maxTokens prefill=3015tok new=32tok decode=7.36s tok/s=4.351]
+  prefill bytes=30561.02MB hit-rate=0.0% reads=9541
+  generated sha256=30e14eae5166
+  wall=68.94 attn-block=23.82 shared=20.40 routed=24.35 (fetch=23.87 drain=0.38) route-plan=0.12 tail=0.23
+  gpu attn-block=22.26 shared=19.10 routed=4.96 busy=46.51 | storage busy=23.81 overlap-gpu=4.62 both-idle=3.24

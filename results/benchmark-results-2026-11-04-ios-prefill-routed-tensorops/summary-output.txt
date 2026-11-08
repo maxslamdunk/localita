@@ -1,0 +1,100 @@
+== decode-gate-A-2026-11-04T213318Z.log
+== decode-gate-B-2026-11-04T215026Z.log
+== decode-long-A1-2026-11-04T203320Z.log
+  chunk done=1024/3015 +14.16s thermal=nominal compressor=2798MB footprint=3.38GB
+  chunk done=2048/3015 +21.07s thermal=nominal compressor=2740MB footprint=3.38GB
+  chunk done=3015/3015 +21.05s thermal=nominal compressor=589MB footprint=3.37GB
+  expert-io: | prefill bytes=30561.02MB hit-rate=0.0% reads=9541 | early decode reads/tok=29.00 used/tok=23.19]
+  read-latency: | prefill reads=9541 mean=7.90ms <0.25ms=0.0% 0.25-0.5ms=0.2% 0.5-1ms=13.2% 1-2ms=15.8% 2-4ms=8.7% 4-8ms=12.3% 8-16ms=40.1% >=16ms=9.8%]
+  prefill-time: [prefill-time s chunks=3 profiled=0 wall=56.25 attn-block=20.91 route-plan=0.15 shared=17.94 routed=17.04 fetch=16.23 drain=0.72 tail=0.19 head=0.01 | gpu embed=0.00 attn-block=19.06 qkv-proj=0.00 qkv-epilogue=0.00 attention=0.00 o-proj=0.00 router=0.00 shared=16.78 routed=4.31 tail=0.14 head=0.01 busy=40.31 | storage busy=16.10 overlap-gpu=3.60 both-idle=3.44 | wall phases in sequence; gpu parts may overlap, busy is their union]
+  generated sha256=30e14eae5166
+  wall split: attn-block=20.91s(37%) route-plan=0.15s(0%) shared=17.94s(32%) routed=17.04s(30%) tail=0.19s(0%) head=0.01s(0%) residual=0.01s
+  routed: fetch=16.23s drain=0.72s other=0.09s
+  gpu busy=40.31s (72%) storage busy=16.10s (29%) overlap=3.60s (22% of storage) gpu-only=36.71s storage-only=12.50s both-idle=3.44s
+== decode-long-A2-2026-11-04T205400Z.log
+  chunk done=1024/3015 +12.17s thermal=nominal compressor=2780MB footprint=3.38GB
+  chunk done=2048/3015 +21.05s thermal=nominal compressor=2528MB footprint=3.38GB
+  chunk done=3015/3015 +20.92s thermal=nominal compressor=1586MB footprint=3.37GB
+  expert-io: | prefill bytes=30561.02MB hit-rate=0.0% reads=9541 | early decode reads/tok=29.00 used/tok=23.19]
+  read-latency: | prefill reads=9541 mean=7.68ms <0.25ms=0.0% 0.25-0.5ms=0.6% 0.5-1ms=16.1% 1-2ms=16.9% 2-4ms=6.1% 4-8ms=11.4% 8-16ms=39.2% >=16ms=9.7%]
+  prefill-time: [prefill-time s chunks=3 profiled=0 wall=54.12 attn-block=19.31 route-plan=0.14 shared=17.80 routed=16.67 fetch=15.79 drain=0.80 tail=0.20 head=0.01 | gpu embed=0.00 attn-block=19.16 qkv-proj=0.00 qkv-epilogue=0.00 attention=0.00 o-proj=0.00 router=0.00 shared=16.61 routed=4.20 tail=0.14 head=0.01 busy=40.11 | storage busy=15.67 overlap-gpu=3.41 both-idle=1.75 | wall phases in sequence; gpu parts may overlap, busy is their union]
+  generated sha256=30e14eae5166
+  wall split: attn-block=19.31s(36%) route-plan=0.14s(0%) shared=17.80s(33%) routed=16.67s(31%) tail=0.20s(0%) head=0.01s(0%) residual=-0.01s
+  routed: fetch=15.79s drain=0.80s other=0.08s
+  gpu busy=40.11s (74%) storage busy=15.67s (29%) overlap=3.41s (22% of storage) gpu-only=36.70s storage-only=12.26s both-idle=1.75s
+== decode-long-B1-2026-11-04T203954Z.log
+  chunk done=1024/3015 +18.06s thermal=nominal compressor=2691MB footprint=3.38GB
+  chunk done=2048/3015 +24.50s thermal=nominal compressor=2601MB footprint=3.38GB
+  chunk done=3015/3015 +24.42s thermal=nominal compressor=1556MB footprint=3.37GB
+  expert-io: | prefill bytes=30605.86MB hit-rate=0.0% reads=9555 | early decode reads/tok=29.00 used/tok=23.19]
+  read-latency: | prefill reads=9555 mean=7.66ms <0.25ms=0.0% 0.25-0.5ms=0.7% 0.5-1ms=14.0% 1-2ms=20.3% 2-4ms=3.3% 4-8ms=12.1% 8-16ms=40.3% >=16ms=9.3%]
+  prefill-time: [prefill-time s chunks=3 profiled=0 wall=66.97 attn-block=21.06 route-plan=0.16 shared=18.03 routed=27.56 fetch=15.74 drain=11.73 tail=0.15 head=0.01 | gpu embed=0.00 attn-block=20.93 qkv-proj=0.00 qkv-epilogue=0.00 attention=0.00 o-proj=0.00 router=0.00 shared=16.76 routed=22.98 tail=0.12 head=0.01 busy=60.80 | storage busy=15.61 overlap-gpu=11.17 both-idle=1.73 | wall phases in sequence; gpu parts may overlap, busy is their union]
+  generated sha256=30e14eae5166
+  wall split: attn-block=21.06s(31%) route-plan=0.16s(0%) shared=18.03s(27%) routed=27.56s(41%) tail=0.15s(0%) head=0.01s(0%) residual=0.00s
+  routed: fetch=15.74s drain=11.73s other=0.09s
+  gpu busy=60.80s (91%) storage busy=15.61s (23%) overlap=11.17s (72% of storage) gpu-only=49.63s storage-only=4.44s both-idle=1.73s
+== decode-long-B2-2026-11-04T204705Z.log
+  chunk done=1024/3015 +18.07s thermal=nominal compressor=2738MB footprint=3.38GB
+  chunk done=2048/3015 +24.72s thermal=nominal compressor=2699MB footprint=3.38GB
+  chunk done=3015/3015 +24.52s thermal=nominal compressor=454MB footprint=3.37GB
+  expert-io: | prefill bytes=30605.86MB hit-rate=0.0% reads=9555 | early decode reads/tok=29.00 used/tok=23.19]
+  read-latency: | prefill reads=9555 mean=7.65ms <0.25ms=0.0% 0.25-0.5ms=0.8% 0.5-1ms=13.4% 1-2ms=20.2% 2-4ms=3.2% 4-8ms=12.8% 8-16ms=40.4% >=16ms=9.1%]
+  prefill-time: [prefill-time s chunks=3 profiled=0 wall=67.29 attn-block=21.38 route-plan=0.16 shared=17.80 routed=27.79 fetch=15.72 drain=11.96 tail=0.15 head=0.01 | gpu embed=0.00 attn-block=21.25 qkv-proj=0.00 qkv-epilogue=0.00 attention=0.00 o-proj=0.00 router=0.00 shared=16.57 routed=23.38 tail=0.12 head=0.01 busy=61.33 | storage busy=15.63 overlap-gpu=11.34 both-idle=1.67 | wall phases in sequence; gpu parts may overlap, busy is their union]
+  generated sha256=30e14eae5166
+  wall split: attn-block=21.38s(32%) route-plan=0.16s(0%) shared=17.80s(26%) routed=27.79s(41%) tail=0.15s(0%) head=0.01s(0%) residual=0.00s
+  routed: fetch=15.72s drain=11.96s other=0.11s
+  gpu busy=61.33s (91%) storage busy=15.63s (23%) overlap=11.34s (73% of storage) gpu-only=49.99s storage-only=4.29s both-idle=1.67s
+== decode-medium-A1-2026-11-04T210055Z.log
+  chunk done=430/430 +9.92s thermal=nominal compressor=2490MB footprint=3.22GB
+  expert-io: | prefill bytes=8882.27MB hit-rate=0.0% reads=2773 | early decode reads/tok=29.00 used/tok=21.45]
+  read-latency: | prefill reads=2773 mean=1.42ms <0.25ms=0.0% 0.25-0.5ms=1.6% 0.5-1ms=42.0% 1-2ms=49.8% 2-4ms=4.3% 4-8ms=1.1% 8-16ms=1.1% >=16ms=0.3%]
+  prefill-time: [prefill-time s chunks=1 profiled=0 wall=9.91 attn-block=1.20 route-plan=0.01 shared=2.60 routed=6.07 fetch=5.63 drain=0.42 tail=0.02 head=0.01 | gpu embed=0.00 attn-block=1.08 qkv-proj=0.00 qkv-epilogue=0.00 attention=0.00 o-proj=0.00 router=0.00 shared=2.49 routed=1.05 tail=0.02 head=0.01 busy=4.65 | storage busy=0.83 overlap-gpu=0.62 both-idle=5.04 | wall phases in sequence; gpu parts may overlap, busy is their union]
+  generated sha256=28ca6ef4e447
+  wall split: attn-block=1.20s(12%) route-plan=0.01s(0%) shared=2.60s(26%) routed=6.07s(61%) tail=0.02s(0%) head=0.01s(0%) residual=0.00s
+  routed: fetch=5.63s drain=0.42s other=0.02s
+  gpu busy=4.65s (47%) storage busy=0.83s (8%) overlap=0.62s (75% of storage) gpu-only=4.03s storage-only=0.21s both-idle=5.04s
+== decode-medium-A2-2026-11-04T211710Z.log
+  chunk done=430/430 +10.37s thermal=nominal compressor=2798MB footprint=3.22GB
+  expert-io: | prefill bytes=8882.27MB hit-rate=0.0% reads=2773 | early decode reads/tok=29.00 used/tok=21.45]
+  read-latency: | prefill reads=2773 mean=1.63ms <0.25ms=0.0% 0.25-0.5ms=0.5% 0.5-1ms=31.6% 1-2ms=57.2% 2-4ms=7.3% 4-8ms=1.6% 8-16ms=1.4% >=16ms=0.4%]
+  prefill-time: [prefill-time s chunks=1 profiled=0 wall=10.37 attn-block=1.27 route-plan=0.01 shared=2.62 routed=6.44 fetch=6.01 drain=0.40 tail=0.02 head=0.01 | gpu embed=0.00 attn-block=1.09 qkv-proj=0.00 qkv-epilogue=0.00 attention=0.00 o-proj=0.00 router=0.00 shared=2.49 routed=1.09 tail=0.02 head=0.01 busy=4.69 | storage busy=0.98 overlap-gpu=0.67 both-idle=5.36 | wall phases in sequence; gpu parts may overlap, busy is their union]
+  generated sha256=28ca6ef4e447
+  wall split: attn-block=1.27s(12%) route-plan=0.01s(0%) shared=2.62s(25%) routed=6.44s(62%) tail=0.02s(0%) head=0.01s(0%) residual=-0.00s
+  routed: fetch=6.01s drain=0.40s other=0.03s
+  gpu busy=4.69s (45%) storage busy=0.98s (9%) overlap=0.67s (68% of storage) gpu-only=4.02s storage-only=0.31s both-idle=5.36s
+== decode-medium-B1-2026-11-04T210624Z.log
+  chunk done=430/430 +11.77s thermal=nominal compressor=2481MB footprint=3.22GB
+  expert-io: | prefill bytes=8875.86MB hit-rate=0.0% reads=2771 | early decode reads/tok=29.00 used/tok=21.35]
+  read-latency: | prefill reads=2771 mean=1.16ms <0.25ms=0.1% 0.25-0.5ms=2.7% 0.5-1ms=48.4% 1-2ms=47.1% 2-4ms=1.0% 4-8ms=0.3% 8-16ms=0.2% >=16ms=0.3%]
+  prefill-time: [prefill-time s chunks=1 profiled=0 wall=11.77 attn-block=1.17 route-plan=0.01 shared=2.61 routed=7.96 fetch=5.30 drain=2.63 tail=0.02 head=0.01 | gpu embed=0.00 attn-block=1.08 qkv-proj=0.00 qkv-epilogue=0.00 attention=0.00 o-proj=0.00 router=0.00 shared=2.48 routed=3.17 tail=0.02 head=0.01 busy=6.76 | storage busy=0.66 overlap-gpu=0.52 both-idle=4.87 | wall phases in sequence; gpu parts may overlap, busy is their union]
+  generated sha256=28ca6ef4e447
+  wall split: attn-block=1.17s(10%) route-plan=0.01s(0%) shared=2.61s(22%) routed=7.96s(68%) tail=0.02s(0%) head=0.01s(0%) residual=-0.01s
+  routed: fetch=5.30s drain=2.63s other=0.03s
+  gpu busy=6.76s (57%) storage busy=0.66s (6%) overlap=0.52s (79% of storage) gpu-only=6.24s storage-only=0.14s both-idle=4.87s
+== decode-medium-B2-2026-11-04T211146Z.log
+  chunk done=430/430 +11.97s thermal=nominal compressor=2515MB footprint=3.22GB
+  expert-io: | prefill bytes=8875.86MB hit-rate=0.0% reads=2771 | early decode reads/tok=29.00 used/tok=21.35]
+  read-latency: | prefill reads=2771 mean=1.16ms <0.25ms=0.0% 0.25-0.5ms=3.2% 0.5-1ms=45.0% 1-2ms=48.3% 2-4ms=3.1% 4-8ms=0.2% 8-16ms=0.0% >=16ms=0.1%]
+  prefill-time: [prefill-time s chunks=1 profiled=0 wall=11.97 attn-block=1.23 route-plan=0.01 shared=2.76 routed=7.94 fetch=5.34 drain=2.56 tail=0.03 head=0.01 | gpu embed=0.00 attn-block=1.11 qkv-proj=0.00 qkv-epilogue=0.00 attention=0.00 o-proj=0.00 router=0.00 shared=2.64 routed=3.15 tail=0.02 head=0.01 busy=6.92 | storage busy=0.66 overlap-gpu=0.55 both-idle=4.94 | wall phases in sequence; gpu parts may overlap, busy is their union]
+  generated sha256=28ca6ef4e447
+  wall split: attn-block=1.23s(10%) route-plan=0.01s(0%) shared=2.76s(23%) routed=7.94s(66%) tail=0.03s(0%) head=0.01s(0%) residual=-0.01s
+  routed: fetch=5.34s drain=2.56s other=0.04s
+  gpu busy=6.92s (58%) storage busy=0.66s (6%) overlap=0.55s (83% of storage) gpu-only=6.37s storage-only=0.11s both-idle=4.94s
+== decode-short-A1-2026-11-04T212233Z.log
+  chunk done=61/61 +9.99s thermal=nominal compressor=2704MB footprint=3.10GB
+  expert-io: | prefill bytes=6953.98MB hit-rate=0.0% reads=2171 | early decode reads/tok=29.00 used/tok=19.71]
+  read-latency: | prefill reads=2171 mean=1.47ms <0.25ms=0.0% 0.25-0.5ms=1.9% 0.5-1ms=39.7% 1-2ms=48.7% 2-4ms=6.8% 4-8ms=1.4% 8-16ms=1.3% >=16ms=0.1%]
+  prefill-time: [prefill-time s chunks=1 profiled=0 wall=9.99 attn-block=0.29 route-plan=0.00 shared=0.37 routed=9.31 fetch=9.09 drain=0.19 tail=0.01 head=0.01 | gpu embed=0.00 attn-block=0.14 qkv-proj=0.00 qkv-epilogue=0.00 attention=0.00 o-proj=0.00 router=0.00 shared=0.35 routed=0.67 tail=0.00 head=0.01 busy=1.16 | storage busy=0.70 overlap-gpu=0.46 both-idle=8.59 | wall phases in sequence; gpu parts may overlap, busy is their union]
+  generated sha256=d2f79cdefc73
+  wall split: attn-block=0.29s(3%) route-plan=0.00s(0%) shared=0.37s(4%) routed=9.31s(93%) tail=0.01s(0%) head=0.01s(0%) residual=0.00s
+  routed: fetch=9.09s drain=0.19s other=0.03s
+  gpu busy=1.16s (12%) storage busy=0.70s (7%) overlap=0.46s (66% of storage) gpu-only=0.70s storage-only=0.24s both-idle=8.59s
+== decode-short-B1-2026-11-04T212756Z.log
+  chunk done=61/61 +9.26s thermal=nominal compressor=2594MB footprint=3.10GB
+  expert-io: | prefill bytes=6950.78MB hit-rate=0.0% reads=2170 | early decode reads/tok=29.00 used/tok=19.71]
+  read-latency: | prefill reads=2170 mean=1.46ms <0.25ms=0.0% 0.25-0.5ms=3.9% 0.5-1ms=42.3% 1-2ms=46.9% 2-4ms=3.6% 4-8ms=1.3% 8-16ms=1.6% >=16ms=0.4%]
+  prefill-time: [prefill-time s chunks=1 profiled=0 wall=9.26 attn-block=0.26 route-plan=0.00 shared=0.38 routed=8.60 fetch=8.18 drain=0.40 tail=0.01 head=0.01 | gpu embed=0.00 attn-block=0.12 qkv-proj=0.00 qkv-epilogue=0.00 attention=0.00 o-proj=0.00 router=0.00 shared=0.36 routed=0.84 tail=0.00 head=0.01 busy=1.33 | storage busy=0.72 overlap-gpu=0.44 both-idle=7.65 | wall phases in sequence; gpu parts may overlap, busy is their union]
+  generated sha256=d2f79cdefc73
+  wall split: attn-block=0.26s(3%) route-plan=0.00s(0%) shared=0.38s(4%) routed=8.60s(93%) tail=0.01s(0%) head=0.01s(0%) residual=0.00s
+  routed: fetch=8.18s drain=0.40s other=0.02s
+  gpu busy=1.33s (14%) storage busy=0.72s (8%) overlap=0.44s (61% of storage) gpu-only=0.89s storage-only=0.28s both-idle=7.65s

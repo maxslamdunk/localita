@@ -73,10 +73,12 @@ public enum VerifiedInstallReceiptReader {
                                 directoryURL: URL,
                                 manifest: Manifest,
                                 manifestSha256: String,
-                                manifestSize: UInt64) throws {
+                                manifestSize: UInt64,
+                                requiringDirectoryPath: Bool = true) throws {
         try validateManifestBinding(receipt,
                                     directoryURL: directoryURL,
-                                    manifestSha256: manifestSha256)
+                                    manifestSha256: manifestSha256,
+                                    requiringDirectoryPath: requiringDirectoryPath)
         var expectedFiles = Set(manifest.files.keys)
         expectedFiles.insert("manifest.json")
         let receiptFiles = Set(receipt.files.keys)

@@ -1,0 +1,4 @@
+### Technical Assessment: TurboFieldfare
+
+**Overview**
+TurboFieldfare is a specialized Swift/Metal runtime designed to run a 26B-parameter

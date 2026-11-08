@@ -300,6 +300,22 @@ Steps:
    token again when the GPU is back. That is safe because the KV advances
    only after a whole forward succeeds. A prefill refusal resumes after the
    chunks that committed.
+   - **A long first message resumes from its first unfinished layer**
+     (2026-11-06). Layer-at-a-time prefill
+     (`results/benchmark-results-2026-11-06-ios-prefill-layer-major/`)
+     commits nothing before its last layer, so at first a refusal there
+     restarted the prefill from zero. Now the runner keeps the refused
+     prefill (`PrefillLayerMajorSuspension`) and the retry carries on from
+     the layer it was in (`RawCompletionStart.resumeSuspendedPrefill`), so a
+     pause loses at most one layer, about 1.5 s on the long prompt. A layer
+     used to overwrite its input rows as it went, so the residual stream is
+     now two prompt-wide buffers that alternate by layer: +5,632 B a token,
+     about +17 MB on the long prompt
+     (`results/benchmark-results-2026-11-06-ios-prefill-resume/`).
+     Tried by hand on 2026-11-08: the prefill carried on after unlock, and
+     one long first message survived three locks. But iOS ended the app
+     twice while it waited, locked at 3.69 and 3.63 GB, and each left an
+     empty chat. Two to-dos below follow from that.
    - **Lock:** the reply pauses, and unlocking resumes it.
    - **Closing the window:** suspends the app, and coming back resumes the
      reply.

@@ -1,0 +1,14 @@
+== decode-resume-A1-2026-11-06T155912Z.log
+  progress lines=30 thermal=nominal peak footprint=3.531GB max compressor=3412MB
+  [stop=maxTokens prefill=3015tok new=32tok decode=7.54s tok/s=4.244]
+  prefill bytes=11140.47MB hit-rate=0.0% reads=3478
+  generated sha256=30e14eae5166
+  wall=47.88 attn-block=23.10 shared=19.44 routed=5.01 (fetch=2.54 drain=2.40) route-plan=0.16 tail=0.15
+  gpu attn-block=21.45 shared=18.12 routed=3.60 busy=43.32 | storage busy=2.51 overlap-gpu=1.24 both-idle=3.29
+== decode-resume-A2-2026-11-06T160517Z.log
+  progress lines=30 thermal=nominal peak footprint=3.529GB max compressor=3432MB
+  [stop=maxTokens prefill=3015tok new=32tok decode=7.11s tok/s=4.504]
+  prefill bytes=11140.47MB hit-rate=0.0% reads=3478
+  generated sha256=30e14eae5166
+  wall=43.46 attn-block=21.16 shared=18.03 routed=3.92 (fetch=1.17 drain=2.69) route-plan=0.19 tail=0.14
+  gpu attn-block=20.96 shared=16.71 routed=3.43 busy=41.24 | storage busy=1.14 overlap-gpu=0.80 both-idle=1.87

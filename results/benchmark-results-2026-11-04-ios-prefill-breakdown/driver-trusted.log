@@ -1,0 +1,11 @@
+20:24:17 install
+20:24:25 cooldown 60s
+20:25:25 launch medium-trust (medium-review)
+20:26:02 done medium-trust: [stop=maxTokens prefill=430tok new=32tok decode=5.96s tok/s=5.367]
+20:26:02 cooldown 300s
+20:31:02 launch long-trust (long-synthesis)
+20:32:57 done long-trust: [stop=maxTokens prefill=3015tok new=32tok decode=9.41s tok/s=3.400]
+20:32:57 cooldown 300s
+20:37:57 launch long-trust-prof (long-synthesis)
+20:39:50 done long-trust-prof: [stop=maxTokens prefill=3015tok new=32tok decode=7.04s tok/s=4.544]
+20:39:50 ALL DONE
