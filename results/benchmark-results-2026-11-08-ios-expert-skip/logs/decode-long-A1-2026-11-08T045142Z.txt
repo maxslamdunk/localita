@@ -1,0 +1,28 @@
+### Technical Assessment: TurboFieldfare
+
+**Overview**
+TurboFieldfare is a specialized Swift/Metal runtime designed to run a 26B-parameter Mixture-of-Experts (MoE) model on hardware with limited RAM (e.g., 8 GB Apple Silicon). It achieves this by treating the SSD as an extension of the model weights, maintaining a minimal memory footprint while managing high-throughput I/O.
+
+**Central Resource Constraint**
+The primary bottleneck is **available system RAM**. Because the full 14.3 GB model cannot fit into the memory of an 8 GB machine, the runtime must balance the resident weight requirements against the available headroom for the OS and KV cache.
+
+**Data Partitioning: Resident vs. Streamed**
+The runtime divides the model into two distinct categories:
+* **Resident Data:** The 1.35 GB core (shared weights) and the FP16 KV cache are kept permanently in memory to ensure baseline stability and immediate access.
+* **Streamed Data:** The routed expert weights are stored on the SSD. The runtime only loads the specific experts required for a given token calculation, using bounded, parallel `pread` calls to pull data into Metal-visible buffers.
+
+**Prefill vs. Decode Behavior**
+The performance characteristics shift significantly between these two phases due to how they utilize the expert cache:
+* **Prefill:** To maximize efficiency, the engine processes the prompt in chunks (up to 128 tokens). This allows a single fetched expert to be reused across multiple tokens, amortizing the I/O cost.
+* **Decode:** During single-token generation, the engine must fetch new experts for every token. This makes the process more sensitive to I/O latency and the efficiency of the 16-slot LFU (Least Frequently Used) expert cache.
+
+**Interpreting Benchmarks**
+When reviewing performance metrics, do not treat them as absolute ceilings. Throughput is highly variable based on:
+1. **Prompt/Generation Length:** Longer contexts change the ratio of compute to I/O.
+2. **Hardware/OS State:** Disk I/O speeds and available system memory (page-cache state) heavily influence results.
+3. **Phase:** Prefill speeds will naturally appear much higher than decode speeds due to the chunking optimization.
+
+**Rules for Evaluating Changes**
+1. **Prioritize I/O-Compute Overlap:** Ensure that weight streaming (I/O) happens concurrently with Metal kernel execution to hide latency.
+2. **Validate Memory Bounds:** Any change must respect the ~2 GB resident budget to prevent triggering system-wide memory pressure.
+3. **Test Phase-Specific Scaling:** Evaluate optimizations against both chunked prefill and single-token decode to ensure improvements in one do not degrade the other.

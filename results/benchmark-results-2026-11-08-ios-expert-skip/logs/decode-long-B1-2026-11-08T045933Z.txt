@@ -1,0 +1,28 @@
+### Technical Assessment: TurboFieldfare Inference Engine
+
+**Overview**
+TurboFieldfare is a specialized Swift/Metal runtime designed to run a 26B-parameter Mixture-of-Experts (MoE) model on hardware with limited RAM (e.g., 8 GB Apple Silicon). It achieves this by treating the SSD as an extension of the model weights, utilizing a custom streaming architecture to bypass the need to load the full 14.3 GB model into memory.
+
+**Central Resource Constraint**
+The primary bottleneck is **system memory (RAM)**. Because the model weights exceed the available RAM on target devices, the engine must manage a strict memory budget (approx. 2 GB) while handling a much larger model footprint.
+
+**Data Division: Resident vs. Streamed**
+The runtime splits the model into two distinct categories:
+* **Resident Data:** The 1.35 GB core (shared weights) and the FP16 KV cache are kept entirely in RAM to ensure constant availability for every computation.
+* **Streamed Data:** The routed expert weights are stored on the SSD. The engine only pulls the specific experts required for a given token into memory via bounded, parallel `pread` calls.
+
+**Prefill vs. Decode Behavior**
+The performance characteristics shift between these two phases due to how the engine utilizes fetched data:
+* **Prefill (Prompt Processing):** The engine uses "chunked prefill" (up to 128 tokens at a time). This allows a single expert fetched from the SSD to be reused across multiple tokens in a single batch, maximizing the utility of the I/O operation.
+* **Decode (Token Generation):** This phase occurs one token at a time. The engine must fetch new experts for every single token, making the process more sensitive to I/O latency and the efficiency of the LFU (Least Frequently Used) expert cache.
+
+**Interpreting Benchmarks**
+When reviewing performance numbers, engineers must account for the following variables:
+1. **Hardware Variance:** Throughput varies significantly between different Apple Silicon generations (e.g., M2 vs. M5).
+2. **System State:** Results are highly dependent on the state of the macOS page cache and available system memory.
+3. **Input Scaling:** Prompt length and generated length change the ratio of compute-to-I/O, affecting reported tokens per second.
+
+**Rules for Evaluating Future Changes**
+1. **Prioritize I/O Efficiency:** Any change increasing the frequency of SSD reads without increasing expert reuse will degrade throughput.
+2. **Maintain Memory Bounds:** Ensure new kernels or caching strategies do not violate the 2 GB resident memory budget.
+3. **Validate against Scaling:** Test all optimizations against both high-token-count prefill and single-token decode scenarios to ensure balanced performance.

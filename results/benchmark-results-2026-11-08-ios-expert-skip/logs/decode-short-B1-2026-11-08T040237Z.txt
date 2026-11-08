@@ -1,0 +1,14 @@
+Coastal wetlands—such as salt marshes, mangroves, and seagrass beds—act as a natural buffer between the ocean and human infrastructure. During storm surges and high-tide events, they provide critical flood mitigation through two primary physical mechanisms: **roughness** and **storage**.
+
+**Physical Mechanisms**
+First, wetlands increase "surface roughness." As storm-driven waves and rising waters move inland, they encounter the complex physical structure of the wetland—the dense network of mangrove roots, woody stems, or thick marsh grasses. This vegetation creates friction, which breaks up the energy of incoming waves and slows the velocity of moving water. By dissipating kinetic energy, the wetland prevents the full force of the surge from reaching inland structures.
+
+Second, wetlands provide "storage capacity." Because wetlands are often low-lying, depressional areas, they act as natural sponges. During a flood event, they can temporarily hold large volumes of water, spreading the surge over a wide area rather than allowing it to channelize into narrow, high-velocity flows through streets or residential areas.
+
+**Two Important Limits**
+While effective, wetlands are not invincible. Two primary limits govern their performance:
+1.  **Width and Depth:** The effectiveness of a wetland is highly dependent on its scale. A narrow strip of vegetation may be easily overtopped or bypassed by a massive surge. If the water depth exceeds the height of the vegetation, the "roughness" effect diminishes significantly, as the water can flow over the plants without losing much energy.
+2.  **Rate of Sea-Level Rise:** For wetlands to remain effective, they must "migrate" inland or accumulate sediment to keep pace with rising sea levels. If they are squeezed between a rising ocean and hard human infrastructure (a phenomenon known as "coastal squeeze"), they may drown, losing their ability to provide protection.
+
+**Risk Reduction vs. Complete Protection**
+It is vital to distinguish between *risk reduction* and *complete protection*. A wetland is not a sea wall; it does not provide a guaranteed barrier that prevents all water from entering a community. Instead, it is a tool for risk reduction. It lowers the probability of catastrophic damage by dampening wave heights and slowing water movement, making floods more manageable and less destructive. While a sea wall attempts to stop the water entirely, a wetland manages the energy of the water, providing a flexible, living defense that can absorb impacts that would otherwise devastate inland assets.

@@ -1,0 +1,33 @@
+### Risk Assessment
+
+**1. Critical Correctness Risks (Data Corruption & Crashes)**
+*   **Race Condition on Buffer Reuse:** The design allows a "hit" to return a view into a buffer while an asynchronous "miss" is actively overwriting that same buffer. This leads to **use-after-free-style data corruption** where a caller reads partially written or invalid data.
+*   **Lack of Atomicity/Mutual Exclusion:** Because slot state (timestamps, buffers) is unprotected, two concurrent misses can select the same slot. If they both write to the same buffer, the data becomes interleaved/corrupted.
+*   **Memory Exhaustion (OOM):** There is no upper bound on payload size. A malicious or malformed file can trigger a massive `resize`, causing the service to crash due to memory pressure.
+*   **Dangling Pointers/Invalid Views:** If a read fails but the key remains in the dictionary, a subsequent caller might receive a "hit" on a buffer containing garbage or a partial header from a failed attempt.
+
+**2. Performance Risks**
+*   **Work Duplication:** The design does not deduplicate work for the same key. If 100 requests arrive for a missing key, 100 I/O tasks will be spawned to read the same file into the same slot, wasting bandwidth and CPU.
+*   **False Hit Metrics:** Counting in-flight/failed entries as "hits" provides misleading latency and hit-rate metrics, masking the true performance of the cache.
+
+---
+
+### Proposed Safer Design
+
+**1. Structural Changes**
+*   **Refined Locking:** Use a `ReadWriteLock` per slot. A "Hit" acquires a **Read Lock**; a "Miss" (replacement) acquires a **Write Lock**. This ensures no one can read a buffer while it is being overwritten.
+*   **Request Coalescing (Singleflight):** Use a "promises" map (e.g., `sync.Map` or a mutex-protected map of channels) to track in-flight requests for specific keys. If a key is being fetched, subsequent callers wait on the existing task rather than starting new I/O.
+
+**2. Memory & Safety**
+*   **Hard Bounds:** Enforce a `MAX_PAYLOAD_SIZE`. If a header indicates a size exceeding this, abort the read immediately.
+*   **Two-Phase Commit for Dictionary:** Only insert the key into the dictionary *after* the I/O task successfully completes and the checksum is verified. If a read fails, the slot is simply marked as "available" for the next eviction cycle.
+
+**3. Refined Workflow**
+1.  **Lookup:** Check dictionary.
+    *   **Hit:** Return view (holding/incrementing a reference count).
+    *   **Miss:** Check "In-flight" map.
+        *   If in-flight: Await the existing task.
+        *   If not: Create a "Promise," pick an eviction slot, and start I/O.
+2.  **I/O Task:** Read header $\rightarrow$ Validate size $\rightarrow$ Read payload $\rightarrow$ Verify checksum.
+3.  **Completion:** Update dictionary with the new key $\rightarrow$ Update timestamp $\rightarrow$ Resolve all waiting "Promises."
+4.  **Eviction:** Use a standard LRU policy where the dictionary entry is removed *before* the buffer is reused.

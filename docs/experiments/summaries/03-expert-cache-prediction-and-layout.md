@@ -19,7 +19,7 @@ capacity and memory cost.
 | Fresh preallocated expert artifact | Unexecuted hypothesis |
 | Next-layer early read from the hidden state | Production since 2026-10-03, with the fitted guess: about +17–20% tok/s on iPhone at +11–18% bytes/token |
 | LFU count aging (decay and a reset per conversation) | Production; +23% tok/s over an 11-chat session on iPhone, nothing on a fresh single prompt |
-| Cache-conditional expert skipping (drop a low-weight expert only when it misses) | Research switch; −39% waited-for reads at half the KL of one INT4 rounding (Mac); phone A/B next, [CACHE-12](#cache-12) |
+| Cache-conditional expert skipping (drop a low-weight expert only when it misses) | Research switch; −39% waited-for reads at half the KL of one INT4 rounding (Mac); +18 to +33% tok/s on iPhone, [CACHE-12](#cache-12) |
 
 ## Cache policy and capacity
 
@@ -265,7 +265,7 @@ capacity and memory cost.
   over a session is invisible to it. Replay sessions, not only prompts.
 
 <a id="cache-12"></a>
-### CACHE-12: Cache-conditional expert skipping (quality measured, Mac)
+### CACHE-12: Cache-conditional expert skipping (quality measured on the Mac, speed on the phone)
 
 - **Hypothesis:** Gemma 4's router weights are flat: ranks 1–8 average
   0.26 … 0.07. So dropping a low-weight expert only when it would be a
@@ -314,6 +314,17 @@ capacity and memory cost.
     2610.34721): 2.5–3.2× the `miss` cost per read saved. Closed.
   - **Reranking then dropping** (`bias:0.05+miss:0.08`): on the curve.
   - See `results/research-results-2026-11-04-miss-skip-variants/results.md`.
+- **Phone A/B (2026-11-08, iPhone 17, `miss:0.08` against defaults):**
+  - **tok/s +32.9 / +18.2 / +26.0%** (short / medium / long).
+  - Foreground reads −42.3 / −33.9 / −33.7%, bytes per token −21.5 / −18.7 /
+    −20.0%, hit rate +4.8 to +5.8 points.
+  - Every predicted range and every control held. Each removed read took
+    2.1–2.7 ms off `io`, the phone's serial read time.
+  - The replies read as coherent and complete.
+  - It stays off by default. Before a default decision, a task-accuracy check
+    with graded answers should measure the drift that teacher-forced KL
+    cannot.
+  - See `results/benchmark-results-2026-11-08-ios-expert-skip/results.md`.
 - **Lesson:** A lossy change can be priced against the quantization the
   project already accepts. Measure it with a teacher-forced KL meter against
   a one-rounding yardstick, not by eye and not against "no change".

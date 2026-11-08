@@ -1,0 +1,20 @@
+Coastal wetlands—such as salt marshes, mangroves, and seagrass beds—act as a natural buffer between the ocean and human infrastructure. Rather than acting as a solid wall, they function as a complex, porous landscape that manages energy and water volume.
+
+### Physical Mechanisms
+Wetlands reduce flood damage through two primary mechanisms: **wave attenuation** and **storm surge buffering**.
+
+1.  **Wave Attenuation:** As storm-driven waves move toward the shore, they encounter the physical structure of the wetland. Dense vegetation (like mangrove roots or marsh grasses) creates "surface roughness." This friction breaks the organized structure of the wave, causing it to lose kinetic energy and height before it reaches inland buildings.
+2.  **Storm Surge Buffering:** During a storm, rising sea levels push water inland. Wetlands act as a sponge; their low-lying topography and permeable soils allow them to absorb and hold large volumes of water. By spreading the water over a wide, shallow area, wetlands reduce the velocity and depth of the surge, preventing the water from concentrating into a destructive force.
+
+### Two Important Limits
+While effective, wetlands are not invincible. Their ability to protect is limited by:
+
+*   **The Rate of Sea-Level Rise:** For a wetland to remain effective, it must "migrate" inland or build up vertically through sediment accumulation. If sea levels rise faster than the wetland can grow or move, the habitat may be submerged (drowned), losing its ability to attenuate waves and becoming part of the open sea.
+*   **The Magnitude of the Event:** Every ecosystem has a threshold. An extreme, catastrophic storm surge may overtop the wetland entirely. If the water depth becomes too great, the "roughness" of the vegetation is bypassed, and the wave energy passes over the marsh with little reduction in force.
+
+### Risk Reduction vs. Complete Protection
+It is vital to distinguish between **risk reduction** and **complete protection**. 
+
+A sea wall is designed for *complete protection*—an attempt to create a binary state of "dry" or "wet." However, when a sea wall fails, it often fails catastrophically. 
+
+In contrast, wetlands provide *risk reduction*. They do not guarantee that a property will remain dry; rather, they lower the probability and the severity of flooding. They reduce the "peak" of the flood, making the damage more manageable and the recovery faster. In this sense, wetlands do not eliminate the threat, but they mitigate the impact, turning a potentially devastating surge into a manageable hydrological event.
