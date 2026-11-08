@@ -1,0 +1,82 @@
+# mode=iosize label=size1108
+# machine=iPhone18,3 os=Version 26.6 (Build 23G71)
+# physicalMemory=8044216320
+# before-metal footprint=10863320 available=3529129256
+# metal=Apple A19 GPU apple10=true recommendedMaxWorkingSetSize=5726633984
+# settings coarseStep=67108864 fineStep=8388608 fineBelow=536870912 pauseMicros=50000 alignment=2097152 mappedBytes=1352663040 fill=xorshift64*
+seq,t_ms,event,step_bytes,anon_bytes,footprint,available,gpu_allocated,detail
+1,25,start,0,0,11617008,3528375568,458752,
+2,31,io-open,30,0,11928304,3528064272,458752,flags=O_RDONLY|O_NONBLOCK|O_CLOEXEC+F_NOCACHE sizes=[3358720; 1769472; 884736] order=[0; 1; 2; 2; 1; 0] secondsPerPoint=60.0 thermal=nominal battery=90%/unplugged
+3,5035,io-interval,3358720,0,15614704,3524377872,458752,point=0 reads=2403 MBps=1613.7 meanUs=2082 thermal=nominal battery=90%/unplugged
+4,10036,io-interval,3358720,0,15450864,3524541712,458752,point=0 reads=2397 MBps=1609.6 meanUs=2086 thermal=nominal battery=90%/unplugged
+5,15038,io-interval,3358720,0,15188720,3524803856,458752,point=0 reads=2170 MBps=1457.4 meanUs=2281 thermal=nominal battery=90%/unplugged
+6,20038,io-interval,3358720,0,15106800,3524885776,458752,point=0 reads=2324 MBps=1561.0 meanUs=2151 thermal=nominal battery=90%/unplugged
+7,25038,io-interval,3358720,0,15205104,3524787472,458752,point=0 reads=2356 MBps=1582.6 meanUs=2122 thermal=nominal battery=90%/unplugged
+8,30039,io-interval,3358720,0,15106800,3524885776,458752,point=0 reads=2364 MBps=1587.6 meanUs=2115 thermal=nominal battery=90%/unplugged
+9,35041,io-interval,3358720,0,15205104,3524787472,458752,point=0 reads=2374 MBps=1594.2 meanUs=2106 thermal=nominal battery=90%/unplugged
+10,40041,io-interval,3358720,0,15106800,3524885776,458752,point=0 reads=2362 MBps=1586.5 meanUs=2117 thermal=nominal battery=90%/unplugged
+11,45045,io-interval,3358720,0,15205104,3524787472,458752,point=0 reads=2427 MBps=1629.4 meanUs=2061 thermal=nominal battery=90%/unplugged
+12,50045,io-interval,3358720,0,15106800,3524885776,458752,point=0 reads=2423 MBps=1627.5 meanUs=2063 thermal=nominal battery=90%/unplugged
+13,55045,io-interval,3358720,0,15205104,3524787472,458752,point=0 reads=2441 MBps=1639.7 meanUs=2048 thermal=nominal battery=90%/unplugged
+14,60033,io-size-point,3358720,0,15450864,3524541712,458752,point=0 reads=28488 seconds=60.0 MBps=1594.7 GBps=1.595 meanUs=2104.3 p50us=2051 p95us=2392 p99us=2982 maxUs=16002 thermal=nominal battery=90%/unplugged
+15,65035,io-interval,1769472,0,15565552,3524427024,458752,point=1 reads=4405 MBps=1558.7 meanUs=1135 thermal=nominal battery=90%/unplugged
+16,70036,io-interval,1769472,0,15467248,3524525328,458752,point=1 reads=4393 MBps=1554.4 meanUs=1138 thermal=nominal battery=90%/unplugged
+17,75036,io-interval,1769472,0,15090416,3524902160,458752,point=1 reads=4417 MBps=1563.0 meanUs=1132 thermal=nominal battery=90%/unplugged
+18,80037,io-interval,1769472,0,15090416,3524902160,458752,point=1 reads=4421 MBps=1564.2 meanUs=1131 thermal=nominal battery=90%/unplugged
+19,85038,io-interval,1769472,0,15090416,3524902160,458752,point=1 reads=4406 MBps=1559.1 meanUs=1134 thermal=nominal battery=90%/unplugged
+20,90038,io-interval,1769472,0,15090416,3524902160,458752,point=1 reads=4403 MBps=1558.0 meanUs=1135 thermal=nominal battery=90%/unplugged
+21,95039,io-interval,1769472,0,15090416,3524902160,458752,point=1 reads=4409 MBps=1560.2 meanUs=1134 thermal=nominal battery=90%/unplugged
+22,100039,io-interval,1769472,0,15106800,3524885776,458752,point=1 reads=4403 MBps=1558.0 meanUs=1135 thermal=nominal battery=90%/unplugged
+23,105039,io-interval,1769472,0,15139568,3524853008,458752,point=1 reads=4408 MBps=1560.0 meanUs=1134 thermal=nominal battery=90%/unplugged
+24,110039,io-interval,1769472,0,15139568,3524853008,458752,point=1 reads=4413 MBps=1561.6 meanUs=1133 thermal=nominal battery=90%/unplugged
+25,115039,io-interval,1769472,0,15172336,3524820240,458752,point=1 reads=4417 MBps=1563.1 meanUs=1131 thermal=nominal battery=90%/unplugged
+26,120035,io-size-point,1769472,0,15500016,3524492560,458752,point=1 reads=52904 seconds=60.0 MBps=1560.2 GBps=1.560 meanUs=1134.1 p50us=1128 p95us=1182 p99us=1237 maxUs=2104 thermal=nominal battery=90%/unplugged
+27,125037,io-interval,884736,0,15598320,3524394256,458752,point=2 reads=7915 MBps=1400.4 meanUs=631 thermal=nominal battery=90%/unplugged
+28,130037,io-interval,884736,0,15500016,3524492560,458752,point=2 reads=7907 MBps=1399.0 meanUs=632 thermal=nominal battery=90%/unplugged
+29,135038,io-interval,884736,0,15287024,3524705552,458752,point=2 reads=7739 MBps=1369.2 meanUs=646 thermal=nominal battery=90%/unplugged
+30,140039,io-interval,884736,0,15188720,3524803856,458752,point=2 reads=7894 MBps=1396.7 meanUs=633 thermal=nominal battery=90%/unplugged
+31,145039,io-interval,884736,0,15287024,3524705552,458752,point=2 reads=7918 MBps=1401.0 meanUs=631 thermal=nominal battery=90%/unplugged
+32,150039,io-interval,884736,0,15188720,3524803856,458752,point=2 reads=7902 MBps=1398.2 meanUs=632 thermal=nominal battery=90%/unplugged
+33,155039,io-interval,884736,0,15303408,3524689168,458752,point=2 reads=7905 MBps=1398.6 meanUs=632 thermal=nominal battery=90%/unplugged
+34,160040,io-interval,884736,0,15270640,3524721936,458752,point=2 reads=7870 MBps=1392.5 meanUs=635 thermal=nominal battery=90%/unplugged
+35,165040,io-interval,884736,0,15434480,3524558096,458752,point=2 reads=7911 MBps=1399.7 meanUs=632 thermal=nominal battery=90%/unplugged
+36,170040,io-interval,884736,0,15401712,3524590864,458752,point=2 reads=7897 MBps=1397.3 meanUs=633 thermal=nominal battery=90%/unplugged
+37,175041,io-interval,884736,0,15565552,3524427024,458752,point=2 reads=7926 MBps=1402.4 meanUs=630 thermal=nominal battery=90%/unplugged
+38,180039,io-size-point,884736,0,16040688,3523951888,458752,point=2 reads=94689 seconds=60.0 MBps=1396.2 GBps=1.396 meanUs=633.6 p50us=629 p95us=667 p99us=740 maxUs=4052 thermal=nominal battery=90%/unplugged
+39,185040,io-interval,884736,0,16138992,3523853584,458752,point=3 reads=7926 MBps=1402.4 meanUs=630 thermal=nominal battery=90%/unplugged
+40,190041,io-interval,884736,0,15975152,3524017424,458752,point=3 reads=7919 MBps=1401.1 meanUs=631 thermal=nominal battery=90%/unplugged
+41,195041,io-interval,884736,0,15565552,3524427024,458752,point=3 reads=7925 MBps=1402.3 meanUs=630 thermal=nominal battery=90%/unplugged
+42,200041,io-interval,884736,0,15467248,3524525328,458752,point=3 reads=7906 MBps=1398.9 meanUs=632 thermal=nominal battery=90%/unplugged
+43,205041,io-interval,884736,0,15565552,3524427024,458752,point=3 reads=7926 MBps=1402.4 meanUs=630 thermal=nominal battery=90%/unplugged
+44,210042,io-interval,884736,0,15467248,3524525328,458752,point=3 reads=7929 MBps=1402.9 meanUs=630 thermal=nominal battery=90%/unplugged
+45,215042,io-interval,884736,0,15565552,3524427024,458752,point=3 reads=7915 MBps=1400.4 meanUs=631 thermal=nominal battery=90%/unplugged
+46,220043,io-interval,884736,0,15467248,3524525328,458752,point=3 reads=7904 MBps=1398.5 meanUs=632 thermal=nominal battery=90%/unplugged
+47,225043,io-interval,884736,0,15565552,3524427024,458752,point=3 reads=7923 MBps=1401.8 meanUs=631 thermal=nominal battery=90%/unplugged
+48,230044,io-interval,884736,0,15467248,3524525328,458752,point=3 reads=7916 MBps=1400.5 meanUs=631 thermal=nominal battery=90%/unplugged
+49,235045,io-interval,884736,0,15565552,3524427024,458752,point=3 reads=7872 MBps=1392.8 meanUs=635 thermal=nominal battery=90%/unplugged
+50,240043,io-size-point,884736,0,15467248,3524525328,458752,point=3 reads=94959 seconds=60.0 MBps=1400.2 GBps=1.400 meanUs=631.8 p50us=628 p95us=663 p99us=703 maxUs=1690 thermal=nominal battery=90%/unplugged
+51,245045,io-interval,1769472,0,15565552,3524427024,458752,point=4 reads=4423 MBps=1565.0 meanUs=1130 thermal=nominal battery=90%/unplugged
+52,250046,io-interval,1769472,0,15467248,3524525328,458752,point=4 reads=4412 MBps=1561.1 meanUs=1133 thermal=nominal battery=90%/unplugged
+53,255047,io-interval,1769472,0,15565552,3524427024,458752,point=4 reads=4421 MBps=1564.3 meanUs=1131 thermal=nominal battery=90%/unplugged
+54,260048,io-interval,1769472,0,15467248,3524525328,458752,point=4 reads=4421 MBps=1564.4 meanUs=1131 thermal=nominal battery=90%/unplugged
+55,265048,io-interval,1769472,0,15565552,3524427024,458752,point=4 reads=4420 MBps=1564.1 meanUs=1131 thermal=nominal battery=90%/unplugged
+56,270048,io-interval,1769472,0,15467248,3524525328,458752,point=4 reads=4419 MBps=1563.8 meanUs=1131 thermal=nominal battery=90%/unplugged
+57,275048,io-interval,1769472,0,15565552,3524427024,458752,point=4 reads=4421 MBps=1564.5 meanUs=1130 thermal=nominal battery=90%/unplugged
+58,280049,io-interval,1769472,0,15467248,3524525328,458752,point=4 reads=4410 MBps=1560.4 meanUs=1133 thermal=nominal battery=90%/unplugged
+59,285050,io-interval,1769472,0,15565552,3524427024,458752,point=4 reads=4408 MBps=1559.8 meanUs=1134 thermal=nominal battery=90%/unplugged
+60,290051,io-interval,1769472,0,15467248,3524525328,458752,point=4 reads=4411 MBps=1560.7 meanUs=1133 thermal=nominal battery=90%/unplugged
+61,295051,io-interval,1769472,0,15565552,3524427024,458752,point=4 reads=4417 MBps=1562.9 meanUs=1132 thermal=nominal battery=90%/unplugged
+62,300046,io-size-point,1769472,0,15467248,3524525328,458752,point=4 reads=52997 seconds=60.0 MBps=1562.9 GBps=1.563 meanUs=1132.1 p50us=1127 p95us=1175 p99us=1218 maxUs=1902 thermal=nominal battery=90%/unplugged
+63,305050,io-interval,3358720,0,15565552,3524427024,458752,point=5 reads=2467 MBps=1656.5 meanUs=2028 thermal=nominal battery=90%/unplugged
+64,310050,io-interval,3358720,0,15467248,3524525328,458752,point=5 reads=2461 MBps=1653.1 meanUs=2031 thermal=nominal battery=90%/unplugged
+65,315052,io-interval,3358720,0,15565552,3524427024,458752,point=5 reads=2457 MBps=1650.0 meanUs=2035 thermal=nominal battery=90%/unplugged
+66,320052,io-interval,3358720,0,15467248,3524525328,458752,point=5 reads=2463 MBps=1654.4 meanUs=2030 thermal=nominal battery=85%/unplugged
+67,325054,io-interval,3358720,0,15565552,3524427024,458752,point=5 reads=2465 MBps=1655.2 meanUs=2029 thermal=nominal battery=85%/unplugged
+68,330054,io-interval,3358720,0,15467248,3524525328,458752,point=5 reads=2466 MBps=1656.5 meanUs=2027 thermal=nominal battery=85%/unplugged
+69,335054,io-interval,3358720,0,15565552,3524427024,458752,point=5 reads=2466 MBps=1656.5 meanUs=2027 thermal=nominal battery=85%/unplugged
+70,340054,io-interval,3358720,0,15483632,3524508944,458752,point=5 reads=2445 MBps=1642.4 meanUs=2044 thermal=nominal battery=85%/unplugged
+71,345055,io-interval,3358720,0,15581936,3524410640,458752,point=5 reads=2458 MBps=1651.1 meanUs=2034 thermal=nominal battery=85%/unplugged
+72,350055,io-interval,3358720,0,15483632,3524508944,458752,point=5 reads=2455 MBps=1649.0 meanUs=2036 thermal=nominal battery=85%/unplugged
+73,355057,io-interval,3358720,0,15581936,3524410640,458752,point=5 reads=2163 MBps=1452.5 meanUs=2312 thermal=nominal battery=85%/unplugged
+74,360049,io-size-point,3358720,0,15483632,3524508944,458752,point=5 reads=29228 seconds=60.0 MBps=1636.1 GBps=1.636 meanUs=2052.8 p50us=2024 p95us=2088 p99us=2194 maxUs=23237 thermal=nominal battery=85%/unplugged
+75,360049,io-size-done,0,0,15483632,3524508944,458752,thermal=nominal

@@ -1,0 +1,13 @@
+install at 14:27:49
+ioprep at 14:27:55
+prep1108 finished after 49s: /Users/max/ml_projects/iphone-port/turbo-fieldfare/results/benchmark-results-2026-11-08-ios-read-size/logs/ioprep-prep1108-20261108-142755.log
+31,42788,io-file-written,28,0,78513000,3461479576,458752,bytes=429916160 ms=3199 MBps=134
+32,45716,io-file-written,29,0,78496616,3461495960,458752,bytes=429916160 ms=2927 MBps=146
+33,45924,io-prep-done,30,0,78889832,3461102744,458752,free=38165026525
+cooldown 300 s from 14:28:44
+iosize at 14:33:44
+size1108 finished after 371s: /Users/max/ml_projects/iphone-port/turbo-fieldfare/results/benchmark-results-2026-11-08-ios-read-size/logs/iosize-size1108-20261108-143346.log
+73,355057,io-interval,3358720,0,15581936,3524410640,458752,point=5 reads=2163 MBps=1452.5 meanUs=2312 thermal=nominal battery=85%/unplugged
+74,360049,io-size-point,3358720,0,15483632,3524508944,458752,point=5 reads=29228 seconds=60.0 MBps=1636.1 GBps=1.636 meanUs=2052.8 p50us=2024 p95us=2088 p99us=2194 maxUs=23237 thermal=nominal battery=85%/unplugged
+75,360049,io-size-done,0,0,15483632,3524508944,458752,thermal=nominal
+done at 14:39:57
