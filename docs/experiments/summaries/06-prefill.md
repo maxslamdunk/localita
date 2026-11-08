@@ -392,6 +392,11 @@ failed the M2 long-row gate.
   routed step. A loaded model does not hash, so the trusted set, with real
   reads at about 11 ms, is the closer guide to a new chat.
 - **Final disposition:** Production, both platforms.
+- **Follow-up:** It commits nothing before its last layer, so a GPU refusal
+  (a lock mid-prefill) first restarted it from zero. Since 2026-11-06 the
+  retry resumes from the first unfinished layer. That needed the residual
+  stream in two alternating buffers, so the rows are now 67,632 B a token
+  (`results/benchmark-results-2026-11-06-ios-prefill-resume/`).
 - **Lesson:** A literal port can save nothing when the cache design differs.
   Here what matters is when each expert is read, not which loop is outermost.
 

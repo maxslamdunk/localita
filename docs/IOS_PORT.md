@@ -312,6 +312,10 @@ Steps:
      now two prompt-wide buffers that alternate by layer: +5,632 B a token,
      about +17 MB on the long prompt
      (`results/benchmark-results-2026-11-06-ios-prefill-resume/`).
+     Tried by hand on 2026-11-08: the prefill carried on after unlock, and
+     one long first message survived three locks. But iOS ended the app
+     twice while it waited, locked at 3.69 and 3.63 GB, and each left an
+     empty chat. Two to-dos below follow from that.
    - **Lock:** the reply pauses, and unlocking resumes it.
    - **Closing the window:** suspends the app, and coming back resumes the
      reply.

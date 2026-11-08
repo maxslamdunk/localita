@@ -1,0 +1,4 @@
+### Risk Assessment
+
+**1. Critical Correctness Risks (Data Corruption & Crashes)**
+*   **Race Condition on Buffer Reuse:** The design allows a "hit" to return a view into a buffer while an asynchronous "miss"

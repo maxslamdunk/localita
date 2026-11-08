@@ -1,0 +1,8 @@
+16:58:07 install
+16:58:11 cooldown 60s
+16:59:11 launch resume-A1 (long-synthesis)
+17:00:16 done resume-A1: [stop=maxTokens prefill=3015tok new=32tok decode=7.54s tok/s=4.244]
+17:00:16 cooldown 300s
+17:05:16 launch resume-A2 (long-synthesis)
+17:06:21 done resume-A2: [stop=maxTokens prefill=3015tok new=32tok decode=7.11s tok/s=4.504]
+17:06:21 ALL DONE
