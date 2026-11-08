@@ -56,6 +56,58 @@ public final class MathAttachment: NSTextAttachment {
     /// which is the failure the attachment exists to prevent. Decoding refuses
     /// instead of returning a source-less attachment.
     public required init?(coder: NSCoder) { nil }
+
+    /// TextKit 2: an equation wider than the line is shrunk to fit it.
+    ///
+    /// Typeset once at the body size, an equation is one image, and a long one
+    /// otherwise ran past the edge of the text where nothing could reach it.
+    /// The renderer cannot do this itself: it never learns the width.
+    public override func attachmentBounds(
+        for attributes: [NSAttributedString.Key: Any],
+        location: any NSTextLocation,
+        textContainer: NSTextContainer?,
+        proposedLineFragment: CGRect,
+        position: CGPoint
+    ) -> CGRect {
+        let style = attributes[.paragraphStyle] as? NSParagraphStyle
+        return Self.fitted(bounds, width: proposedLineFragment.width - Self.indent(style))
+    }
+
+    /// TextKit 1, the same.
+    public override func attachmentBounds(
+        for textContainer: NSTextContainer?,
+        proposedLineFragment lineFrag: CGRect,
+        glyphPosition position: CGPoint,
+        characterIndex charIndex: Int
+    ) -> CGRect {
+        let storage = textContainer?.layoutManager?.textStorage
+        let style = storage.flatMap { storage in
+            charIndex < storage.length
+                ? storage.attribute(.paragraphStyle, at: charIndex, effectiveRange: nil)
+                    as? NSParagraphStyle
+                : nil
+        }
+        return Self.fitted(bounds, width: lineFrag.width - Self.indent(style))
+    }
+
+    /// The larger indent, so the first line and the rest of a list item fit
+    /// alike. Shrinking a little more than needed is harmless; less is not.
+    static func indent(_ style: NSParagraphStyle?) -> CGFloat {
+        guard let style else { return 0 }
+        return max(style.headIndent, style.firstLineHeadIndent)
+    }
+
+    /// `bounds` scaled down, about the baseline, to `width`, or unchanged when
+    /// it already fits or the width is no width at all.
+    static func fitted(_ bounds: CGRect, width: CGFloat) -> CGRect {
+        guard width.isFinite, width > 0, bounds.width > width else { return bounds }
+        let scale = width / bounds.width
+        return CGRect(
+            x: bounds.minX * scale,
+            y: bounds.minY * scale,
+            width: width,
+            height: bounds.height * scale)
+    }
 }
 
 @MainActor
@@ -133,7 +185,21 @@ public struct SwiftMathTypesetter: MathTypesetting {
             fontSize: fontSize,
             textColor: .black,
             labelMode: mode == .display ? .display : .text)
-        let (error, typeset, layout) = image.asImage()
+        // The library sizes the image to the glyph outlines exactly, so
+        // antialiasing and italic overhang fell outside it and were cut off:
+        // the right edge of a `y`, the foot of an `x`.
+        let padding = (fontSize * 0.1).rounded(.up)
+        image.contentInsets = MTEdgeInsets(
+            top: padding, left: padding, bottom: padding, right: padding)
+        var (error, typeset, layout) = image.asImage()
+        // It also centres anything shorter than half the font size in a box
+        // that tall, which pushes a lone `x` or `ε` below the image's bottom.
+        // A second layout with that much more room below keeps it inside.
+        if error == nil, let short = layout,
+           short.ascent + short.descent < fontSize / 2 {
+            image.contentInsets.bottom += (fontSize / 2 - short.ascent - short.descent) / 2
+            (error, typeset, layout) = image.asImage()
+        }
         if let error {
             log.error("""
                 math typeset failed: domain=\(error.domain, privacy: .public) \
@@ -150,9 +216,12 @@ public struct SwiftMathTypesetter: MathTypesetting {
             return nil
         }
         let size = typeset.size
+        let insets = image.contentInsets
         // A zero-width or zero-height bitmap rep cannot be allocated, and an
         // empty attachment would be an invisible hole where an equation was.
-        guard size.width >= 1, size.height >= 1 else {
+        // Measured without the padding, which would make even `\quad` an image.
+        guard size.width - insets.left - insets.right >= 1,
+              ceil(layout.ascent + layout.descent) >= 1 else {
             log.error("""
                 math typeset produced an empty image: \
                 length=\(latex.count, privacy: .public)
@@ -162,12 +231,32 @@ public struct SwiftMathTypesetter: MathTypesetting {
         guard let raster = rasterize(typeset, size: size, length: latex.count) else {
             return nil
         }
+        let baseline = baseline(
+            height: size.height, layout: layout,
+            insets: insets, fontSize: fontSize)
         return Mask(
             image: raster.image,
             size: size,
-            ascent: layout.ascent,
-            descent: layout.descent,
+            ascent: size.height - baseline,
+            descent: baseline,
             bytes: raster.bytes)
+    }
+
+    /// How far above the image's bottom edge the library put the baseline.
+    ///
+    /// Not `layout.descent`: the padding, the rounding of the height to a
+    /// whole point and the short-equation centring all move it. Repeats
+    /// `MathImage.asImage`'s own placement at the pinned revision, so a pin
+    /// change that moves it shows up in `MathTypesetterTests`.
+    private static func baseline(
+        height: CGFloat,
+        layout: MathImage.LayoutInfo,
+        insets: MTEdgeInsets,
+        fontSize: CGFloat
+    ) -> CGFloat {
+        let available = height - insets.top - insets.bottom
+        let centred = max(layout.ascent + layout.descent, fontSize / 2)
+        return (available - centred) / 2 + layout.descent + insets.bottom
     }
 
     /// The typeset equation as a coverage bitmap at `maskScale`.

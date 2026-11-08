@@ -122,14 +122,112 @@ import Testing
 
     /// The attachment bounds are `-descent` tall below the baseline and
     /// `ascent` above it, so the image must be exactly that tall or the
-    /// equation sits off the line. SwiftMath rounds the height up to a whole
-    /// point, which is the only slack allowed here.
-    @Test func imageHeightIsTheCeilingOfAscentPlusDescent() throws {
+    /// equation sits off the line.
+    @Test func imageHeightIsAscentPlusDescent() throws {
         for latex in [#"\frac{a}{b}"#, #"x"#, #"\sum_{i=1}^{n} i"#, #"\sqrt{x}"#] {
             let render = try #require(Self.render(latex))
-            #expect(render.image.size.height == ceil(render.ascent + render.descent),
+            #expect(render.image.size.height == render.ascent + render.descent,
                     "\(latex)")
         }
+    }
+
+    /// The glyph's alpha at 3x, rows from the top.
+    static func coverage(_ image: NSImage) -> [[UInt8]]? {
+        let scale: CGFloat = 3
+        let width = Int(ceil(image.size.width * scale))
+        let height = Int(ceil(image.size.height * scale))
+        guard width > 0, height > 0, let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: width, pixelsHigh: height,
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0) else {
+            return nil
+        }
+        // Before the context is made, or it draws at 1x into the 3x bitmap.
+        rep.size = image.size
+        guard let context = NSGraphicsContext(bitmapImageRep: rep) else { return nil }
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = context
+        image.draw(in: NSRect(origin: .zero, size: image.size))
+        NSGraphicsContext.restoreGraphicsState()
+        return (0..<height).map { y in
+            (0..<width).map { x in UInt8(rep.colorAt(x: x, y: y)!.alphaComponent * 255) }
+        }
+    }
+
+    /// Measured before the fix at 17 pt, the iPhone's size: every one of these
+    /// had ink in its edge rows or columns, so part of a glyph was cut off. A
+    /// lone `x` or `ε` lost its foot, and an italic `y` the end of its tail.
+    @Test(arguments: [
+        "x", #"\epsilon"#, #"\varepsilon"#, "a", "y", "f", "-", #"\cdot"#,
+        "f(x)", "x^2", #"\frac{a}{b}"#, #"\int_0^1 f"#,
+    ])
+    func noGlyphTouchesTheImageEdge(_ latex: String) throws {
+        for mode in [MathRenderMode.inline, .display] {
+            let render = try #require(SwiftMathTypesetter().render(
+                latex: latex, fontSize: 17, tint: .black, mode: mode))
+            let rows = try #require(Self.coverage(render.image))
+            let edges = [rows.first!, rows.last!, rows.map(\.first!), rows.map(\.last!)]
+            #expect(edges.allSatisfy { $0.allSatisfy { $0 == 0 } }, "\(latex) \(mode)")
+        }
+    }
+
+    /// The reported descent is where the baseline really is in the image, so
+    /// the equation sits on the line of text around it. An `x` stands on the
+    /// baseline, and a `y` hangs below it.
+    @Test func theDescentIsTheBaselineInTheImage() throws {
+        func lowestInk(_ latex: String) throws -> (ink: CGFloat, descent: CGFloat) {
+            let render = try #require(SwiftMathTypesetter().render(
+                latex: latex, fontSize: 17, tint: .black, mode: .inline))
+            let rows = try #require(Self.coverage(render.image))
+            let lowest = try #require(rows.lastIndex { $0.contains { $0 > 128 } })
+            return (CGFloat(rows.count - 1 - lowest) / 3, render.descent)
+        }
+        let x = try lowestInk("x")
+        #expect(abs(x.ink - x.descent) < 0.7, "x: ink at \(x.ink), baseline at \(x.descent)")
+        let y = try lowestInk("y")
+        #expect(y.ink < y.descent - 2, "y: ink at \(y.ink), baseline at \(y.descent)")
+    }
+
+    @Test func anEquationWiderThanTheLineIsShrunkAboutItsBaseline() {
+        let bounds = CGRect(x: 0, y: -10, width: 400, height: 40)
+        #expect(MathAttachment.fitted(bounds, width: 200)
+            == CGRect(x: 0, y: -5, width: 200, height: 20))
+        #expect(MathAttachment.fitted(bounds, width: 400) == bounds)
+        #expect(MathAttachment.fitted(bounds, width: 0) == bounds)
+        #expect(MathAttachment.fitted(bounds, width: .infinity) == bounds)
+
+        let list = NSMutableParagraphStyle()
+        list.firstLineHeadIndent = 4
+        list.headIndent = 20
+        #expect(MathAttachment.indent(list) == 20)
+        #expect(MathAttachment.indent(nil) == 0)
+    }
+
+    /// Through a real text view, the way the transcript lays it out.
+    @Test func aLongEquationFitsTheTextViewItIsShownIn() throws {
+        let render = try #require(Self.render(
+            #"a_1 + a_2 + a_3 + a_4 + a_5 + a_6 + a_7 + a_8 + a_9 + a_{10} + a_{11} + a_{12}"#,
+            mode: .display))
+        let attachment = MathAttachment(latexSource: "long")
+        attachment.image = render.image
+        attachment.bounds = CGRect(
+            x: 0, y: -render.descent,
+            width: render.image.size.width, height: render.image.size.height)
+        let width: CGFloat = 120
+        #expect(render.image.size.width > width)
+
+        let view = NSTextView(frame: NSRect(x: 0, y: 0, width: width, height: 400))
+        view.textContainerInset = .zero
+        view.textContainer?.lineFragmentPadding = 0
+        view.textStorage?.setAttributedString(NSAttributedString(attachment: attachment))
+        let layout = try #require(view.textLayoutManager)
+        layout.ensureLayout(for: layout.documentRange)
+        var widest: CGFloat = 0
+        layout.enumerateTextLayoutFragments(from: layout.documentRange.location) { fragment in
+            widest = max(widest, fragment.layoutFragmentFrame.maxX)
+            return true
+        }
+        #expect(widest <= width + 0.5, "laid out \(widest) wide in \(width)")
     }
 
     @Test func maskTintProducesVisibleGlyphsInTheRequestedColor() throws {
