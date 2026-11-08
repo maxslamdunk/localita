@@ -36,8 +36,8 @@ struct MacAppSettings: Codable, Equatable, Sendable {
     var loadModelOnLaunch: Bool = false
     /// iOS only: whether a reply keeps generating after the user leaves the
     /// app, in a Picture in Picture window, and pauses on a lock rather than
-    /// stopping. Off by default. The Mac ignores it.
-    var backgroundGeneration: Bool = false
+    /// stopping. On by default since 2026-11-08. The Mac ignores it.
+    var backgroundGeneration: Bool = true
     /// Early expert reads per layer: 0 (off), 1 (the default) or 2. Changing
     /// it needs a reload, like slots.
     var earlyExpertReads: Int = 1
@@ -62,7 +62,12 @@ struct MacAppSettings: Codable, Equatable, Sendable {
         case visionResidencyPolicy
         case rdadvisePolicy
         case loadModelOnLaunch
-        case backgroundGeneration
+        /// Stored under a new name since it became on by default. Every file
+        /// before then holds `backgroundGeneration: false`, written as the old
+        /// default, not chosen, so it is left unread and everyone starts on.
+        /// Renaming the key, not bumping the version, because upstream's
+        /// version 4 already means something else.
+        case backgroundGeneration = "keepGeneratingInBackground"
         case earlyExpertReads
         case expertReadsBypassFileCache
     }
@@ -84,7 +89,7 @@ struct MacAppSettings: Codable, Equatable, Sendable {
          visionResidencyPolicy: VisionResidencyPolicy = .onDemand,
          rdadvisePolicy: AppRDAdvicePolicy = .off,
          loadModelOnLaunch: Bool = false,
-         backgroundGeneration: Bool = false,
+         backgroundGeneration: Bool = true,
          earlyExpertReads: Int = 1,
          expertReadsBypassFileCache: Bool = PreadExpertStreamer.readsBypassFileCacheByDefault) {
         self.version = version
@@ -158,7 +163,7 @@ struct MacAppSettings: Codable, Equatable, Sendable {
             forKey: .loadModelOnLaunch) ?? false
         backgroundGeneration = try container.decodeIfPresent(
             Bool.self,
-            forKey: .backgroundGeneration) ?? false
+            forKey: .backgroundGeneration) ?? true
         earlyExpertReads = try container.decodeIfPresent(
             Int.self,
             forKey: .earlyExpertReads) ?? 1

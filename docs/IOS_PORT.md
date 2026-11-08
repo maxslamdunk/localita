@@ -286,7 +286,7 @@ Steps:
    download still works that way.
 
    ✅ **A reply can keep generating in the background since 2026-10-09**
-   (`BackgroundGeneration`, opt-in; tried by hand on the phone, no
+   (`BackgroundGeneration`, on by default since 2026-11-08; tried by hand on the phone, no
    scripted run). The probes in
    `results/validation-results-2026-10-09-ios-background-probes/` found one way for a
    backgrounded app to use the GPU: showing Picture in Picture. So when the
@@ -305,8 +305,10 @@ Steps:
      reply.
    - **Leaving without a window** (it failed to open, and the phone is not
      locked): stops the turn and saves it, as before.
-   - **The setting** "Keep generating in background" is off by default,
-     which keeps the old stop-on-leave behavior.
+   - **The setting** "Keep generating in background" was off by default
+     until 2026-11-08, then turned on for everyone, existing installs
+     included, to match the welcome screen. Off keeps the old stop-on-leave
+     behavior.
    - **Returning** through the app icon closes the window cleanly. Its
      full-screen button still grows the window to full screen before it
      goes, which was judged acceptable.
@@ -317,7 +319,7 @@ Steps:
    app is side-loaded.
 
    **To do: a Continue action for a stopped reply** (proposed 2026-11-06,
-   not built). With the setting off, the default, a lock, Control Center, a
+   not built). With the setting off, a lock, Control Center, a
    call or a quick app switch all end the reply. The only way on is to send
    "continue", which leaves a fake user turn in the chat. The model may also
    restart, repeat or summarize rather than finish the sentence. The runtime
