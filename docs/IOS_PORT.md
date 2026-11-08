@@ -341,6 +341,40 @@ Steps:
    generation the default would cover some of the same cases, but it is a
    separate decision.
 
+   **To do: keep the user's message when a first turn does not finish**
+   (found 2026-11-08, not built). The chat file is created, with its name,
+   when the first message is sent (`AppModelHistory.swift`, `store.create`).
+   The message and the reply are written only when the turn completes
+   (`persistCompletedTurn`). A stop during the reply is written, because it
+   ends at a token. A stop during prefill, a failure, or the app being ended
+   writes nothing, and on a first turn that leaves a name with no turns.
+   It reopens empty, and because zero turns give no token count, it is
+   marked "This chat can't be continued. It has no replay record"
+   (`ConversationContinuability`, `.tokenCountUnknown`). The text the user
+   typed is gone. Seen in the lock test of 2026-11-08: the app was ended
+   twice while locked mid-prefill, and both chats came back empty. Needs:
+   - the user's text saved at send time, without its token IDs, so it never
+     claims to be in the KV;
+   - a chat with no completed turns opened as an ordinary new chat, with
+     that text back in the message box, not refused;
+   - tests in the AppCore history suites.
+
+   **To do: a smaller footprint while a turn waits on a lock** (found
+   2026-11-08, not sized). In the same lock test, the app was ended at
+   3.69 GB and 3.63 GB, both times the second turn after a model load, with
+   a full expert cache plus the layer-at-a-time prefill buffers. Locks at
+   3.13 GB and under survived, up to 94 s. No jetsam or crash report was
+   written for either, so memory is the likely cause, not a confirmed one.
+   The expert-cache slots are about 2.4 GB of that (24 slots × 30 layers ×
+   3,358,720 B), and they can be refilled from storage. While the turn waits
+   in `GPUWorkGate`, the slots could be handed back to iOS and the cache
+   emptied, then refilled after unlock, at the cost of hit rate on the
+   tokens that follow. The slots are `makeBuffer(bytesNoCopy:)` over the
+   app's own allocations, so Metal's purgeable state does not apply.
+   `madvise(MADV_FREE_REUSABLE)` is a candidate. Before building it: predict
+   and measure the footprint while locked, and how long the app survives a
+   lock, against today's.
+
    ✅ **Community models from a pasted link since 2026-10-07.** Add Model in
    the composer's model menu takes a Hugging Face link or `owner/name`.
    `RemoteModelInspector` reads only the config, the index and each shard's
