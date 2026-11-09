@@ -60,7 +60,10 @@ import TurboFieldfareValidationSupport
                 min(15, max(0, 8 + Int(rng.next() % 5) + Int(rng.next() % 5) - 4))
             }
             let r = Self.requantized(codes, scale: 0.02, bias: -0.16, levels: 8)
-            searched += zip(r.original, r.result).map { Double(($0 - $1) * ($0 - $1)) }.reduce(0, +)
+            for (a, b) in zip(r.original, r.result) {
+                let e: Float = a - b
+                searched += Double(e * e)
+            }
             let lo = Float(codes.min()!), hi = Float(codes.max()!)
             let alpha = max(1, (hi - lo) / 7)
             for q in codes {
