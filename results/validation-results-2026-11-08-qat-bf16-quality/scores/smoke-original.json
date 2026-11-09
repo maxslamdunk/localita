@@ -1,0 +1,143 @@
+{
+ "repo": "google/gemma-4-26B-A4B-it",
+ "revision": "4d7ae4984b7db7de8f8457170b3f1a419ee76d52",
+ "load_s": 287.851930141449,
+ "generate_s": 5.676340818405151,
+ "rows": [
+  {
+   "prompt": "What is the capital of the Netherlands? Answer in one sentence.",
+   "text": "The capital of the Netherlands is Amsterdam.",
+   "tokens": 9,
+   "first_token_top5": [
+    [
+     -1.7762025890988298e-05,
+     "The"
+    ],
+    [
+     -11.062518119812012,
+     "Amsterdam"
+    ],
+    [
+     -13.500018119812012,
+     "the"
+    ],
+    [
+     -14.937518119812012,
+     " The"
+    ],
+    [
+     -16.593767166137695,
+     "While"
+    ]
+   ]
+  },
+  {
+   "prompt": "Объясни в двух предложениях, что такое фотосинтез.",
+   "text": "Фотосинтез — это процесс, при котором растения используют энергию солнечного света для превращения воды и углекислого газа в питательные вещества (глюкозу). В результате этого процесса в атмосферу выделяется кислород, необходимый для жизни большинства живых организмов.",
+   "tokens": 60,
+   "first_token_top5": [
+    [
+     -3.576278118089249e-07,
+     "Фото"
+    ],
+    [
+     -15.0625,
+     "**"
+    ],
+    [
+     -18.15625,
+     "Это"
+    ],
+    [
+     -20.15625,
+     "Ф"
+    ],
+    [
+     -21.296875,
+     ""
+    ]
+   ]
+  },
+  {
+   "prompt": "A train travels 180 km in 2.5 hours. What is its average speed in km/h? Show the calculation briefly.",
+   "text": "To find the average speed, use the formula:\n**Speed = Distance ÷ Time**\n\n**Calculation:**\nSpeed = $180\\text{ km} \\div 2.5\\text{ hours}$\nSpeed = **$72\\text{ km/h}$**",
+   "tokens": 61,
+   "first_token_top5": [
+    [
+     -7.629365427419543e-06,
+     "To"
+    ],
+    [
+     -12.625007629394531,
+     "**"
+    ],
+    [
+     -12.812507629394531,
+     "The"
+    ],
+    [
+     -13.500007629394531,
+     "Average"
+    ],
+    [
+     -15.937507629394531,
+     " To"
+    ]
+   ]
+  },
+  {
+   "prompt": "Write a Python function that returns the n-th Fibonacci number iteratively.",
+   "text": "Here is a clean, efficient Python implementation using an iterative approach.\n\n```python\ndef get_fibonacci(n):\n    \"\"\"\n    Returns the n-th Fibonacci number using an iterative approach.\n    \n    Sequence: 0, 1, 1, 2, 3, 5, 8, 13, ...\n    n=0 returns 0\n    n=1 returns 1\n    \"\"\"\n    # Handle negative input\n    if n < 0:\n        raise ValueError(\"n must be a non-negative integer.\")\n    \n    # Base cases\n    if n == 0:\n        return 0\n    if n == 1:\n        return 1\n\n    # Initialize the first two numbers in the sequence\n    a, b = 0, 1\n\n    # Iterate from 2 up to n\n    for _ in range(2, n + 1):",
+   "tokens": 200,
+   "first_token_top5": [
+    [
+     -0.3148275315761566,
+     "Here"
+    ],
+    [
+     -1.314827561378479,
+     "To"
+    ],
+    [
+     -6.7523274421691895,
+     "An"
+    ],
+    [
+     -8.689827919006348,
+     "The"
+    ],
+    [
+     -8.689827919006348,
+     "Iter"
+    ]
+   ]
+  },
+  {
+   "prompt": "Question: Which gas makes up most of Earth's atmosphere?\nA. Oxygen\nB. Nitrogen\nC. Carbon dioxide\nD. Argon\nAnswer with the letter only.",
+   "text": "B",
+   "tokens": 2,
+   "first_token_top5": [
+    [
+     0.0,
+     "B"
+    ],
+    [
+     -19.623046875,
+     " B"
+    ],
+    [
+     -19.8046875,
+     "ب"
+    ],
+    [
+     -19.85546875,
+     "b"
+    ],
+    [
+     -20.5625,
+     "**"
+    ]
+   ]
+  }
+ ]
+}

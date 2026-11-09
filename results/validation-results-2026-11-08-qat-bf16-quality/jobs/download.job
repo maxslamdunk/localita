@@ -1,0 +1,23 @@
+#!/bin/bash
+#SBATCH --job-name=gemma4-download
+#SBATCH --partition=transfer
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=03:00:00
+#SBATCH --output=/scratch/%u/gemma-qat-eval/logs/%x-%j.out
+
+# Download the original and the QAT-unquantized Gemma 4 26B-A4B checkpoints,
+# pinned to the revisions checked on 2026-11-08, into the scratch HF cache.
+set -euo pipefail
+WORK=/scratch/$USER/gemma-qat-eval
+C=/shared/containers/vllm-0.19.0.sif
+export HF_HOME=$WORK/hf
+mkdir -p "$HF_HOME"
+
+dl() {
+    apptainer exec -B /scratch "$C" \
+        hf download "$1" --revision "$2" --exclude ".eval_results/*"
+}
+dl google/gemma-4-26B-A4B-it 4d7ae4984b7db7de8f8457170b3f1a419ee76d52
+dl google/gemma-4-26B-A4B-it-qat-q4_0-unquantized f1e06dc520982d9b9edd76859fdb7ab209449949
+du -sh "$HF_HOME"/hub/*

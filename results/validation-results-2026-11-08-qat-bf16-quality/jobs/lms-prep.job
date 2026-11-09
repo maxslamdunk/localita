@@ -1,0 +1,24 @@
+#!/bin/bash
+#SBATCH --job-name=gemma4-lms-prep
+#SBATCH --partition=cpu
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=24
+#SBATCH --mem=80G
+#SBATCH --time=01:00:00
+#SBATCH --output=/scratch/%u/gemma-qat-eval/logs/%x-%j.out
+
+# Download LM Studio's QAT MLX build and expand it to BF16, checked against
+# the QAT checkpoint it was made from.
+set -euo pipefail
+WORK=/scratch/$USER/gemma-qat-eval
+C=$WORK/containers/vllm-0.32.0-cu129.sif
+export HF_HOME=$WORK/hf
+export APPTAINERENV_PYTHONPATH=$WORK/shim
+x() { apptainer exec -B /scratch "$C" "$@"; }
+snap() { echo "$HF_HOME/hub/models--${1/\//--}/snapshots/$2"; }
+
+x hf download lmstudio-community/gemma-4-26B-A4B-it-QAT-MLX-4bit --revision aa5e2e50376f54254d503276ca2222ea8569b95e
+time x python3 "$WORK/jobs/dequant_mlx.py" \
+    "$(snap lmstudio-community/gemma-4-26B-A4B-it-QAT-MLX-4bit aa5e2e50376f54254d503276ca2222ea8569b95e)" \
+    "$(snap google/gemma-4-26B-A4B-it-qat-q4_0-unquantized f1e06dc520982d9b9edd76859fdb7ab209449949)" \
+    "$WORK/models/lmstudio-qat-4bit-as-bf16"

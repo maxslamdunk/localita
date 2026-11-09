@@ -1,0 +1,32 @@
+#!/bin/bash
+#SBATCH --job-name=vllm-pull
+#SBATCH --partition=cpu
+#SBATCH --constraint=local-scratch
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=24
+#SBATCH --time=02:00:00
+#SBATCH --output=/scratch/%u/gemma-qat-eval/logs/%x-%j.out
+
+# Convert the official vLLM image (transformers 5.x, which Gemma 4 needs) to
+# an Apptainer image on scratch. The site-provided vLLM 0.19.0 pins
+# transformers < 5 and cannot load the gemma4 config.
+# The unpacked image is tens of thousands of small files: keep that temp tree
+# on the node-local NVMe. On /scratch, packing it took over an hour.
+set -euo pipefail
+WORK=/scratch/$USER/gemma-qat-eval
+LOCAL=${TMPDIR:-/tmp}
+for d in /scratch-local/$USER.$SLURM_JOB_ID /scratch-local; do
+    if [ -d "$d" ] && [ -w "$d" ]; then LOCAL=$d; break; fi
+done
+echo "local temp: $LOCAL"; df -h "$LOCAL"
+export APPTAINER_CACHEDIR=$WORK/cache/apptainer APPTAINER_TMPDIR=$LOCAL/apptainer-tmp
+mkdir -p "$APPTAINER_TMPDIR" "$WORK/containers"
+
+# Leftovers of the timed-out run 28994970.
+rm -rf "$WORK/cache/apptainer-tmp" &
+
+time apptainer pull "$LOCAL/vllm.sif" docker://vllm/vllm-openai:v0.32.0-cu129
+cp "$LOCAL/vllm.sif" "$WORK/containers/vllm-0.32.0-cu129.sif"
+apptainer exec "$WORK/containers/vllm-0.32.0-cu129.sif" python3 -c \
+    "import vllm, transformers; print('vllm', vllm.__version__, 'transformers', transformers.__version__)"
+wait

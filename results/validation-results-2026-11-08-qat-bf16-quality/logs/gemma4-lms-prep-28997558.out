@@ -1,0 +1,25 @@
+Fetching 12 files:   0%|          | 0/12 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 12 files:   8%|▊         | 1/12 [00:01<00:18,  1.72s/it]Fetching 12 files:  50%|█████     | 6/12 [00:01<00:01,  4.34it/s]Fetching 12 files:  83%|████████▎ | 10/12 [00:07<00:01,  1.26it/s]Fetching 12 files:  92%|█████████▏| 11/12 [00:19<00:00,  1.26it/s]Fetching 12 files: 100%|██████████| 12/12 [00:33<00:00,  4.03s/it]Fetching 12 files: 100%|██████████| 12/12 [00:33<00:00,  2.79s/it]
+[32m✓ Downloaded[0m
+  path: /scratch/<user>/gemma-qat-eval/hf/hub/models--lmstudio-community--gemma-4-26B-A4B-it-QAT-MLX-4bit/snapshots/aa5e2e50376f54254d503276ca2222ea8569b95e
+layer 0 gate vs gate_up_proj halves: first 0.0842, second 1.4111
+wrote model-00001.safetensors: 26 tensors, 4.32 GiB
+wrote model-00002.safetensors: 65 tensors, 4.58 GiB
+wrote model-00003.safetensors: 66 tensors, 4.55 GiB
+wrote model-00004.safetensors: 65 tensors, 4.58 GiB
+wrote model-00005.safetensors: 66 tensors, 4.55 GiB
+wrote model-00006.safetensors: 66 tensors, 4.55 GiB
+wrote model-00007.safetensors: 65 tensors, 4.58 GiB
+wrote model-00008.safetensors: 66 tensors, 4.55 GiB
+wrote model-00009.safetensors: 65 tensors, 4.58 GiB
+wrote model-00010.safetensors: 65 tensors, 4.58 GiB
+wrote model-00011.safetensors: 398 tensors, 2.68 GiB
+1013 tensors; 716 identical to the original; 297 differ
+relative error, smallest: [(0.0067, 'model.language_model.layers.10.router.proj.weight'), (0.0068, 'model.language_model.layers.13.router.proj.weight'), (0.0068, 'model.language_model.layers.6.router.proj.weight')]
+relative error, largest: [(0.0841, 'model.language_model.layers.23.experts.gate_up_proj'), (0.0842, 'model.language_model.layers.22.experts.gate_up_proj'), (0.0899, 'model.language_model.layers.29.self_attn.k_proj.weight'), (0.0907, 'model.language_model.layers.23.self_attn.k_proj.weight'), (0.0973, 'model.embed_vision.embedding_projection.weight')]
+relative error, median: 0.0712 (model.language_model.layers.5.self_attn.o_proj.weight)
+done /scratch/<user>/gemma-qat-eval/models/lmstudio-qat-4bit-as-bf16
+
+real	4m2.719s
+user	10m45.718s
+sys	9m59.218s

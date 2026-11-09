@@ -1,0 +1,22 @@
+== mmlu_pro (custom-extract): 2002 questions in common; prompts differ on 0
+  original   81.72%   no answer extracted: 37
+  qat        79.52%   no answer extracted: 44
+  lmstudio   78.27%   no answer extracted: 63
+  default    77.97%   no answer extracted: 95
+  original - qat: +2.20 pts (95% +1.03 to +3.37); original only right 94, qat only right 50; McNemar p = 0.000308
+  original - lmstudio: +3.45 pts (95% +2.07 to +4.82); original only right 134, lmstudio only right 65; McNemar p = 1.13e-06
+  original - default: +3.75 pts (95% +2.45 to +5.04); original only right 126, default only right 51; McNemar p = 1.64e-08
+  qat - lmstudio: +1.25 pts (95% -0.03 to +2.53); qat only right 98, lmstudio only right 73; McNemar p = 0.0661
+  qat - default: +1.55 pts (95% +0.20 to +2.89); qat only right 110, default only right 79; McNemar p = 0.0288
+  lmstudio - default: +0.30 pts (95% -1.18 to +1.78); lmstudio only right 117, default only right 111; McNemar p = 0.741
+== gsm8k (strict-match): 1319 questions in common; prompts differ on 0
+  original   94.16%   no answer extracted: 4
+  qat        93.78%   no answer extracted: 3
+  lmstudio   93.25%   no answer extracted: 5
+  default    94.16%   no answer extracted: 6
+  original - qat: +0.38 pts (95% -0.36 to +1.12); original only right 15, qat only right 10; McNemar p = 0.424
+  original - lmstudio: +0.91 pts (95% +0.02 to +1.80); original only right 24, lmstudio only right 12; McNemar p = 0.0652
+  original - default: +0.00 pts (95% -0.66 to +0.66); original only right 10, default only right 10; McNemar p = 1
+  qat - lmstudio: +0.53 pts (95% -0.15 to +1.21); qat only right 14, lmstudio only right 7; McNemar p = 0.189
+  qat - default: -0.38 pts (95% -1.15 to +0.39); qat only right 11, default only right 16; McNemar p = 0.442
+  lmstudio - default: -0.91 pts (95% -1.80 to -0.02); lmstudio only right 12, default only right 24; McNemar p = 0.0652

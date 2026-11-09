@@ -1,0 +1,143 @@
+{
+ "repo": "google/gemma-4-26B-A4B-it-qat-q4_0-unquantized",
+ "revision": "f1e06dc520982d9b9edd76859fdb7ab209449949",
+ "load_s": 222.03667855262756,
+ "generate_s": 5.833225727081299,
+ "rows": [
+  {
+   "prompt": "What is the capital of the Netherlands? Answer in one sentence.",
+   "text": "The capital of the Netherlands is Amsterdam.",
+   "tokens": 9,
+   "first_token_top5": [
+    [
+     -6.19869097135961e-05,
+     "The"
+    ],
+    [
+     -9.750061988830566,
+     "Amsterdam"
+    ],
+    [
+     -14.312561988830566,
+     "the"
+    ],
+    [
+     -14.562561988830566,
+     "ам"
+    ],
+    [
+     -14.562561988830566,
+     " The"
+    ]
+   ]
+  },
+  {
+   "prompt": "Объясни в двух предложениях, что такое фотосинтез.",
+   "text": "Фотосинтез — это процесс, при котором растения используют энергию солнечного света для превращения воды и углекислого газа в глюкозу и кислород. В результате этого процесса растения получают питательные вещества для своего роста, а в атмосферу выделяется кислород, необходимый для жизни большинства организмов.",
+   "tokens": 66,
+   "first_token_top5": [
+    [
+     -2.396077979938127e-05,
+     "Фото"
+    ],
+    [
+     -11.00002384185791,
+     "**"
+    ],
+    [
+     -12.31252384185791,
+     " Фото"
+    ],
+    [
+     -13.68752384185791,
+     "Это"
+    ],
+    [
+     -14.25002384185791,
+     "фото"
+    ]
+   ]
+  },
+  {
+   "prompt": "A train travels 180 km in 2.5 hours. What is its average speed in km/h? Show the calculation briefly.",
+   "text": "To find the average speed, use the formula:\n\n$$\\text{Average Speed} = \\frac{\\text{Total Distance}}{\\text{Total Time}}$$\n\n**Calculation:**\n$$\\text{Average Speed} = \\frac{180 \\text{ km}}{2.5 \\text{ h}} = \\mathbf{72 \\text{ km/h}}$$",
+   "tokens": 76,
+   "first_token_top5": [
+    [
+     -0.00012087091454304755,
+     "To"
+    ],
+    [
+     -9.375121116638184,
+     "**"
+    ],
+    [
+     -10.625121116638184,
+     "The"
+    ],
+    [
+     -11.562621116638184,
+     "Average"
+    ],
+    [
+     -14.125121116638184,
+     " To"
+    ]
+   ]
+  },
+  {
+   "prompt": "Write a Python function that returns the n-th Fibonacci number iteratively.",
+   "text": "Here is the most efficient way to calculate the $n$-th Fibonacci number using an iterative approach.\n\n```python\ndef fibonacci_iterative(n):\n    \"\"\"\n    Returns the n-th Fibonacci number using an iterative approach.\n    \n    Args:\n        n (int): The position in the Fibonacci sequence (starting from 0).\n        \n    Returns:\n        int: The n-th Fibonacci number.\n    \"\"\"\n    # Handle negative input\n    if n < 0:\n        raise ValueError(\"n must be a non-negative integer.\")\n    \n    # Base cases: F(0) = 0, F(1) = 1\n    if n == 0:\n        return 0\n    if n == 1:\n        return 1\n\n    # Initialize the first two numbers of the sequence\n    a, b = 0, 1\n    \n    # Iterate from",
+   "tokens": 200,
+   "first_token_top5": [
+    [
+     -0.14423665404319763,
+     "Here"
+    ],
+    [
+     -2.0192365646362305,
+     "To"
+    ],
+    [
+     -7.1442365646362305,
+     "An"
+    ],
+    [
+     -7.5192365646362305,
+     "Iter"
+    ],
+    [
+     -9.14423656463623,
+     "The"
+    ]
+   ]
+  },
+  {
+   "prompt": "Question: Which gas makes up most of Earth's atmosphere?\nA. Oxygen\nB. Nitrogen\nC. Carbon dioxide\nD. Argon\nAnswer with the letter only.",
+   "text": "B",
+   "tokens": 2,
+   "first_token_top5": [
+    [
+     -5.960462772236497e-07,
+     "B"
+    ],
+    [
+     -15.125000953674316,
+     "D"
+    ],
+    [
+     -16.9375,
+     " B"
+    ],
+    [
+     -17.0625,
+     "ب"
+    ],
+    [
+     -17.4375,
+     "N"
+    ]
+   ]
+  }
+ ]
+}

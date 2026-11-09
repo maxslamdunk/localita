@@ -1,0 +1,26 @@
+#!/bin/bash
+#SBATCH --job-name=gemma4-smoke
+#SBATCH --partition=gpu
+#SBATCH --gpus=1
+#SBATCH --cpus-per-task=16
+#SBATCH --time=01:00:00
+#SBATCH --output=/scratch/%u/gemma-qat-eval/logs/%x-%j.out
+
+# Load the original and the QAT-unquantized checkpoints one after the other
+# and answer the same five prompts greedily, thinking off.
+set -euo pipefail
+WORK=/scratch/$USER/gemma-qat-eval
+C=$WORK/containers/vllm-0.32.0-cu129.sif
+export HF_HOME=$WORK/hf HF_HUB_OFFLINE=1
+export VLLM_CACHE_ROOT=$WORK/cache/vllm XDG_CACHE_HOME=$WORK/cache TRITON_CACHE_DIR=$WORK/cache/triton
+# shim/torchcodec stands in for the image's CUDA 13 torchcodec, which cannot load.
+export APPTAINERENV_PYTHONPATH=$WORK/shim
+mkdir -p "$VLLM_CACHE_ROOT" "$TRITON_CACHE_DIR" "$WORK/results"
+nvidia-smi --query-gpu=name,memory.total --format=csv
+
+run() {
+    apptainer exec --nv -B /scratch "$C" \
+        python3 "$WORK/jobs/smoke.py" "$1" "$2" "$WORK/results/smoke-$3.json"
+}
+run google/gemma-4-26B-A4B-it 4d7ae4984b7db7de8f8457170b3f1a419ee76d52 original
+run google/gemma-4-26B-A4B-it-qat-q4_0-unquantized f1e06dc520982d9b9edd76859fdb7ab209449949 qat

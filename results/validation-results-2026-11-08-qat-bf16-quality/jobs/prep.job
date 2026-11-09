@@ -1,0 +1,42 @@
+#!/bin/bash
+#SBATCH --job-name=gemma4-prep
+#SBATCH --partition=cpu
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=24
+#SBATCH --mem=80G
+#SBATCH --time=02:00:00
+#SBATCH --output=/scratch/%u/gemma-qat-eval/logs/%x-%j.out
+
+# CPU-side preparation for the QAT benchmark:
+#  1. download the app's default 4-bit MLX build at the revision the app pins;
+#  2. expand it to a BF16 checkpoint vLLM can load (dequant_mlx.py);
+#  3. install lm-evaluation-harness 0.4.13 beside the container's packages;
+#  4. print its task names and vLLM options, and fetch the benchmark datasets.
+set -uo pipefail
+WORK=/scratch/$USER/gemma-qat-eval
+C=$WORK/containers/vllm-0.32.0-cu129.sif
+export HF_HOME=$WORK/hf
+export APPTAINERENV_PYTHONPATH=$WORK/shim APPTAINERENV_PYTHONUSERBASE=$WORK/pyuser
+export APPTAINERENV_PIP_BREAK_SYSTEM_PACKAGES=1 APPTAINERENV_PIP_CACHE_DIR=$WORK/cache/pip
+x() { apptainer exec -B /scratch "$C" "$@"; }
+snap() { echo "$HF_HOME/hub/models--${1/\//--}/snapshots/$2"; }
+
+MLX=$(snap mlx-community/gemma-4-26b-a4b-it-4bit 0d77464eeb233a2da68ebf9d7dc4edaac7db956d)
+ORIG=$(snap google/gemma-4-26B-A4B-it 4d7ae4984b7db7de8f8457170b3f1a419ee76d52)
+OUT=$WORK/models/default-mlx-4bit-as-bf16
+
+echo "== 1. download"
+x hf download mlx-community/gemma-4-26b-a4b-it-4bit --revision 0d77464eeb233a2da68ebf9d7dc4edaac7db956d
+sha256sum "$MLX/model.safetensors.index.json"   # app pins bf198c9f…0b13
+
+echo "== 2. dequantize"
+time x python3 "$WORK/jobs/dequant_mlx.py" "$MLX" "$ORIG" "$OUT" || echo "DEQUANT FAILED"
+
+echo "== 3. install lm-eval"
+x pip install --user --no-warn-script-location "lm-eval==0.4.13" 2>&1 | tail -3
+x pip list --user 2>/dev/null
+x python3 -c "import lm_eval, vllm, transformers, torch; print('lm_eval', lm_eval.__version__, 'vllm', vllm.__version__, 'transformers', transformers.__version__, 'torch', torch.__version__)"
+
+echo "== 4. tasks and options"
+x python3 "$WORK/jobs/inspect_lmeval.py"
+du -sh "$HF_HOME/datasets" 2>/dev/null

@@ -1,0 +1,230 @@
+== 1. download
+[90mHint: A new version of huggingface_hub (2.4.0) is available! You are using version 2.2.0.
+To update, run: hf update[0m
+[90mHint: The `hf-cli` skill is not installed. Run `hf skills add -g` to teach your AI agents how to use the `hf` CLI.[0m
+Fetching 12 files:   0%|          | 0/12 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 12 files:   8%|▊         | 1/12 [00:00<00:04,  2.68it/s]Fetching 12 files:  25%|██▌       | 3/12 [00:00<00:01,  7.35it/s]Fetching 12 files:  67%|██████▋   | 8/12 [00:00<00:00, 17.13it/s]Fetching 12 files:  92%|█████████▏| 11/12 [00:13<00:01,  1.70s/it]Fetching 12 files: 100%|██████████| 12/12 [00:23<00:00,  3.00s/it]Fetching 12 files: 100%|██████████| 12/12 [00:23<00:00,  1.98s/it]
+[32m✓ Downloaded[0m
+  path: /scratch/<user>/gemma-qat-eval/hf/hub/models--mlx-community--gemma-4-26b-a4b-it-4bit/snapshots/0d77464eeb233a2da68ebf9d7dc4edaac7db956d
+bf198c9f5ea6462addca1966e5dd669c407537a876e82cf06db9084c5c850b13  /scratch/<user>/gemma-qat-eval/hf/hub/models--mlx-community--gemma-4-26b-a4b-it-4bit/snapshots/0d77464eeb233a2da68ebf9d7dc4edaac7db956d/model.safetensors.index.json
+== 2. dequantize
+layer 0 gate vs gate_up_proj halves: first 0.0949, second 1.4074
+wrote model-00001.safetensors: 26 tensors, 4.32 GiB
+wrote model-00002.safetensors: 65 tensors, 4.58 GiB
+wrote model-00003.safetensors: 66 tensors, 4.55 GiB
+wrote model-00004.safetensors: 65 tensors, 4.58 GiB
+wrote model-00005.safetensors: 66 tensors, 4.55 GiB
+wrote model-00006.safetensors: 66 tensors, 4.55 GiB
+wrote model-00007.safetensors: 65 tensors, 4.58 GiB
+wrote model-00008.safetensors: 66 tensors, 4.55 GiB
+wrote model-00009.safetensors: 65 tensors, 4.58 GiB
+wrote model-00010.safetensors: 65 tensors, 4.58 GiB
+wrote model-00011.safetensors: 398 tensors, 2.68 GiB
+1013 tensors; 716 identical to the original; 297 differ
+relative error, smallest: [(0.0071, 'model.language_model.layers.10.router.proj.weight'), (0.0073, 'model.language_model.layers.13.router.proj.weight'), (0.0073, 'model.language_model.layers.12.router.proj.weight')]
+relative error, largest: [(0.1067, 'model.language_model.layers.27.self_attn.q_proj.weight'), (0.107, 'model.language_model.layers.22.self_attn.v_proj.weight'), (0.1098, 'model.language_model.layers.28.self_attn.v_proj.weight'), (0.1135, 'model.language_model.layers.23.self_attn.k_proj.weight'), (0.1145, 'model.language_model.layers.29.self_attn.k_proj.weight')]
+relative error, median: 0.0954 (model.language_model.layers.13.self_attn.v_proj.weight)
+done /scratch/<user>/gemma-qat-eval/models/default-mlx-4bit-as-bf16
+
+real	4m0.883s
+user	10m47.874s
+sys	9m14.508s
+== 3. install lm-eval
+
+[notice] A new release of pip is available: 26.2.1 -> 26.3
+[notice] To update, run: python3.12 -m pip install --upgrade pip
+Package        Version
+-------------- -----------
+absl-py        2.5.1
+chardet        6.0.0.post1
+colorama       0.4.6
+DataProperty   1.1.1
+datasets       5.1.0
+defusedxml     0.7.1
+evaluate       0.4.6
+fsspec         2026.7.0
+joblib         1.6.0
+lm_eval        0.4.13
+lxml           6.1.3
+mbstrdecoder   1.1.5
+more-itertools 11.2.1
+multiprocess   0.70.19
+narwhals       2.28.0
+nltk           3.10.4
+pandas         3.1.1
+pathvalidate   3.3.1
+portalocker    4.4.2
+pyarrow        26.0.1
+pytablewriter  1.2.1
+pytz           2026.6
+rouge_score    0.1.2
+sacrebleu      2.6.0
+scikit-learn   1.9.1
+scipy          1.18.1
+sqlitedict     2.1.0
+tabledata      1.3.5
+tcolorpy       0.1.7
+threadpoolctl  3.8.0
+typepy         1.3.5
+word2number    1.1
+xxhash         4.0.2
+lm_eval 0.4.13 vllm 0.32.0 transformers 5.19.0 torch 2.13.0+cu129
+== 4. tasks and options
+W1108 14:28:00.097000 351842 torch/utils/cpp_extension.py:178] No CUDA runtime is found, using CUDA_HOME='/usr/local/cuda'
+/scratch/<user>/gemma-qat-eval/jobs/inspect_lmeval.py:24: DeprecationWarning: get_task_dict is deprecated. Use TaskManager.load() instead.
+  d = get_task_dict([name], tm)
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+VLLM.__init__ (self, pretrained: 'str', dtype: "Literal['float16', 'bfloat16', 'float32', 'auto']" = 'auto', revision: 'str | None' = None, trust_remote_code: 'bool' = False, tokenizer: 'str | None' = None, tokenizer_mode: "Literal['auto', 'slow']" = 'auto', tokenizer_revision: 'str | None' = None, add_bos_token: 'bool | None' = None, prefix_token_id: 'int | None' = None, tensor_parallel_size: 'int' = 1, quantization: 'str | None' = None, max_gen_toks: 'int' = 256, batch_size: 'str | int' = 'auto', max_batch_size=None, max_length: 'int | None' = None, max_model_len: 'int | None' = None, seed: 'int' = 1234, data_parallel_size: 'int' = 1, lora_local_path: 'str | None' = None, enable_thinking: 'bool | None' = None, chat_template_args: 'dict | None' = None, think_end_token: 'str | None' = None, max_lora_rank: 'int' = 16, truncation_side: "Literal['left', 'right', 'middle']" = 'left', **kwargs)
+  mentions enable_thinking: True
+  mentions chat_template_args: True
+  mentions chat_template_kwargs: False
+  mentions think_end_token: True
+^mmlu_pro$: 1 ['mmlu_pro']
+^mmlu_pro_: 44 ['mmlu_pro_biology', 'mmlu_pro_business', 'mmlu_pro_chemistry', 'mmlu_pro_computer_science', 'mmlu_pro_economics', 'mmlu_pro_engineering', 'mmlu_pro_health', 'mmlu_pro_history', 'mmlu_pro_law', 'mmlu_pro_llama', 'mmlu_pro_llama_biology', 'mmlu_pro_llama_business', 'mmlu_pro_llama_chemistry', 'mmlu_pro_llama_computer_science', 'mmlu_pro_llama_economics', 'mmlu_pro_llama_engineering', 'mmlu_pro_llama_health', 'mmlu_pro_llama_history', 'mmlu_pro_llama_law', 'mmlu_pro_llama_math', 'mmlu_pro_llama_other', 'mmlu_pro_llama_philosophy', 'mmlu_pro_llama_physics', 'mmlu_pro_llama_psychology', 'mmlu_pro_math', 'mmlu_pro_other', 'mmlu_pro_philosophy', 'mmlu_pro_physics', 'mmlu_pro_plus', 'mmlu_pro_plus_biology', 'mmlu_pro_plus_business', 'mmlu_pro_plus_chemistry', 'mmlu_pro_plus_computer_science', 'mmlu_pro_plus_economics', 'mmlu_pro_plus_engineering', 'mmlu_pro_plus_health', 'mmlu_pro_plus_history', 'mmlu_pro_plus_law', 'mmlu_pro_plus_math', 'mmlu_pro_plus_other']
+^gsm8k: 11 ['gsm8k', 'gsm8k_cot', 'gsm8k_cot_llama', 'gsm8k_cot_self_consistency', 'gsm8k_cot_zeroshot', 'gsm8k_llama', 'gsm8k_platinum', 'gsm8k_platinum_cot', 'gsm8k_platinum_cot_llama', 'gsm8k_platinum_cot_self_consistency', 'gsm8k_platinum_cot_zeroshot']
+^global_mmlu_[a-z]{2}$: 15 ['global_mmlu_ar', 'global_mmlu_bn', 'global_mmlu_de', 'global_mmlu_en', 'global_mmlu_es', 'global_mmlu_fr', 'global_mmlu_hi', 'global_mmlu_id', 'global_mmlu_it', 'global_mmlu_ja', 'global_mmlu_ko', 'global_mmlu_pt', 'global_mmlu_sw', 'global_mmlu_yo', 'global_mmlu_zh']
+^global_mmlu_full_[a-z]{2}$: 41 ['global_mmlu_full_am', 'global_mmlu_full_ar', 'global_mmlu_full_bn', 'global_mmlu_full_cs', 'global_mmlu_full_de', 'global_mmlu_full_el', 'global_mmlu_full_en', 'global_mmlu_full_es', 'global_mmlu_full_fa', 'global_mmlu_full_fr', 'global_mmlu_full_ha', 'global_mmlu_full_he', 'global_mmlu_full_hi', 'global_mmlu_full_id', 'global_mmlu_full_ig', 'global_mmlu_full_it', 'global_mmlu_full_ja', 'global_mmlu_full_ko', 'global_mmlu_full_ky', 'global_mmlu_full_lt', 'global_mmlu_full_mg', 'global_mmlu_full_ms', 'global_mmlu_full_ne', 'global_mmlu_full_nl', 'global_mmlu_full_ny', 'global_mmlu_full_pl', 'global_mmlu_full_pt', 'global_mmlu_full_ro', 'global_mmlu_full_ru', 'global_mmlu_full_si', 'global_mmlu_full_sn', 'global_mmlu_full_so', 'global_mmlu_full_sr', 'global_mmlu_full_sv', 'global_mmlu_full_sw', 'global_mmlu_full_te', 'global_mmlu_full_tr', 'global_mmlu_full_uk', 'global_mmlu_full_vi', 'global_mmlu_full_yo']
+mmmlu: 927 ['hrm8k_mmmlu', 'hrm8k_mmmlu_en', 'mmmlu', 'mmmlu_ar_xy', 'mmmlu_ar_xy_abstract_algebra', 'mmmlu_ar_xy_anatomy', 'mmmlu_ar_xy_astronomy', 'mmmlu_ar_xy_business_ethics', 'mmmlu_ar_xy_clinical_knowledge', 'mmmlu_ar_xy_college_biology', 'mmmlu_ar_xy_college_chemistry', 'mmmlu_ar_xy_college_computer_science', 'mmmlu_ar_xy_college_mathematics', 'mmmlu_ar_xy_college_medicine', 'mmmlu_ar_xy_college_physics', 'mmmlu_ar_xy_computer_security', 'mmmlu_ar_xy_conceptual_physics', 'mmmlu_ar_xy_econometrics', 'mmmlu_ar_xy_electrical_engineering', 'mmmlu_ar_xy_elementary_mathematics', 'mmmlu_ar_xy_formal_logic', 'mmmlu_ar_xy_global_facts', 'mmmlu_ar_xy_high_school_biology', 'mmmlu_ar_xy_high_school_chemistry', 'mmmlu_ar_xy_high_school_computer_science', 'mmmlu_ar_xy_high_school_european_history', 'mmmlu_ar_xy_high_school_geography', 'mmmlu_ar_xy_high_school_government_and_politics', 'mmmlu_ar_xy_high_school_macroeconomics', 'mmmlu_ar_xy_high_school_mathematics', 'mmmlu_ar_xy_high_school_microeconomics', 'mmmlu_ar_xy_high_school_physics', 'mmmlu_ar_xy_high_school_psychology', 'mmmlu_ar_xy_high_school_statistics', 'mmmlu_ar_xy_high_school_us_history', 'mmmlu_ar_xy_high_school_world_history', 'mmmlu_ar_xy_human_aging', 'mmmlu_ar_xy_human_sexuality', 'mmmlu_ar_xy_humanities', 'mmmlu_ar_xy_humanities_tasks']
+^mgsm_(direct|native_cot)_[a-z]{2}$: 26 ['mgsm_direct_bn', 'mgsm_direct_ca', 'mgsm_direct_de', 'mgsm_direct_en', 'mgsm_direct_es', 'mgsm_direct_eu', 'mgsm_direct_fr', 'mgsm_direct_gl', 'mgsm_direct_ja', 'mgsm_direct_ru', 'mgsm_direct_sw', 'mgsm_direct_te', 'mgsm_direct_th', 'mgsm_direct_zh', 'mgsm_native_cot_bn', 'mgsm_native_cot_de', 'mgsm_native_cot_en', 'mgsm_native_cot_es', 'mgsm_native_cot_eu', 'mgsm_native_cot_fr', 'mgsm_native_cot_ja', 'mgsm_native_cot_ru', 'mgsm_native_cot_sw', 'mgsm_native_cot_te', 'mgsm_native_cot_th', 'mgsm_native_cot_zh']
+Generating test split:   0%|          | 0/12032 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 12032/12032 [00:00<00:00, 390654.08 examples/s]
+Generating validation split:   0%|          | 0/70 [00:00<?, ? examples/s]Generating validation split: 100%|██████████| 70/70 [00:00<00:00, 23584.33 examples/s]
+Filter:   0%|          | 0/70 [00:00<?, ? examples/s]Filter: 100%|██████████| 70/70 [00:00<00:00, 11867.47 examples/s]
+Filter:   0%|          | 0/12032 [00:00<?, ? examples/s]Filter: 100%|██████████| 12032/12032 [00:00<00:00, 243568.18 examples/s]
+Filter:   0%|          | 0/70 [00:00<?, ? examples/s]Filter: 100%|██████████| 70/70 [00:00<00:00, 15757.06 examples/s]
+Filter:   0%|          | 0/12032 [00:00<?, ? examples/s]Filter: 100%|██████████| 12032/12032 [00:00<00:00, 279378.78 examples/s]
+Filter:   0%|          | 0/70 [00:00<?, ? examples/s]Filter: 100%|██████████| 70/70 [00:00<00:00, 15244.10 examples/s]
+Filter:   0%|          | 0/12032 [00:00<?, ? examples/s]Filter: 100%|██████████| 12032/12032 [00:00<00:00, 278160.72 examples/s]
+Filter:   0%|          | 0/70 [00:00<?, ? examples/s]Filter: 100%|██████████| 70/70 [00:00<00:00, 15602.98 examples/s]
+Filter:   0%|          | 0/12032 [00:00<?, ? examples/s]Filter: 100%|██████████| 12032/12032 [00:00<00:00, 281226.79 examples/s]
+Filter:   0%|          | 0/70 [00:00<?, ? examples/s]Filter: 100%|██████████| 70/70 [00:00<00:00, 15438.89 examples/s]
+Filter:   0%|          | 0/12032 [00:00<?, ? examples/s]Filter: 100%|██████████| 12032/12032 [00:00<00:00, 277960.02 examples/s]
+Filter:   0%|          | 0/70 [00:00<?, ? examples/s]Filter: 100%|██████████| 70/70 [00:00<00:00, 15488.57 examples/s]
+Filter:   0%|          | 0/12032 [00:00<?, ? examples/s]Filter: 100%|██████████| 12032/12032 [00:00<00:00, 277782.54 examples/s]
+Filter:   0%|          | 0/70 [00:00<?, ? examples/s]Filter: 100%|██████████| 70/70 [00:00<00:00, 15399.21 examples/s]
+Filter:   0%|          | 0/12032 [00:00<?, ? examples/s]Filter: 100%|██████████| 12032/12032 [00:00<00:00, 275909.97 examples/s]
+Filter:   0%|          | 0/70 [00:00<?, ? examples/s]Filter: 100%|██████████| 70/70 [00:00<00:00, 15610.45 examples/s]
+Filter:   0%|          | 0/12032 [00:00<?, ? examples/s]Filter: 100%|██████████| 12032/12032 [00:00<00:00, 279235.02 examples/s]
+Filter:   0%|          | 0/70 [00:00<?, ? examples/s]Filter: 100%|██████████| 70/70 [00:00<00:00, 15203.05 examples/s]
+Filter:   0%|          | 0/12032 [00:00<?, ? examples/s]Filter: 100%|██████████| 12032/12032 [00:00<00:00, 277678.61 examples/s]
+Filter:   0%|          | 0/70 [00:00<?, ? examples/s]Filter: 100%|██████████| 70/70 [00:00<00:00, 15504.11 examples/s]
+Filter:   0%|          | 0/12032 [00:00<?, ? examples/s]Filter: 100%|██████████| 12032/12032 [00:00<00:00, 279468.52 examples/s]
+Filter:   0%|          | 0/70 [00:00<?, ? examples/s]Filter: 100%|██████████| 70/70 [00:00<00:00, 17192.79 examples/s]
+Filter:   0%|          | 0/12032 [00:00<?, ? examples/s]Filter: 100%|██████████| 12032/12032 [00:00<00:00, 278860.08 examples/s]
+Filter:   0%|          | 0/70 [00:00<?, ? examples/s]Filter: 100%|██████████| 70/70 [00:00<00:00, 17384.17 examples/s]
+Filter:   0%|          | 0/12032 [00:00<?, ? examples/s]Filter: 100%|██████████| 12032/12032 [00:00<00:00, 277753.49 examples/s]
+Filter:   0%|          | 0/70 [00:00<?, ? examples/s]Filter: 100%|██████████| 70/70 [00:00<00:00, 15358.13 examples/s]
+Filter:   0%|          | 0/12032 [00:00<?, ? examples/s]Filter: 100%|██████████| 12032/12032 [00:00<00:00, 273901.84 examples/s]
+Filter:   0%|          | 0/70 [00:00<?, ? examples/s]Filter: 100%|██████████| 70/70 [00:00<00:00, 15523.78 examples/s]
+Filter:   0%|          | 0/12032 [00:00<?, ? examples/s]Filter: 100%|██████████| 12032/12032 [00:00<00:00, 274781.75 examples/s]
+OK mmlu_pro: 12032 docs in 14 subtasks; output_type=generate_until num_fewshot=5 gen_kwargs={'until': ['Question:'], 'max_gen_toks': 2048, 'do_sample': False, 'temperature': 0.0}
+Generating train split:   0%|          | 0/7473 [00:00<?, ? examples/s]Generating train split: 100%|██████████| 7473/7473 [00:00<00:00, 554584.98 examples/s]
+Generating test split:   0%|          | 0/1319 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 1319/1319 [00:00<00:00, 301322.82 examples/s]
+OK gsm8k_cot_llama: 1319 docs in 1 subtasks; output_type=generate_until num_fewshot=8 gen_kwargs={'do_sample': False, 'until': ['<|eot_id|>', '<|start_header_id|>user<|end_header_id|>', 'Q:', '</s>', '<|im_end|>']}
+OK gsm8k: 1319 docs in 1 subtasks; output_type=generate_until num_fewshot=5 gen_kwargs={'until': ['Question:', '</s>', '<|im_end|>'], 'do_sample': False, 'temperature': 0.0}
+FAIL global_mmlu_ru: KeyError: "Spec 'global_mmlu_ru' is not a registered task/group/tag name or valid YAML path"
+Generating test split:   0%|          | 0/400 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 400/400 [00:00<00:00, 82842.27 examples/s]
+Generating dev split:   0%|          | 0/215 [00:00<?, ? examples/s]Generating dev split: 100%|██████████| 215/215 [00:00<00:00, 55740.84 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 39296.47 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 61092.48 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 37770.70 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 61705.90 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 36876.39 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 61974.87 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 37036.94 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 59451.51 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 36938.33 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 59620.53 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 37149.85 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 60360.55 examples/s]
+OK global_mmlu_zh: 400 docs in 6 subtasks; output_type=multiple_choice num_fewshot=None gen_kwargs=None
+Generating test split:   0%|          | 0/400 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 400/400 [00:00<00:00, 84724.86 examples/s]
+Generating dev split:   0%|          | 0/215 [00:00<?, ? examples/s]Generating dev split: 100%|██████████| 215/215 [00:00<00:00, 57902.62 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 40048.65 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 60502.04 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 37217.31 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 60923.87 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 37078.05 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 60648.58 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 35746.44 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 61890.28 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 35578.61 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 62190.81 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 36507.65 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 60187.32 examples/s]
+OK global_mmlu_es: 400 docs in 6 subtasks; output_type=multiple_choice num_fewshot=None gen_kwargs=None
+Generating test split:   0%|          | 0/400 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 400/400 [00:00<00:00, 80040.15 examples/s]
+Generating dev split:   0%|          | 0/215 [00:00<?, ? examples/s]Generating dev split: 100%|██████████| 215/215 [00:00<00:00, 56919.48 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 38321.24 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 60144.17 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 37516.14 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 60642.00 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 37334.41 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 61186.05 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 38142.94 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 60809.05 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 37621.00 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 61491.04 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 37128.43 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 60939.36 examples/s]
+OK global_mmlu_de: 400 docs in 6 subtasks; output_type=multiple_choice num_fewshot=None gen_kwargs=None
+Generating test split:   0%|          | 0/400 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 400/400 [00:00<00:00, 82192.91 examples/s]
+Generating dev split:   0%|          | 0/215 [00:00<?, ? examples/s]Generating dev split: 100%|██████████| 215/215 [00:00<00:00, 56084.05 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 41019.62 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 57086.72 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 36301.89 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 62989.36 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 36609.91 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 59784.11 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 37650.84 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 61821.86 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 36269.77 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 59014.44 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 37085.68 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 59508.45 examples/s]
+OK global_mmlu_fr: 400 docs in 6 subtasks; output_type=multiple_choice num_fewshot=None gen_kwargs=None
+Generating test split:   0%|          | 0/400 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 400/400 [00:00<00:00, 82293.70 examples/s]
+Generating dev split:   0%|          | 0/215 [00:00<?, ? examples/s]Generating dev split: 100%|██████████| 215/215 [00:00<00:00, 55140.97 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 38595.14 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 62866.62 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 40080.69 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 61488.79 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 37116.21 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 61326.96 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 36672.44 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 63538.03 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 35918.72 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 57826.55 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 36944.38 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 61631.09 examples/s]
+OK global_mmlu_ja: 400 docs in 6 subtasks; output_type=multiple_choice num_fewshot=None gen_kwargs=None
+Generating test split:   0%|          | 0/400 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 400/400 [00:00<00:00, 78259.24 examples/s]
+Generating dev split:   0%|          | 0/215 [00:00<?, ? examples/s]Generating dev split: 100%|██████████| 215/215 [00:00<00:00, 58518.84 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 36641.15 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 54459.10 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 34987.79 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 55877.49 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 35770.54 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 57028.51 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 35431.82 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 57456.22 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 35917.29 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 58108.95 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 35507.16 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 50356.32 examples/s]
+OK global_mmlu_ar: 400 docs in 6 subtasks; output_type=multiple_choice num_fewshot=None gen_kwargs=None
+Generating test split:   0%|          | 0/400 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 400/400 [00:00<00:00, 72374.86 examples/s]
+Generating dev split:   0%|          | 0/215 [00:00<?, ? examples/s]Generating dev split: 100%|██████████| 215/215 [00:00<00:00, 53321.63 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 35853.03 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 53541.46 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 34743.80 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 53656.19 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 34561.37 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 54005.07 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 34421.53 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 54476.79 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 34482.08 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 54766.65 examples/s]
+Filter:   0%|          | 0/215 [00:00<?, ? examples/s]Filter: 100%|██████████| 215/215 [00:00<00:00, 33406.51 examples/s]
+Filter:   0%|          | 0/400 [00:00<?, ? examples/s]Filter: 100%|██████████| 400/400 [00:00<00:00, 55392.29 examples/s]
+OK global_mmlu_hi: 400 docs in 6 subtasks; output_type=multiple_choice num_fewshot=None gen_kwargs=None
+15M	/scratch/<user>/gemma-qat-eval/hf/datasets

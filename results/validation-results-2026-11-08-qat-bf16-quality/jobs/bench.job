@@ -1,0 +1,30 @@
+#!/bin/bash
+#SBATCH --job-name=gemma4-bench
+#SBATCH --partition=gpu
+#SBATCH --gpus=1
+#SBATCH --cpus-per-task=16
+#SBATCH --time=02:00:00
+#SBATCH --output=/scratch/%u/gemma-qat-eval/logs/%x-%j.out
+
+# The QAT-quality benchmark: the original, the QAT checkpoint and the app's
+# default 4-bit build (as BF16), one after another on one H100, offline.
+set -uo pipefail
+WORK=/scratch/$USER/gemma-qat-eval
+C=$WORK/containers/vllm-0.32.0-cu129.sif
+export HF_HOME=$WORK/hf HF_HUB_OFFLINE=1 HF_DATASETS_OFFLINE=1
+export VLLM_CACHE_ROOT=$WORK/cache/vllm XDG_CACHE_HOME=$WORK/cache TRITON_CACHE_DIR=$WORK/cache/triton
+# shim/torchcodec stands in for the image's CUDA 13 torchcodec, which cannot load.
+export APPTAINERENV_PYTHONPATH=$WORK/shim APPTAINERENV_PYTHONUSERBASE=$WORK/pyuser
+OUT=$WORK/results/bench-$SLURM_JOB_ID
+mkdir -p "$OUT"
+nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
+snap() { echo "$HF_HOME/hub/models--${1/\//--}/snapshots/$2"; }
+
+run() {
+    apptainer exec --nv -B /scratch "$C" python3 "$WORK/jobs/bench.py" "$1" "$2" "$OUT" \
+        || echo "[$1] FAILED"
+}
+run original "$(snap google/gemma-4-26B-A4B-it 4d7ae4984b7db7de8f8457170b3f1a419ee76d52)"
+run qat "$(snap google/gemma-4-26B-A4B-it-qat-q4_0-unquantized f1e06dc520982d9b9edd76859fdb7ab209449949)"
+run default "$WORK/models/default-mlx-4bit-as-bf16"
+ls -la "$OUT"

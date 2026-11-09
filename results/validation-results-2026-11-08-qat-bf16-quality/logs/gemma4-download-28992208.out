@@ -1,0 +1,50 @@
+Fetching 11 files:   0%|          | 0/11 [00:00<?, ?it/s]Downloading 'README.md' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/742346e1fe57997c831b9065f4c54a9416021526.incomplete'
+Downloading '.gitattributes' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/ddcb389f1c4efd0f6ec18e8925435134b04580da.incomplete'
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/ddcb389f1c4efd0f6ec18e8925435134b04580da
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/742346e1fe57997c831b9065f4c54a9416021526
+Fetching 11 files:   9%|▉         | 1/11 [00:00<00:01,  6.89it/s]Downloading 'chat_template.jinja' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/4741bf6e4132ba23a5537f9d6e74e9a6d613d7cd.incomplete'
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/4741bf6e4132ba23a5537f9d6e74e9a6d613d7cd
+Downloading 'config.json' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/f42adcca257bb0865c506947671e7d0af52ac9c4.incomplete'
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/f42adcca257bb0865c506947671e7d0af52ac9c4
+Downloading 'processor_config.json' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/5465974d23e1eca2c46c2809b26c997946ce0d90.incomplete'
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/5465974d23e1eca2c46c2809b26c997946ce0d90
+Downloading 'tokenizer.json' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/cc8d3a0ce36466ccc1278bf987df5f71db1719b9ca6b4118264f45cb627bfe0f.incomplete'
+Downloading 'generation_config.json' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/e605bb4523b1462ea9d9a3810b9e3ecf7ab7b1f6.incomplete'
+Downloading 'tokenizer_config.json' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/6068e357379d36f823c377e30efb101fa2c67fe4.incomplete'
+Downloading 'model-00001-of-00002.safetensors' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/1127684971bbca40465435a5cad69d67ad603bf5e61c6dfd5561fae4a3bcfdb3.incomplete'
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/e605bb4523b1462ea9d9a3810b9e3ecf7ab7b1f6
+Downloading 'model-00002-of-00002.safetensors' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/aab47033e1e8a492ef8e581efae1cf36478d0433567e7729b3c1728bc8970db7.incomplete'
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/6068e357379d36f823c377e30efb101fa2c67fe4
+Fetching 11 files:  45%|████▌     | 5/11 [00:00<00:00, 13.26it/s]Downloading 'model.safetensors.index.json' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/889ab10e12aca96c43c9804a041fb1780de1e5ca.incomplete'
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/889ab10e12aca96c43c9804a041fb1780de1e5ca
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/cc8d3a0ce36466ccc1278bf987df5f71db1719b9ca6b4118264f45cb627bfe0f
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/aab47033e1e8a492ef8e581efae1cf36478d0433567e7729b3c1728bc8970db7
+Fetching 11 files:  45%|████▌     | 5/11 [00:20<00:00, 13.26it/s]Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/blobs/1127684971bbca40465435a5cad69d67ad603bf5e61c6dfd5561fae4a3bcfdb3
+Fetching 11 files:  55%|█████▍    | 6/11 [05:11<06:03, 72.60s/it]Fetching 11 files: 100%|██████████| 11/11 [05:11<00:00, 28.33s/it]
+/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it/snapshots/4d7ae4984b7db7de8f8457170b3f1a419ee76d52
+Fetching 11 files:   0%|          | 0/11 [00:00<?, ?it/s]Downloading '.gitattributes' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/52373fe24473b1aa44333d318f578ae6bf04b49b.incomplete'
+Downloading 'README.md' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/a124cc95753a6285d1509fd681084831b752c342.incomplete'
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/52373fe24473b1aa44333d318f578ae6bf04b49b
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/a124cc95753a6285d1509fd681084831b752c342
+Fetching 11 files:   9%|▉         | 1/11 [00:00<00:02,  3.89it/s]Downloading 'chat_template.jinja' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/4741bf6e4132ba23a5537f9d6e74e9a6d613d7cd.incomplete'
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/4741bf6e4132ba23a5537f9d6e74e9a6d613d7cd
+Downloading 'config.json' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/4bced39a392c148eeba124822d12685955c89b4b.incomplete'
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/4bced39a392c148eeba124822d12685955c89b4b
+Downloading 'generation_config.json' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/5a376e9fca28bfac73fe81b623bd6e4d00bb0817.incomplete'
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/5a376e9fca28bfac73fe81b623bd6e4d00bb0817
+Downloading 'tokenizer.json' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/cc8d3a0ce36466ccc1278bf987df5f71db1719b9ca6b4118264f45cb627bfe0f.incomplete'
+Downloading 'model-00001-of-00002.safetensors' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/d57e8bde0feda8b0ebf51a81d04b5d988f82fead7f9242d9231625929421453e.incomplete'
+Fetching 11 files:  45%|████▌     | 5/11 [00:00<00:00, 12.04it/s]Downloading 'model-00002-of-00002.safetensors' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/e5e6e258f562a77be81b0f5136eb2ca71e0d973cf30c4291e4d2c7b1fd712f99.incomplete'
+Downloading 'processor_config.json' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/5465974d23e1eca2c46c2809b26c997946ce0d90.incomplete'
+Downloading 'tokenizer_config.json' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/bd297dce3d66737f7d6f9136691db3ad05991a2f.incomplete'
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/5465974d23e1eca2c46c2809b26c997946ce0d90
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/bd297dce3d66737f7d6f9136691db3ad05991a2f
+Downloading 'model.safetensors.index.json' to '/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/889ab10e12aca96c43c9804a041fb1780de1e5ca.incomplete'
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/889ab10e12aca96c43c9804a041fb1780de1e5ca
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/cc8d3a0ce36466ccc1278bf987df5f71db1719b9ca6b4118264f45cb627bfe0f
+Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/e5e6e258f562a77be81b0f5136eb2ca71e0d973cf30c4291e4d2c7b1fd712f99
+Fetching 11 files:  45%|████▌     | 5/11 [00:20<00:00, 12.04it/s]Download complete. Moving file to /scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/blobs/d57e8bde0feda8b0ebf51a81d04b5d988f82fead7f9242d9231625929421453e
+Fetching 11 files:  55%|█████▍    | 6/11 [04:25<05:09, 61.86s/it]Fetching 11 files: 100%|██████████| 11/11 [04:25<00:00, 24.14s/it]
+/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized/snapshots/f1e06dc520982d9b9edd76859fdb7ab209449949
+49G	/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it
+48G	/scratch/<user>/gemma-qat-eval/hf/hub/models--google--gemma-4-26B-A4B-it-qat-q4_0-unquantized
