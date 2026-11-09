@@ -120,7 +120,7 @@ def fit_ce(runs, lam, target):
     scale: ridge's A = X^T X + lam n I is the gradient of the mean squared
     error plus lam |B|^2, up to a factor 2). L-BFGS from B = 0, on the GPU."""
     import torch
-    dev = "mps" if torch.backends.mps.is_available() else "cpu"
+    dev = os.environ.get("FIT_DEVICE") or ("mps" if torch.backends.mps.is_available() else "cpu")
     B = []
     for L in range(nL - 1):
         x, y, top = stack(runs, L)
