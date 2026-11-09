@@ -56,8 +56,14 @@ extension PrefillGroupedRoutedMoETests {
                 scale: (Int) -> Float, bias: (Int) -> Float) -> Matrix {
       var m = Matrix(q: [], s: [], b: [])
       for r in 0..<n {
-        m.q.append((0..<k).map { UInt8((r * 7 + $0 * 3 + seed * 5 + ($0 / 5)) % 16) })
-        m.s.append((0..<(k / 64)).map { Quantization.bf16Bits(scale(r) * (1 + 0.1 * Float($0 % 3))) })
+        m.q.append((0..<k).map { (j: Int) -> UInt8 in
+          let v: Int = r * 7 + j * 3 + seed * 5 + j / 5
+          return UInt8(v % 16)
+        })
+        m.s.append((0..<(k / 64)).map { (j: Int) -> UInt16 in
+          let step: Float = 1 + 0.1 * Float(j % 3)
+          return Quantization.bf16Bits(scale(r) * step)
+        })
         m.b.append((0..<(k / 64)).map { _ in Quantization.bf16Bits(bias(r)) })
       }
       return m
@@ -110,8 +116,10 @@ extension PrefillGroupedRoutedMoETests {
                                 upWOff: o[3], upSOff: o[4], upBOff: o[5],
                                 downWOff: o[6], downSOff: o[7], downBOff: o[8]),
       stride: bytesPerExpert[0].count)
-    let hidden = (0..<(rows * d)).map { i in
-      Float16(1.5 + Float((i * 13) % 29) * 0.05 - Float(i % d) * 0.002)
+    let hidden: [Float16] = (0..<(rows * d)).map { (i: Int) -> Float16 in
+      let ramp: Float = Float((i * 13) % 29) * 0.05
+      let tilt: Float = Float(i % d) * 0.002
+      return Float16(1.5 + ramp - tilt)
     }
 
     var expected = [Float](repeating: 0, count: rows * topK * d)
@@ -181,8 +189,12 @@ extension PrefillGroupedRoutedMoETests {
     let actual = Fp16Buffer.readHalf(outputBuffer, count: rows * topK * d).map { Float($0) }
     let peak = expected.map(abs).max() ?? 1
     let maxError = zip(actual, expected).map { abs($0 - $1) }.max() ?? .infinity
-    let rmsError = (zip(actual, expected).map { ($0 - $1) * ($0 - $1) }.reduce(0, +)
-      / Float(expected.count)).squareRoot()
+    var squaredErrorSum: Float = 0
+    for (a, e) in zip(actual, expected) {
+      let diff: Float = a - e
+      squaredErrorSum += diff * diff
+    }
+    let rmsError = (squaredErrorSum / Float(expected.count)).squareRoot()
     #expect(microbatches == 2)
     #expect(peak > 1, "peak=\(peak)")
     #expect(maxError <= Tolerance.quantInt4 * peak, "maxError=\(maxError) peak=\(peak)")
