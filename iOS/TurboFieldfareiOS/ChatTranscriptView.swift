@@ -68,6 +68,7 @@ struct ChatTranscriptView: View {
                 .padding(.bottom, 8)
             }
             .scrollDismissesKeyboard(.interactively)
+            .gesture(KeyboardDismissTap())
             // A new run is pinned to the bottom and held there until the reader
             // takes over. `TranscriptScrollFollow` owns that decision; only the
             // signal differs from the Mac's. The Mac has to infer a reader
@@ -346,5 +347,77 @@ private struct CopyResponseButton: View {
         .sensoryFeedback(.success, trigger: copied) { _, new in new }
         .accessibilityLabel(copied ? "Copied" : "Copy answer")
         .padding(.leading, -8)
+    }
+}
+
+/// Puts the keyboard away on a tap anywhere in the conversation, as soon as
+/// the finger lifts.
+///
+/// Without it, a tap on empty space left the keyboard up, and a tap on an
+/// answer put it away only by accident and late: the answer's `UITextView`
+/// took first responder from the message box through its own single-tap
+/// recognizer, which waits for a double tap to fail first, and on the
+/// Simulator the keyboard began to hide 0.7–0.8 s after the tap. This one has
+/// no double tap to wait for. It recognizes alongside the scroll view and the
+/// text views rather than instead of them, so scrolling, selection and links
+/// behave as before, and a tap that becomes a scroll is not a tap.
+///
+/// It acts only while the keyboard is up. With it down, the first responder
+/// is an answer the reader is selecting in, and resigning it would take the
+/// selection away.
+private struct KeyboardDismissTap: UIGestureRecognizerRepresentable {
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIGestureRecognizer(context: Context) -> UITapGestureRecognizer {
+        let tap = UITapGestureRecognizer()
+        tap.cancelsTouchesInView = false
+        tap.delegate = context.coordinator
+        return tap
+    }
+
+    func handleUIGestureRecognizerAction(_ recognizer: UITapGestureRecognizer,
+                                         context: Context) {
+        guard recognizer.state == .ended else { return }
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                                        to: nil, from: nil, for: nil)
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        private(set) var isKeyboardShown = false
+        // Written once, in `init`, and read again only in `deinit`.
+        private nonisolated(unsafe) var observers: [NSObjectProtocol] = []
+
+        override init() {
+            super.init()
+            let center = NotificationCenter.default
+            observers = [
+                center.addObserver(forName: UIResponder.keyboardWillShowNotification,
+                                   object: nil, queue: .main) { [weak self] _ in
+                    MainActor.assumeIsolated { self?.isKeyboardShown = true }
+                },
+                center.addObserver(forName: UIResponder.keyboardWillHideNotification,
+                                   object: nil, queue: .main) { [weak self] _ in
+                    MainActor.assumeIsolated { self?.isKeyboardShown = false }
+                },
+            ]
+        }
+
+        deinit {
+            for observer in observers {
+                NotificationCenter.default.removeObserver(observer)
+            }
+        }
+
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            isKeyboardShown
+        }
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
+        ) -> Bool { true }
     }
 }
