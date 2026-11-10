@@ -258,6 +258,20 @@ import TurboFieldfare
         #expect(ten.runSettings.expertCacheSlots == 24)
     }
 
+    /// A run fails when the runtime reports other settings than it asked
+    /// for, so every sweep run's request must match what the runtime itself
+    /// says, or a 12 GB phone loses the sweep's runs to a naming mismatch.
+    @Test func everySweepRunAsksForWhatTheRuntimeWillReport() throws {
+        for configuration in BenchmarkSweep.configurations + [.standard] {
+            let policy = try ExpertSkipPolicy(
+                environment: [:], missThresholdByDefault: configuration.expertSkipMissThreshold)
+            #expect(policy?.description == configuration.expertSkipDescription,
+                    "\(configuration.label)")
+            #expect(RuntimeConfiguration.allowedExpertCacheSlots
+                .contains(configuration.expertCacheSlots), "\(configuration.label)")
+        }
+    }
+
     @Test func theListGathersASweepUnderItsFirstRunNewestFirst() {
         let key = UUID().uuidString
         func tag(_ index: Int) -> BenchmarkReport.Sweep {
