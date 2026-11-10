@@ -167,7 +167,9 @@ You can help with that:
 
 - **Run the benchmark** (Settings › Models › Benchmark) and tap **Send**. It takes
   about 10–15 minutes and gives a baseline for your phone. Results from
-  iPhones other than the iPhone 17 are the most useful.
+  iPhones other than the iPhone 17 are the most useful. On an iPhone with
+  12 GB of memory, **Run Settings Sweep** there too: about 80 minutes on a
+  charger, and it shows whether more expert slots help that phone.
 - **Try the settings.** Change the expert slots (Settings › Memory) or the
   early reads (Settings › Expert reads), and watch the speed the chat shows
   while a reply is being written. If something is clearly faster on your

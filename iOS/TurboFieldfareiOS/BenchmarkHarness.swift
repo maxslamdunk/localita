@@ -271,6 +271,13 @@ struct HarnessSettings {
     /// run at the old value while the runtime claimed otherwise — which is
     /// exactly the drift the constant exists to prevent.
     var expertCacheSlots = RuntimeConfiguration.productionExpertCacheSlots
+    /// The `miss:<t>` expert-skip threshold, nil for off; the production
+    /// default unless the in-app sweep sets it. `--expert-skip` still
+    /// overrides it, through the environment.
+    var expertSkipMissThreshold = RuntimeConfiguration.productionExpertSkipMissThreshold
+    /// Early expert reads per layer, 0 for off. `--early-expert-read` and
+    /// `--early-expert-reads` still override it, through the environment.
+    var earlyExpertReads = 1
     var temperature: Float = 0.2
     var topK = 64
     var topP: Float = 0.95
@@ -501,6 +508,13 @@ struct HarnessCaseOutcome {
     let footprintBytes: UInt64
     let peakFootprintBytes: UInt64
     let availableMemoryBytes: Int
+    /// What the runner actually ran, which the launch environment can make
+    /// differ from what `HarnessSettings` asked for.
+    let expertCacheSlots: Int
+    /// `ExpertSkipPolicy`'s description, such as `miss:0.08`; nil for off.
+    let expertSkip: String?
+    /// Per layer, 0 when the early read is off.
+    let earlyExpertReads: Int
 }
 
 /// Where a run is, for a screen that shows it.
@@ -680,7 +694,10 @@ final class Harness: ObservableObject {
                 expertCacheSlots: settings.expertCacheSlots,
                 prefillChunkTokens: chunkTokens,
                 // A sampling config cannot use the fused head's GPU argmax.
-                forceLogitsHead: !config.isPureGreedy)
+                forceLogitsHead: !config.isPureGreedy,
+                earlyExpertRead: settings.earlyExpertReads > 0,
+                earlyExpertReadsPerLayer: max(1, settings.earlyExpertReads),
+                expertSkipMissThreshold: settings.expertSkipMissThreshold)
         }
         let runtime = runtimeConfiguration(chunkTokens: cases[0].chunkTokens)
 
@@ -831,7 +848,10 @@ final class Harness: ObservableObject {
                 generatedSHA256: generatedSHA256, thermalAtStart: thermalAtStart,
                 thermalAtEnd: DeviceState.thermal(),
                 footprintBytes: Mem.footprint(), peakFootprintBytes: Mem.peak(),
-                availableMemoryBytes: Mem.available()))
+                availableMemoryBytes: Mem.available(),
+                expertCacheSlots: runtime.expertCacheSlots,
+                expertSkip: runner.expertSkipDescription,
+                earlyExpertReads: runner.earlyExpertReadsPerLayer))
         }
         if let session {
             emit("session-done", "cases=\(session.count)")

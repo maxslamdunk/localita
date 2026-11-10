@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 @testable import TurboFieldfareAppCore
+import TurboFieldfare
 
 @Suite struct BenchmarkReportTests {
     private func tempRoot() -> URL {
@@ -16,8 +17,7 @@ import Testing
                           thermalAtStart: "nominal", batteryAtStart: "80%/charging",
                           lowPowerModeAtStart: false),
             model: .init(name: "Gemma 4", folder: "gemma4.gturbo", manifestSHA256: "ab"),
-            settings: .init(maxContext: 4096, maxNewTokens: 1024, expertCacheSlots: 24,
-                            temperature: 0.2, topK: 64, topP: 0.95, seed: 1),
+            settings: BenchmarkConfiguration.standard.runSettings,
             plannedCases: BenchmarkProtocol.caseIDs)
     }
 
@@ -70,7 +70,7 @@ import Testing
         #expect(store.list().map(\.started) == [newer, older])
     }
 
-    @Test func sharedFilesPutTheReportFirstAndDeleteRemovesTheRun() throws {
+    @Test func deleteRemovesTheRunAndItsLogs() throws {
         let store = BenchmarkStore(root: tempRoot())
         defer { try? FileManager.default.removeItem(at: store.root) }
         let started = Date(timeIntervalSince1970: 1_800_000_000)
@@ -79,10 +79,9 @@ import Testing
         try Data().write(to: folder.appendingPathComponent("a-short.log"))
         try store.save(report(id: id, started: started))
 
-        #expect(store.files(for: id).map(\.lastPathComponent)
-            == [BenchmarkStore.reportFileName, "a-short.log"])
         try store.delete(id)
         #expect(store.list().isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: folder.path))
     }
 
     /// A report written before format 2 still lists, with the new fields nil.
@@ -98,7 +97,7 @@ import Testing
         let url = folder.appendingPathComponent(BenchmarkStore.reportFileName)
         var root = try #require(
             JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
-        #expect(root["format"] as? Int == 2)
+        #expect(root["format"] as? Int == 3)
         root["format"] = 1
         root["submissionID"] = nil
         try JSONSerialization.data(withJSONObject: root).write(to: url)
@@ -111,19 +110,24 @@ import Testing
     }
 
     /// The results Worker refuses any field it does not know, so the app must
-    /// write exactly the fields of its fixture: decoding that file and
-    /// encoding it again gives the same JSON.
-    @Test func theWorkersFixtureIsWhatTheAppWrites() throws {
+    /// write exactly the fields of its fixtures: decoding each file and
+    /// encoding it again gives the same JSON. Format 2 matters too, because a
+    /// run made before an update is sent after it as it was written.
+    @Test(arguments: [2, 3])
+    func theWorkersFixtureIsWhatTheAppWrites(format: Int) throws {
         let url = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appendingPathComponent("server/benchmark-worker/test/fixtures/report-format2.json")
+            .appendingPathComponent(
+                "server/benchmark-worker/test/fixtures/report-format\(format).json")
         let data = try Data(contentsOf: url)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let report = try decoder.decode(BenchmarkReport.self, from: data)
-        #expect(report.format == BenchmarkReport.currentFormat)
+        #expect(report.format == format)
+        #expect(BenchmarkSubmission.canSend(report))
+        #expect((report.sweep != nil) == (format == 3))
 
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -131,6 +135,11 @@ import Testing
         let written = try JSONSerialization.jsonObject(with: encoder.encode(report))
             as? NSDictionary
         #expect(written == fixture)
+    }
+
+    @Test func theCurrentFormatIsTheNewestTheWorkerTakes() {
+        #expect(BenchmarkReport.currentFormat == 3)
+        #expect(BenchmarkSubmission.sendableFormats.last == BenchmarkReport.currentFormat)
     }
 
     @Test func eachRunGetsItsOwnSubmissionID() {
@@ -177,6 +186,95 @@ import Testing
         #expect(C.isDone(elapsed: 200, runStart: .fair, now: .fair))
         #expect(C.isDone(elapsed: 300, runStart: .nominal, now: .serious))
     }
+
+    /// Between a sweep's runs: three minutes at least, ten at most.
+    @Test func theSweepsPauseUsesItsOwnBounds() {
+        typealias C = BenchmarkCooldown
+        let bounds = (min: BenchmarkSweep.pauseMinimum, max: BenchmarkSweep.pauseMaximum)
+        #expect(!C.isDone(elapsed: 120, runStart: .nominal, now: .nominal,
+                          minimum: bounds.min, maximum: bounds.max))
+        #expect(C.isDone(elapsed: 180, runStart: .nominal, now: .nominal,
+                         minimum: bounds.min, maximum: bounds.max))
+        #expect(!C.isDone(elapsed: 400, runStart: .nominal, now: .fair,
+                          minimum: bounds.min, maximum: bounds.max))
+        #expect(C.isDone(elapsed: 600, runStart: .nominal, now: .serious,
+                         minimum: bounds.min, maximum: bounds.max))
+    }
+}
+
+@Suite struct BenchmarkSweepTests {
+    private func run(_ id: String, started: TimeInterval,
+                     sweep: BenchmarkReport.Sweep? = nil) -> BenchmarkReport {
+        BenchmarkReport(
+            id: id, started: Date(timeIntervalSince1970: started),
+            device: .init(identifier: "iPhone19,2", physicalMemoryBytes: 12_195_266_560,
+                          osVersion: "27.2", appVersion: "1.0 (6)",
+                          thermalAtStart: "nominal", batteryAtStart: "85%/charging",
+                          lowPowerModeAtStart: false),
+            model: .init(name: "Gemma 4", folder: "gemma4.gturbo", manifestSHA256: nil),
+            settings: BenchmarkConfiguration.standard.runSettings,
+            plannedCases: BenchmarkProtocol.caseIDs, sweep: sweep)
+    }
+
+    /// The grid of the predictions file, slot count alternating, and the
+    /// default first and last.
+    @Test func theSweepIsTheGridWithTheDefaultFirstAndLast() {
+        let runs = BenchmarkSweep.configurations
+        #expect(runs.count == 7)
+        #expect(runs.first == runs.last)
+        #expect(runs.first?.expertCacheSlots == 24)
+        #expect(runs.first?.expertSkipThreshold == 0.08)
+        let grid = Set(runs.map { "\($0.expertCacheSlots)/\($0.expertSkipThreshold)" })
+        #expect(grid == ["24/0.0", "24/0.08", "24/0.1", "32/0.0", "32/0.08", "32/0.1"])
+        for (a, b) in zip(runs, runs.dropFirst()) {
+            #expect(a.expertCacheSlots != b.expertCacheSlots)
+        }
+        #expect(runs.allSatisfy { $0.earlyExpertReads == 1 })
+        #expect(runs.allSatisfy {
+            RuntimeConfiguration.allowedExpertCacheSlots.contains($0.expertCacheSlots)
+        })
+    }
+
+    @Test func onlyTwelveGigabytePhonesAreOfferedIt() {
+        #expect(!BenchmarkSweep.isOffered(physicalMemoryBytes: 8_044_216_320))
+        #expect(BenchmarkSweep.isOffered(physicalMemoryBytes: 12_195_266_560))
+        #expect(BenchmarkSweep.isOffered(physicalMemoryBytes: 12_290_424_832))
+    }
+
+    /// What a run asks the runtime for, in the runtime's own words, so the
+    /// run can check what it got.
+    @Test func aConfigurationNamesItsSkipAsTheRuntimeDoes() {
+        let off = BenchmarkConfiguration(expertCacheSlots: 32, expertSkipThreshold: 0,
+                                         earlyExpertReads: 1)
+        #expect(off.expertSkipMissThreshold == nil)
+        #expect(off.expertSkipDescription == nil)
+        #expect(off.label == "32 slots · skip off")
+        let ten = BenchmarkConfiguration(expertCacheSlots: 24, expertSkipThreshold: 0.10,
+                                         earlyExpertReads: 1)
+        #expect(ten.expertSkipDescription == "miss:0.1")
+        #expect(ten.label == "24 slots · skip 0.10")
+        #expect(ten.runSettings.expertSkipThreshold == 0.1)
+        #expect(ten.runSettings.earlyExpertReads == 1)
+        #expect(ten.runSettings.expertCacheSlots == 24)
+    }
+
+    @Test func theListGathersASweepUnderItsFirstRunNewestFirst() {
+        let key = UUID().uuidString
+        func tag(_ index: Int) -> BenchmarkReport.Sweep {
+            .init(id: "s1", index: index, count: 3, submissionID: key)
+        }
+        // Newest first, as `BenchmarkStore.list` gives them.
+        let reports = [
+            run("later", started: 5_000),
+            run("s3", started: 3_000, sweep: tag(3)),
+            run("s2", started: 2_000, sweep: tag(2)),
+            run("s1", started: 1_000, sweep: tag(1)),
+            run("earlier", started: 500),
+        ]
+        let entries = BenchmarkListEntry.group(reports)
+        #expect(entries.map(\.id) == ["later", "sweep-s1", "earlier"])
+        #expect(entries[1].reports.map(\.id) == ["s1", "s2", "s3"])
+    }
 }
 
 /// Answers every request with one status and body, and keeps the last request.
@@ -222,8 +320,7 @@ private final class StubResultsProtocol: URLProtocol {
                           thermalAtStart: "nominal", batteryAtStart: "90%/charging",
                           lowPowerModeAtStart: false),
             model: .init(name: "Gemma 4", folder: "gemma4.gturbo", manifestSHA256: nil),
-            settings: .init(maxContext: 4096, maxNewTokens: 1024, expertCacheSlots: 24,
-                            temperature: 0.2, topK: 64, topP: 0.95, seed: 1),
+            settings: BenchmarkConfiguration.standard.runSettings,
             plannedCases: BenchmarkProtocol.caseIDs)
         report.outcome = .completed
         return report
@@ -247,8 +344,10 @@ private final class StubResultsProtocol: URLProtocol {
         #expect(String(decoding: payload, as: UTF8.self).contains("\"90%/charging\""))
     }
 
-    @Test func onlyTheCurrentFormatCanBeSent() {
+    @Test func formatsTwoAndThreeCanBeSentButNotOne() {
         var old = report()
+        #expect(BenchmarkSubmission.canSend(old))
+        old.format = 2
         #expect(BenchmarkSubmission.canSend(old))
         old.format = 1
         #expect(!BenchmarkSubmission.canSend(old))

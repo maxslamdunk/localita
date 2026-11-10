@@ -1,4 +1,5 @@
 import Foundation
+import TurboFieldfareAppCore
 
 /// Whether this iPhone has less memory than the one phone the app has been
 /// tested on, said beside the download so nobody spends 15 GB to find out.
@@ -14,6 +15,12 @@ enum DeviceMemory {
 
     /// Below every 8 GB iPhone and above every 6 GB one.
     static let isBelowTested = bytes < 7_000_000_000
+
+    /// Whether Settings offers 32 expert slots and the Benchmark offers the
+    /// settings sweep, which runs at 32: 12 GB phones, which report about
+    /// 12.2–12.3 billion bytes. On an 8 GB iPhone 17, 32 slots left no room
+    /// for the photo picker and, with the early read, was slower than 24.
+    static let offersLargeExpertCache = BenchmarkSweep.isOffered(physicalMemoryBytes: bytes)
 
     static var warning: String? {
         guard isBelowTested else { return nil }

@@ -7,7 +7,7 @@
 // The app's display name, as `INFOPLIST_KEY_CFBundleDisplayName` sets it.
 export const APP_NAME = "Localita";
 
-export const PRIVACY_EFFECTIVE = "16 October 2026";
+export const PRIVACY_EFFECTIVE = "10 November 2026";
 
 export const PRIVACY_HTML = `<!doctype html>
 <html lang="en">
@@ -61,9 +61,10 @@ See
 <a href="https://huggingface.co/privacy">Hugging Face's privacy policy</a>.</p>
 
 <p><strong>2. Sending a benchmark result, only if you choose to.</strong> Nothing
-is sent unless you open a finished benchmark run, choose
-<em>Send to the Project</em>, and tap <em>Send</em>. That screen shows the report
-in full before it goes. A report contains:</p>
+is sent unless you open a finished benchmark run or settings sweep, choose
+<em>Send to the Project</em>, and tap <em>Send</em>. That screen shows each report
+in full before it goes; a settings sweep sends one report per run. A report
+contains:</p>
 <ul>
   <li>the iPhone's model identifier (such as “iPhone18,3”) and its memory size;</li>
   <li>the iOS and app versions;</li>
@@ -71,12 +72,13 @@ in full before it goes. A report contains:</p>
   any file locations removed;</li>
   <li>battery level and charging state, Low Power Mode, and the phone's thermal
   state when each benchmark prompt ran;</li>
-  <li>the model's name and a fingerprint of its files, and the benchmark's
-  settings;</li>
+  <li>the model's name and a fingerprint of its files, and the settings the run
+  used, such as how many experts it kept in memory;</li>
   <li>speed, timing and memory figures for each benchmark prompt, and a
   fingerprint of the text the model generated from the benchmark's fixed
   prompts;</li>
-  <li>a random report ID, made for that run.</li>
+  <li>a random report ID, made for that run, and, for a run of a settings sweep,
+  which run it was and a second random ID shared by the sweep's runs.</li>
 </ul>
 <p>A report never contains your chats, your name, an account, or an identifier
 of your iPhone.</p>
@@ -87,7 +89,7 @@ The server uses your IP address only to limit how
 many reports one network can send per minute; it does not store or log it.
 Cloudflare processes the request as the hosting provider (see
 <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's privacy policy</a>).
-Accepted reports, without their report ID, are published in the project's public
+Accepted reports, without their random IDs, are published in the project's public
 source repository, so that anyone can compare how iPhones run the model.</p>
 
 <p><strong>Apple's own reports.</strong> If you allow it in your iPhone's settings
@@ -101,9 +103,10 @@ feedback you send. The app adds nothing to these.</p>
 <p>Results are kept for as long as the project publishes benchmark results.
 Because a report holds nothing that identifies you, the developer cannot tell
 which results are yours. After you send a run, its result screen shows its report
-ID. Only your iPhone and the database hold that ID; it is never published, so
-only you can ask for that result's removal. Email the ID to the address below and
-the result will be deleted from the database and left out of every later
+ID; after you send a settings sweep, its screen shows one ID for all its runs.
+Only your iPhone and the database hold these IDs; they are never published, so
+only you can ask for those results' removal. Email the ID to the address below and
+the results will be deleted from the database and left out of every later
 publication. Copies already published remain
 in the repository's history.</p>
 <p>Deleting chats or benchmark runs in the app, or deleting the app, removes them

@@ -54,14 +54,14 @@ struct SettingsView: View {
     /// Context sizes this phone may offer. See the type comment.
     static let contextOptions: [AppContextLengthOption] = [.fourK, .eightK]
 
-    /// Slot counts measured on this phone, with what each measured. The
-    /// throughput is the 2026-09-16 short case at 4K. It says how the options
-    /// compare, not what any given chat will reach.
+    /// Slot counts this phone offers, with what each costs in memory against
+    /// the default. No speeds: the only measured ones are an iPhone 17's from
+    /// 2026-09-16, before the early read, and with it 32 slots was slower than
+    /// 24 there. 32 is offered only on 12 GB phones (`DeviceMemory`).
     static let slotOptions: [(slots: Int, label: String)] = [
-        (16, "16 · about 4.4 tok/s · −0.8 GB"),
-        (24, "24 · about 6.0 tok/s · default"),
-        (32, "32 · about 7.0 tok/s · +0.8 GB"),
-    ]
+        (16, "16 · −0.8 GB"),
+        (24, "24 · default"),
+    ] + (DeviceMemory.offersLargeExpertCache ? [(32, "32 · +0.8 GB")] : [])
 
     var body: some View {
         // One stack around both tabs, not one per tab: with a bar per tab,

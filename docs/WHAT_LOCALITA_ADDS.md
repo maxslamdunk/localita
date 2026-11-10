@@ -96,7 +96,8 @@ faster on the Mac but 15–26% slower on the phone, because one read already
 fills the phone's idle storage time
 ([`…-10-08-ios-early-read-x2`](../results/benchmark-results-2026-10-08-ios-early-read-x2/results.md)).
 32 expert slots were faster than 24 but left the phone too little memory for
-the system photo picker.
+the system photo picker. That was before the early read; with it, 32 was
+slower on the iPhone 17, so since 2026-11-10 only 12 GB phones offer 32.
 
 ### 3. Measuring it
 

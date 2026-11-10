@@ -52,9 +52,16 @@ npx wrangler d1 execute turbo-fieldfare-bench --remote \
   --command "DELETE FROM submissions WHERE submission_id = '<report ID>'"
 ```
 
+A settings sweep's screen shows one ID for all its runs, its `sweep.submissionID`:
+
+```bash
+npx wrangler d1 execute turbo-fieldfare-bench --remote \
+  --command "DELETE FROM submissions WHERE json_extract(report, '$.sweep.submissionID') = '<sweep ID>'"
+```
+
 ## Export
 
 `./export.sh` writes every stored result to `benchmark-submissions/submissions.jsonl` at the
 repo root, one `{"receivedAt", "report"}` object per line, oldest first, without each
-report's `submissionID` (the removal key; see the privacy page). Review it and
+report's `submissionID` or `sweep.submissionID` (the removal keys; see the privacy page). Review it and
 commit it.

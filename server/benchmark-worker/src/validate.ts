@@ -1,6 +1,7 @@
 // What the Worker accepts: a `BenchmarkReport` as the app writes it, format 2
-// (`Sources/TurboFieldfareApp/Core/Benchmark/BenchmarkReport.swift`), run
-// under `BenchmarkProtocol`. Keys the app does not write are refused at every
+// or 3 (`Sources/TurboFieldfareApp/Core/Benchmark/BenchmarkReport.swift`), run
+// under `BenchmarkProtocol`. Format 3 adds the skip threshold and early reads
+// to `settings`, and `sweep` for a run of the settings sweep (`BenchmarkSweep`). Keys the app does not write are refused at every
 // level, so a stored row holds exactly the known fields and nothing smuggled
 // beside them. The ranges only keep out what no phone could have produced;
 // they cannot tell a believable invented run from a real one.
@@ -13,7 +14,11 @@ export const CASES: ReadonlyArray<readonly [string, string]> = [
   ["long-synthesis", "b12e4a71493ad151d7a85b91e878ba784b116ef65de9fcb1b1b1c05198b537b8"],
 ];
 
-export const FORMAT = 2;
+/// Format 2 stays accepted: apps from before format 3 keep sending it.
+export const FORMATS = [2, 3];
+/// The skip thresholds and early-read counts the app can run.
+const SKIP_THRESHOLDS = [0, 0.08, 0.1];
+const EARLY_READS = [0, 1, 2];
 /// A real report is about 9 KB.
 export const MAX_BODY_BYTES = 64 * 1024;
 
@@ -105,11 +110,17 @@ export interface Accepted {
 
 /// Throws `Invalid` naming the first field that fails.
 export function validateReport(value: unknown, now: Date): Accepted {
+  const top = fields(value, "report", ["format"], [
+    "id", "submissionID", "started", "outcome", "device", "model", "settings",
+    "plannedCases", "cases", "finished", "sweep"]);
+  if (typeof top.format !== "number" || !FORMATS.includes(top.format)) {
+    throw new Invalid("report.format", `expected one of ${FORMATS.join(", ")}`);
+  }
+  const format = top.format;
   const report = fields(value, "report",
     ["format", "id", "submissionID", "started", "outcome", "device", "model",
      "settings", "plannedCases", "cases"],
-    ["finished"]);
-  exactly(report.format, "report.format", FORMAT);
+    format >= 3 ? ["finished", "sweep"] : ["finished"]);
   const submissionID = text(report.submissionID, "report.submissionID", UUID);
   text(report.id, "report.id", /^[0-9A-Za-z+-]{1,64}$/);
   const started = date(report.started, "report.started", now);
@@ -152,8 +163,10 @@ export function validateReport(value: unknown, now: Date): Accepted {
     text(model.manifestSHA256, "report.model.manifestSHA256", HEX64);
   }
 
+  const settingsKeys = ["maxContext", "maxNewTokens", "expertCacheSlots", "temperature",
+                        "topK", "topP", "seed"];
   const settings = fields(report.settings, "report.settings",
-    ["maxContext", "maxNewTokens", "expertCacheSlots", "temperature", "topK", "topP", "seed"]);
+    format >= 3 ? [...settingsKeys, "expertSkipThreshold", "earlyExpertReads"] : settingsKeys);
   exactly(settings.maxContext, "report.settings.maxContext", 4096);
   exactly(settings.maxNewTokens, "report.settings.maxNewTokens", 1024);
   exactly(settings.temperature, "report.settings.temperature", 0.2);
@@ -163,6 +176,24 @@ export function validateReport(value: unknown, now: Date): Accepted {
   // Not fixed: the slot count is a per-device default, and finding the best
   // one per device is part of what results are for.
   integer(settings.expertCacheSlots, "report.settings.expertCacheSlots", 8, 64);
+  if (format >= 3) {
+    if (!SKIP_THRESHOLDS.includes(settings.expertSkipThreshold as number)) {
+      throw new Invalid("report.settings.expertSkipThreshold",
+                        `expected one of ${SKIP_THRESHOLDS.join(", ")}`);
+    }
+    if (!EARLY_READS.includes(settings.earlyExpertReads as number)) {
+      throw new Invalid("report.settings.earlyExpertReads",
+                        `expected one of ${EARLY_READS.join(", ")}`);
+    }
+  }
+  if (report.sweep !== undefined) {
+    const sweep = fields(report.sweep, "report.sweep",
+                         ["id", "index", "count", "submissionID"]);
+    text(sweep.id, "report.sweep.id", /^[0-9A-Za-z+-]{1,64}$/);
+    const count = integer(sweep.count, "report.sweep.count", 1, 16);
+    integer(sweep.index, "report.sweep.index", 1, count);
+    text(sweep.submissionID, "report.sweep.submissionID", UUID);
+  }
 
   const planned = report.plannedCases;
   if (!Array.isArray(planned) || planned.length !== CASES.length
@@ -179,7 +210,7 @@ export function validateReport(value: unknown, now: Date): Accepted {
   }
   cases.forEach((entry, i) => validateCase(entry, `report.cases[${i}]`, CASES[i]));
 
-  return { submissionID: submissionID.toUpperCase(), format: FORMAT, device: identifier,
+  return { submissionID: submissionID.toUpperCase(), format, device: identifier,
            appVersion, outcome: kind };
 }
 

@@ -9,9 +9,9 @@ const now = new Date("2026-10-13T18:00:00Z");
 /// The first in-app run (2026-10-13) as format 2, its footers and memory
 /// figures taken from its logs. The Swift tests decode the same file, so the
 /// app and the Worker agree on its fields.
-function fixture(): any {
-  return JSON.parse(readFileSync(new URL("fixtures/report-format2.json", import.meta.url),
-                                 "utf8"));
+function fixture(format: 2 | 3 = 2): any {
+  return JSON.parse(readFileSync(new URL(`fixtures/report-format${format}.json`,
+                                         import.meta.url), "utf8"));
 }
 
 function rejects(report: unknown, field: string): void {
@@ -107,4 +107,51 @@ test("the slot count may vary, within reason", () => {
   validateReport(slots, now);
   slots.settings.expertCacheSlots = 1000;
   rejects(slots, "report.settings.expertCacheSlots");
+});
+
+/// The same run as format 3, made the fourth of a seven-run settings sweep.
+test("a format 3 sweep run passes, and format 2 still does", () => {
+  assert.equal(validateReport(fixture(3), now).format, 3);
+  assert.equal(validateReport(fixture(2), now).format, 2);
+});
+
+test("format 3 records skipping and early reads, and only the values the app runs", () => {
+  for (const threshold of [0, 0.08, 0.1]) {
+    const report = fixture(3);
+    report.settings.expertSkipThreshold = threshold;
+    validateReport(report, now);
+  }
+  const skip = fixture(3);
+  skip.settings.expertSkipThreshold = 0.5;
+  rejects(skip, "report.settings.expertSkipThreshold");
+  const early = fixture(3);
+  early.settings.earlyExpertReads = 8;
+  rejects(early, "report.settings.earlyExpertReads");
+  const missing = fixture(3);
+  delete missing.settings.earlyExpertReads;
+  rejects(missing, "report.settings.earlyExpertReads");
+});
+
+test("format 2 cannot carry format 3's fields", () => {
+  const settings = fixture(2);
+  settings.settings.expertSkipThreshold = 0.08;
+  rejects(settings, "report.settings.expertSkipThreshold");
+  const sweep = fixture(2);
+  sweep.sweep = fixture(3).sweep;
+  rejects(sweep, "report.sweep");
+});
+
+test("a sweep says which run it is, of how many", () => {
+  const past = fixture(3);
+  past.sweep.index = 8;
+  rejects(past, "report.sweep.index");
+  const id = fixture(3);
+  id.sweep.submissionID = "not-a-uuid";
+  rejects(id, "report.sweep.submissionID");
+  const extra = fixture(3);
+  extra.sweep.device = "x";
+  rejects(extra, "report.sweep.device");
+  const alone = fixture(3);
+  delete alone.sweep;
+  validateReport(alone, now);
 });

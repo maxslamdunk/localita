@@ -5,24 +5,37 @@ import TurboFieldfare
 import TurboFieldfareAppCore
 import UIKit
 
-/// The standard benchmark: the three frozen `real-generation-v1` cases at the
+/// The in-app benchmark: the three frozen `real-generation-v1` cases at the
 /// protocol's settings, each from a freshly loaded model, with a cooldown
-/// between them (`BenchmarkCooldown`). Each run gets a folder under
-/// `Documents/Benchmarks` holding its `report.json` and one log per case, so
-/// the person running it can open it in Files or share it as it is.
+/// between them (`BenchmarkCooldown`). A standard run is one pass at the
+/// defaults; a settings sweep (`BenchmarkSweep`, 12 GB phones only) is seven,
+/// each at its own settings, with a longer pause between them. Each pass gets
+/// a folder under `Documents/Benchmarks` holding its `report.json` and one log
+/// per case. A pass leaves the phone only when the person sends it.
 ///
 /// It is the `--autorun` harness driven from the screen, so a run here logs
 /// exactly what a `devicectl` run logs.
 @MainActor
 final class StandardBenchmark: ObservableObject {
+    enum Kind { case standard, sweep }
+
+    /// Which pass of how many, and at what settings; for a standard run, 1 of 1.
+    struct Pass: Equatable {
+        let index: Int
+        let count: Int
+        let configuration: BenchmarkConfiguration
+    }
+
     enum Stage: Equatable {
         case idle
-        case running(caseIndex: Int, HarnessProgress)
-        case cooling(caseIndex: Int, seconds: Int)
+        case running(Pass, caseIndex: Int, HarnessProgress)
+        case cooling(Pass, caseIndex: Int, seconds: Int)
+        /// Waiting before the next pass of a sweep.
+        case pausing(next: Pass, seconds: Int)
     }
 
     @Published private(set) var stage = Stage.idle
-    @Published private(set) var reports: [BenchmarkReport] = []
+    @Published private(set) var entries: [BenchmarkListEntry] = []
 
     let store = BenchmarkStore(root: FileManager.default
         .urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -42,21 +55,21 @@ final class StandardBenchmark: ObservableObject {
         progressSink = harness.$progress.receive(on: DispatchQueue.main).sink {
             [weak self] progress in
             MainActor.assumeIsolated {
-                guard let self, case .running(let index, _) = self.stage else { return }
-                self.stage = .running(caseIndex: index, progress)
+                guard let self, case .running(let pass, let index, _) = self.stage else { return }
+                self.stage = .running(pass, caseIndex: index, progress)
             }
         }
     }
 
     func refresh() {
-        reports = store.list()
+        entries = BenchmarkListEntry.group(store.list())
     }
 
-    func start(model: BenchmarkReport.ModelInfo, directory: URL) {
+    func start(_ kind: Kind, model: BenchmarkReport.ModelInfo, directory: URL) {
         guard task == nil else { return }
         stopReason = nil
         task = Task {
-            await run(model: model, directory: directory)
+            await run(kind, model: model, directory: directory)
             task = nil
             stage = .idle
             refresh()
@@ -70,25 +83,73 @@ final class StandardBenchmark: ObservableObject {
         task.cancel()
     }
 
-    func delete(_ report: BenchmarkReport) {
-        try? store.delete(report.id)
+    func delete(_ entry: BenchmarkListEntry) {
+        for report in entry.reports { try? store.delete(report.id) }
         refresh()
     }
 
-    private func run(model: BenchmarkReport.ModelInfo, directory: URL) async {
-        let started = Date()
-        let runStartThermal = ProcessInfo.processInfo.thermalState
-        guard let folder = try? store.makeRunFolder(started: started) else { return }
+    private func run(_ kind: Kind, model: BenchmarkReport.ModelInfo, directory: URL) async {
+        let configurations = kind == .standard
+            ? [BenchmarkConfiguration.standard] : BenchmarkSweep.configurations
+        // Every pass cools back to where the first began, so a sweep's later
+        // passes start no warmer than its first.
+        let startThermal = ProcessInfo.processInfo.thermalState
+        let sweepSubmissionID = UUID().uuidString
+        var sweepID: String?
+        for (index, configuration) in configurations.enumerated() {
+            let pass = Pass(index: index + 1, count: configurations.count,
+                            configuration: configuration)
+            if index > 0 {
+                guard await wait(minimum: BenchmarkSweep.pauseMinimum,
+                                 maximum: BenchmarkSweep.pauseMaximum,
+                                 from: startThermal,
+                                 stage: { .pausing(next: pass, seconds: $0) }) != nil
+                else { return }
+            }
+            let started = Date()
+            guard let folder = try? store.makeRunFolder(started: started) else { return }
+            let sweep = kind == .standard ? nil : BenchmarkReport.Sweep(
+                id: sweepID ?? folder.lastPathComponent, index: pass.index,
+                count: pass.count, submissionID: sweepSubmissionID)
+            sweepID = sweep?.id
+            let outcome = await runPass(pass, sweep: sweep, started: started, folder: folder,
+                                        startThermal: startThermal, model: model,
+                                        directory: directory)
+            guard outcome == .completed else { return }
+        }
+    }
+
+    /// Waits as `BenchmarkCooldown` says, showing the seconds through `stage`.
+    /// Returns how long it waited, or nil when the run was stopped meanwhile.
+    private func wait(minimum: TimeInterval, maximum: TimeInterval,
+                      from startThermal: ProcessInfo.ThermalState,
+                      stage: (Int) -> Stage) async -> TimeInterval? {
+        let began = Date()
+        while !BenchmarkCooldown.isDone(elapsed: Date().timeIntervalSince(began),
+                                        runStart: startThermal,
+                                        now: ProcessInfo.processInfo.thermalState,
+                                        minimum: minimum, maximum: maximum) {
+            self.stage = stage(Int(Date().timeIntervalSince(began)))
+            do {
+                try await Task.sleep(for: .seconds(1))
+            } catch {
+                return nil
+            }
+        }
+        return Date().timeIntervalSince(began)
+    }
+
+    /// One pass of the three cases at `pass.configuration`, written to its
+    /// own report. Returns the report's outcome.
+    private func runPass(_ pass: Pass, sweep: BenchmarkReport.Sweep?, started: Date,
+                         folder: URL, startThermal: ProcessInfo.ThermalState,
+                         model: BenchmarkReport.ModelInfo,
+                         directory: URL) async -> BenchmarkReport.Outcome {
+        let configuration = pass.configuration
         var report = BenchmarkReport(
             id: folder.lastPathComponent, started: started, device: Self.device(),
-            model: model,
-            settings: .init(maxContext: BenchmarkProtocol.maxContext,
-                            maxNewTokens: BenchmarkProtocol.maxNewTokens,
-                            expertCacheSlots: RuntimeConfiguration.productionExpertCacheSlots,
-                            temperature: BenchmarkProtocol.temperature,
-                            topK: BenchmarkProtocol.topK, topP: BenchmarkProtocol.topP,
-                            seed: BenchmarkProtocol.seed),
-            plannedCases: BenchmarkProtocol.caseIDs)
+            model: model, settings: configuration.runSettings,
+            plannedCases: BenchmarkProtocol.caseIDs, sweep: sweep)
         // Written before the first case, so a run the system kills still
         // leaves a report, marked as running.
         try? store.save(report)
@@ -100,23 +161,18 @@ final class StandardBenchmark: ObservableObject {
         for (index, caseID) in BenchmarkProtocol.caseIDs.enumerated() {
             var cooldown: TimeInterval = 0
             if index > 0 {
-                let began = Date()
-                while !BenchmarkCooldown.isDone(elapsed: Date().timeIntervalSince(began),
-                                                runStart: runStartThermal,
-                                                now: ProcessInfo.processInfo.thermalState) {
-                    stage = .cooling(caseIndex: index,
-                                     seconds: Int(Date().timeIntervalSince(began)))
-                    do {
-                        try await Task.sleep(for: .seconds(1))
-                    } catch {
-                        report.outcome = stopReason ?? .cancelled
-                        return
-                    }
+                guard let waited = await wait(
+                    minimum: BenchmarkCooldown.minimum, maximum: BenchmarkCooldown.maximum,
+                    from: startThermal,
+                    stage: { .cooling(pass, caseIndex: index, seconds: $0) })
+                else {
+                    report.outcome = stopReason ?? .cancelled
+                    return report.outcome
                 }
-                cooldown = Date().timeIntervalSince(began)
+                cooldown = waited
             }
 
-            stage = .running(caseIndex: index, .loading)
+            stage = .running(pass, caseIndex: index, .loading)
             var settings = HarnessSettings()
             settings.label = caseID
             settings.caseID = caseID
@@ -127,11 +183,25 @@ final class StandardBenchmark: ObservableObject {
             settings.topK = BenchmarkProtocol.topK
             settings.topP = BenchmarkProtocol.topP
             settings.seed = BenchmarkProtocol.seed
+            settings.expertCacheSlots = configuration.expertCacheSlots
+            settings.expertSkipMissThreshold = configuration.expertSkipMissThreshold
+            settings.earlyExpertReads = configuration.earlyExpertReads
             switch await harness.logged(settings: settings, logDirectory: folder) {
             case .success(let result):
                 guard let outcome = result.cases.first else {
                     report.outcome = .failed("the case produced no result")
-                    return
+                    return report.outcome
+                }
+                // A report says what it ran at, so a run that got anything
+                // else is a failure, not a result under the wrong label.
+                guard outcome.expertCacheSlots == configuration.expertCacheSlots,
+                      outcome.expertSkip == configuration.expertSkipDescription,
+                      outcome.earlyExpertReads == configuration.earlyExpertReads else {
+                    report.outcome = .failed(
+                        "asked for \(configuration.label) but ran "
+                        + "\(outcome.expertCacheSlots) slots, skip \(outcome.expertSkip ?? "off"), "
+                        + "\(outcome.earlyExpertReads) early reads")
+                    return report.outcome
                 }
                 let stats = outcome.stats
                 report.cases.append(.init(
@@ -159,10 +229,11 @@ final class StandardBenchmark: ObservableObject {
                 report.outcome = stopReason
                     ?? (error is CancellationError ? .cancelled
                         : .failed(BenchmarkRedaction.redact(String(describing: error))))
-                return
+                return report.outcome
             }
         }
         report.outcome = .completed
+        return report.outcome
     }
 
     private static func device() -> BenchmarkReport.DeviceInfo {
@@ -207,20 +278,25 @@ struct BenchmarkView: View {
                 checklistSection
             }
             runSection
-            if !benchmark.reports.isEmpty {
+            if !benchmark.entries.isEmpty {
                 Section("Results") {
-                    ForEach(benchmark.reports, id: \.id) { report in
+                    ForEach(benchmark.entries) { entry in
                         NavigationLink {
-                            BenchmarkResultView(report: report,
-                                                files: benchmark.store.files(for: report.id),
-                                                store: benchmark.store,
-                                                onSent: { benchmark.refresh() })
+                            switch entry {
+                            case .single(let report):
+                                BenchmarkResultView(report: report, store: benchmark.store,
+                                                    allowsSending: true,
+                                                    onSent: { benchmark.refresh() })
+                            case .sweep(_, let runs):
+                                BenchmarkSweepView(runs: runs, store: benchmark.store,
+                                                   onSent: { benchmark.refresh() })
+                            }
                         } label: {
-                            BenchmarkRow(report: report)
+                            BenchmarkRow(entry: entry)
                         }
                     }
                     .onDelete { offsets in
-                        for offset in offsets { benchmark.delete(benchmark.reports[offset]) }
+                        for offset in offsets { benchmark.delete(benchmark.entries[offset]) }
                     }
                     // Opening a result would take this screen away, and a
                     // run stops when it goes.
@@ -261,6 +337,9 @@ struct BenchmarkView: View {
         isLowPowerModeOn = ProcessInfo.processInfo.isLowPowerModeEnabled
     }
 
+    /// 12 GB phones only; see `BenchmarkSweep`.
+    private let offersSweep = DeviceMemory.offersLargeExpertCache
+
     private var introSection: some View {
         Section {
             VStack(alignment: .leading, spacing: 8) {
@@ -268,10 +347,10 @@ struct BenchmarkView: View {
                     .font(.headline)
                 Text("Every iPhone model runs \(benchmarked.shortName) a "
                      + "little differently. A benchmark measures how yours does, and "
-                     + "sharing the result shows what to tune for it.")
+                     + "sending the result shows what to tune for it.")
                 Text("Results hold only the iPhone model, the iOS version and speed "
-                     + "figures, never your chats. They stay on this iPhone until you "
-                     + "share them.")
+                     + "figures, never your chats. They stay on this iPhone unless you "
+                     + "send them.")
                     .foregroundStyle(.secondary)
             }
             .padding(.vertical, 4)
@@ -287,8 +366,10 @@ struct BenchmarkView: View {
             checklistRow("Low Power Mode off", systemImage: "battery.100percent",
                          met: !isLowPowerModeOn)
             checklistRow("Other apps closed", systemImage: "square.stack", met: nil)
-            checklistRow("10 to 15 minutes with the app open", systemImage: "clock",
-                         met: nil)
+            checklistRow(offersSweep
+                         ? "10 to 15 minutes with the app open, about 80 for the sweep"
+                         : "10 to 15 minutes with the app open",
+                         systemImage: "clock", met: nil)
         } header: {
             Text("Before you start")
         } footer: {
@@ -330,41 +411,65 @@ struct BenchmarkView: View {
         return nil
     }
 
+    private func start(_ kind: StandardBenchmark.Kind) {
+        benchmark.start(kind,
+                        model: StandardBenchmark.modelInfo(benchmarked, directory: directory),
+                        directory: directory)
+    }
+
     private var runSection: some View {
         Section {
             switch benchmark.stage {
             case .idle:
-                Button("Run Benchmark") {
-                    benchmark.start(
-                        model: StandardBenchmark.modelInfo(benchmarked,
-                                                           directory: directory),
-                        directory: directory)
+                Button("Run Benchmark") { start(.standard) }
+                    .disabled(blocker != nil)
+                if offersSweep {
+                    Button("Run Settings Sweep") { start(.sweep) }
+                        .disabled(blocker != nil)
                 }
-                .disabled(blocker != nil)
                 if let blocker {
                     Text(blocker).foregroundStyle(.secondary)
                 }
-            case .running(let index, let progress):
-                status(index: index, detail: Self.describe(progress))
+            case .running(let pass, let index, let progress):
+                status(pass, caseIndex: index, detail: Self.describe(progress))
                 stopButton
-            case .cooling(let index, let seconds):
-                status(index: index,
+            case .cooling(let pass, let index, let seconds):
+                status(pass, caseIndex: index,
                        detail: "Letting the iPhone cool down · \(seconds) s")
+                stopButton
+            case .pausing(let next, let seconds):
+                status(next, caseIndex: nil,
+                       detail: "Letting the iPhone cool down before this run · \(seconds) s")
                 stopButton
             }
         } footer: {
-            Text("Three fixed prompts, with a pause between them for the iPhone to "
-                 + "cool. Results are also in the Files app, in this app's "
-                 + "Benchmarks folder.")
+            if offersSweep {
+                Text("Three fixed prompts, with a pause between them for the iPhone to "
+                     + "cool. The settings sweep runs them seven times, at 24 and 32 "
+                     + "expert slots and three expert-skipping settings, to show which "
+                     + "suits this iPhone.")
+            } else {
+                Text("Three fixed prompts, with a pause between them for the iPhone to "
+                     + "cool.")
+            }
         }
     }
 
-    private func status(index: Int, detail: String) -> some View {
+    /// `caseIndex` is nil while waiting for the pass to begin.
+    private func status(_ pass: StandardBenchmark.Pass, caseIndex: Int?,
+                        detail: String) -> some View {
         HStack(spacing: 12) {
             ProgressView()
             VStack(alignment: .leading, spacing: 2) {
-                Text("Prompt \(index + 1) of \(BenchmarkProtocol.caseIDs.count) · "
-                     + BenchmarkRow.caseName(BenchmarkProtocol.caseIDs[index]))
+                if pass.count > 1 {
+                    Text("Run \(pass.index) of \(pass.count) · \(pass.configuration.label)")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                if let caseIndex {
+                    Text("Prompt \(caseIndex + 1) of \(BenchmarkProtocol.caseIDs.count) · "
+                         + BenchmarkRow.caseName(BenchmarkProtocol.caseIDs[caseIndex]))
+                }
                 Text(detail)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -386,14 +491,13 @@ struct BenchmarkView: View {
     }
 }
 
-/// One run in the list: when, which model, and its speed per case.
+/// One line in the list: a run, or a whole sweep.
 private struct BenchmarkRow: View {
-    let report: BenchmarkReport
+    let entry: BenchmarkListEntry
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("\(report.started.formatted(date: .abbreviated, time: .shortened)) · "
-                 + report.model.name)
+            Text(title)
             Text(summary)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -401,7 +505,28 @@ private struct BenchmarkRow: View {
         }
     }
 
+    private var title: String {
+        let when = entry.started.formatted(date: .abbreviated, time: .shortened)
+        switch entry {
+        case .single(let report): return "\(when) · \(report.model.name)"
+        case .sweep: return "\(when) · Settings sweep"
+        }
+    }
+
     private var summary: String {
+        switch entry {
+        case .single(let report):
+            return Self.summary(report)
+        case .sweep(_, let runs):
+            let count = runs.first?.sweep?.count ?? runs.count
+            let finished = runs.count == count && runs.last?.outcome == .completed
+            let sent = runs.allSatisfy { $0.sentAt != nil } ? " · Sent" : ""
+            return (finished ? "\(count) runs" : "Stopped after \(runs.count) of \(count) runs")
+                + sent
+        }
+    }
+
+    static func summary(_ report: BenchmarkReport) -> String {
         let speeds = report.cases
             .map { String(format: "%.2f", $0.tokensPerSecond) }
             .joined(separator: " · ")
@@ -424,28 +549,148 @@ private struct BenchmarkRow: View {
         default: return caseID
         }
     }
+
+    /// What a report ran at, from its own record. Format 2 did not record
+    /// skipping or early reads, so it says only the slots.
+    static func settingsLabel(_ settings: BenchmarkReport.RunSettings) -> String {
+        guard let skip = settings.expertSkipThreshold,
+              let early = settings.earlyExpertReads else {
+            return "\(settings.expertCacheSlots) slots"
+        }
+        return BenchmarkConfiguration(expertCacheSlots: settings.expertCacheSlots,
+                                      expertSkipThreshold: skip,
+                                      earlyExpertReads: early).label
+    }
 }
 
-/// One run's figures and conditions, with its files to share and, for a
-/// report in the current format, a way to send it to the project.
-private struct BenchmarkResultView: View {
-    @State private var report: BenchmarkReport
-    let files: [URL]
+/// A sweep's runs, in order, sent together.
+private struct BenchmarkSweepView: View {
+    @State private var runs: [BenchmarkReport]
     let store: BenchmarkStore
     let onSent: () -> Void
     @State private var isSending = false
+    /// The runs the open send sheet sends, fixed when it opens, so the list
+    /// does not shrink under it as each one is stored.
+    @State private var toSend: [BenchmarkReport] = []
 
-    init(report: BenchmarkReport, files: [URL], store: BenchmarkStore,
+    init(runs: [BenchmarkReport], store: BenchmarkStore, onSent: @escaping () -> Void) {
+        _runs = State(initialValue: runs)
+        self.store = store
+        self.onSent = onSent
+    }
+
+    private var unsent: [BenchmarkReport] {
+        runs.filter { $0.sentAt == nil && BenchmarkSubmission.canSend($0) }
+    }
+
+    var body: some View {
+        Form {
+            sendSection
+            Section {
+                ForEach(runs, id: \.id) { run in
+                    NavigationLink {
+                        BenchmarkResultView(report: run, store: store, allowsSending: false,
+                                            onSent: {})
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Run \(run.sweep?.index ?? 0) · "
+                                 + BenchmarkRow.settingsLabel(run.settings))
+                            Text(BenchmarkRow.summary(run))
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
+                    }
+                }
+            } header: {
+                Text("Runs")
+            } footer: {
+                Text("Writing speed for the short, medium and long prompts. The first "
+                     + "and last runs use the same settings, so they show how much two "
+                     + "runs differ by chance.")
+            }
+            if let first = runs.first {
+                Section("Conditions") {
+                    LabeledContent("Model", value: first.model.name)
+                    LabeledContent("Device", value: first.device.identifier)
+                    LabeledContent("Memory", value: ByteCountFormatter.string(
+                        fromByteCount: Int64(first.device.physicalMemoryBytes),
+                        countStyle: .memory))
+                    LabeledContent("iOS", value: first.device.osVersion)
+                    LabeledContent("App", value: first.device.appVersion)
+                    LabeledContent("Battery at start", value: first.device.batteryAtStart)
+                }
+            }
+        }
+        .navigationTitle("Settings Sweep")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $isSending) {
+            BenchmarkSendSheet(reports: toSend) { id, date in
+                try? store.markSent(id, at: date)
+                if let index = runs.firstIndex(where: { $0.id == id }) {
+                    runs[index].sentAt = date
+                }
+                onSent()
+            }
+        }
+    }
+
+    private var sendSection: some View {
+        Section {
+            if unsent.isEmpty, let sentAt = runs.compactMap(\.sentAt).max() {
+                LabeledContent("Sent", value: sentAt.formatted(date: .abbreviated,
+                                                               time: .shortened))
+                // One ID for the whole sweep, the only way to name it when
+                // asking for it to be removed.
+                if let submissionID = runs.first?.sweep?.submissionID {
+                    LabeledContent("Sweep ID") {
+                        Text(submissionID)
+                            .font(.caption.monospaced())
+                            .textSelection(.enabled)
+                    }
+                }
+                Link("Privacy Policy", destination: PrivacyPolicy.url)
+            } else if !unsent.isEmpty {
+                Button(unsent.count == runs.count
+                       ? "Send to the Project…"
+                       : "Send the Other \(unsent.count) Runs…") {
+                    toSend = unsent
+                    isSending = true
+                }
+            }
+        } footer: {
+            if unsent.isEmpty {
+                Text("To have this sweep removed, email its sweep ID to the address in "
+                     + "the privacy policy.")
+            } else {
+                Text("Sends one report per run. You see exactly what is sent before it "
+                     + "goes.")
+            }
+        }
+    }
+}
+
+/// One run's figures and conditions and, for a run of its own in a format the
+/// Worker takes, a way to send it to the project. A sweep's runs are sent
+/// from the sweep.
+private struct BenchmarkResultView: View {
+    @State private var report: BenchmarkReport
+    let store: BenchmarkStore
+    let allowsSending: Bool
+    let onSent: () -> Void
+    @State private var isSending = false
+
+    init(report: BenchmarkReport, store: BenchmarkStore, allowsSending: Bool,
          onSent: @escaping () -> Void) {
         _report = State(initialValue: report)
-        self.files = files
         self.store = store
+        self.allowsSending = allowsSending
         self.onSent = onSent
     }
 
     var body: some View {
         Form {
-            if BenchmarkSubmission.canSend(report) {
+            if allowsSending && BenchmarkSubmission.canSend(report) {
                 sendSection
             }
             Section {
@@ -470,6 +715,7 @@ private struct BenchmarkResultView: View {
             }
             Section("Conditions") {
                 LabeledContent("Model", value: report.model.name)
+                LabeledContent("Settings", value: BenchmarkRow.settingsLabel(report.settings))
                 LabeledContent("Device", value: report.device.identifier)
                 LabeledContent("Memory", value: ByteCountFormatter.string(
                     fromByteCount: Int64(report.device.physicalMemoryBytes), countStyle: .memory))
@@ -484,18 +730,10 @@ private struct BenchmarkResultView: View {
         .navigationTitle(report.started.formatted(date: .abbreviated, time: .shortened))
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $isSending) {
-            BenchmarkSendSheet(report: report) { date in
-                try? store.markSent(report.id, at: date)
+            BenchmarkSendSheet(reports: [report]) { id, date in
+                try? store.markSent(id, at: date)
                 report.sentAt = date
                 onSent()
-            }
-        }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                ShareLink(items: files) {
-                    Image(systemName: "square.and.arrow.up")
-                }
-                .disabled(files.isEmpty)
             }
         }
     }
@@ -530,41 +768,55 @@ private struct BenchmarkResultView: View {
     }
 }
 
-/// What sending a run shows: a summary, what the report holds and where it
-/// goes, and the report itself, byte for byte as it will be sent.
+/// What sending shows: a summary, what a report holds and where it goes, and
+/// each report itself, byte for byte as it will be sent. A sweep sends one
+/// report per run, in order, and a run already stored counts as sent.
 private struct BenchmarkSendSheet: View {
-    let report: BenchmarkReport
-    let onSent: (Date) -> Void
+    let reports: [BenchmarkReport]
+    /// Called once per report the Worker stored, with the report's `id`.
+    let onSent: (String, Date) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var sending = false
     @State private var problem: String?
+    @State private var stored: Set<String> = []
 
     private let endpoint = BenchmarkSubmission.defaultEndpoint
 
-    private var payload: String {
+    private func payload(_ report: BenchmarkReport) -> String {
         (try? BenchmarkSubmission.payload(for: report))
             .map { String(decoding: $0, as: UTF8.self) } ?? ""
     }
 
+    private var isSweep: Bool { reports.contains { $0.sweep != nil } }
+
     var body: some View {
         NavigationStack {
             Form {
-                Section("This run") {
-                    LabeledContent("iPhone", value: report.device.identifier)
-                    LabeledContent("iOS", value: report.device.osVersion)
-                    ForEach(report.cases, id: \.caseID) { result in
-                        LabeledContent(BenchmarkRow.caseName(result.caseID),
-                                       value: String(format: "%.2f tok/s",
-                                                     result.tokensPerSecond))
-                            .monospacedDigit()
+                Section(isSweep ? "This sweep" : "This run") {
+                    if let first = reports.first {
+                        LabeledContent("iPhone", value: first.device.identifier)
+                        LabeledContent("iOS", value: first.device.osVersion)
+                    }
+                    if isSweep {
+                        ForEach(reports, id: \.id) { report in
+                            LabeledContent("Run \(report.sweep?.index ?? 0)",
+                                           value: BenchmarkRow.settingsLabel(report.settings))
+                        }
+                    } else {
+                        ForEach(reports.first?.cases ?? [], id: \.caseID) { result in
+                            LabeledContent(BenchmarkRow.caseName(result.caseID),
+                                           value: String(format: "%.2f tok/s",
+                                                         result.tokensPerSecond))
+                                .monospacedDigit()
+                        }
                     }
                 }
                 Section {
                     Text("The iPhone model and its memory, the iOS and app versions, the "
-                         + "battery and heat when each prompt ran, and the run's speed and "
-                         + "memory figures. Never your chats, your name, an account, or "
-                         + "anything that identifies this iPhone.")
+                         + "settings each run used, the battery and heat when each prompt "
+                         + "ran, and the speed and memory figures. Never your chats, your "
+                         + "name, an account, or anything that identifies this iPhone.")
                     Text("Results are stored on Cloudflare for the \(AppName.display) project "
                          + "and published in its public GitHub repository.")
                         .foregroundStyle(.secondary)
@@ -573,12 +825,20 @@ private struct BenchmarkSendSheet: View {
                     Text("What is sent")
                 }
                 Section {
-                    DisclosureGroup("The report, as it will be sent") {
-                        ScrollView(.horizontal) {
-                            Text(payload)
-                                .font(.caption2.monospaced())
-                                .textSelection(.enabled)
-                                .fixedSize()
+                    DisclosureGroup(reports.count == 1
+                                    ? "The report, as it will be sent"
+                                    : "The \(reports.count) reports, as they will be sent") {
+                        ForEach(reports, id: \.id) { report in
+                            if reports.count > 1 {
+                                Text("Run \(report.sweep?.index ?? 0)")
+                                    .font(.caption.bold())
+                            }
+                            ScrollView(.horizontal) {
+                                Text(payload(report))
+                                    .font(.caption2.monospaced())
+                                    .textSelection(.enabled)
+                                    .fixedSize()
+                            }
                         }
                     }
                 }
@@ -606,7 +866,7 @@ private struct BenchmarkSendSheet: View {
                         ProgressView()
                     } else {
                         Button("Send") { send() }
-                            .disabled(endpoint == nil)
+                            .disabled(endpoint == nil || reports.isEmpty)
                     }
                 }
             }
@@ -614,29 +874,41 @@ private struct BenchmarkSendSheet: View {
         }
     }
 
+    /// One report at a time, stopping at the first that is not stored; a
+    /// later Send picks up from there.
     private func send() {
         guard let endpoint else { return }
         sending = true
         problem = nil
         Task {
             defer { sending = false }
-            do {
-                switch try await BenchmarkSubmission(endpoint: endpoint).send(report) {
-                case .stored:
-                    onSent(Date())
-                    dismiss()
-                case .refused(let reason):
-                    problem = "The project's server did not accept this report: \(reason)"
-                case .tryLater:
-                    problem = "Too many results were sent from this network just now. "
-                        + "Try again in a minute."
-                case .failed(let status):
-                    problem = "The project's server answered \(status). Try again later."
+            let submission = BenchmarkSubmission(endpoint: endpoint)
+            for report in reports where !stored.contains(report.id) {
+                do {
+                    switch try await submission.send(report) {
+                    case .stored:
+                        stored.insert(report.id)
+                        onSent(report.id, Date())
+                        continue
+                    case .refused(let reason):
+                        problem = "The project's server did not accept this report: \(reason)"
+                    case .tryLater:
+                        problem = "Too many results were sent from this network just now. "
+                            + "Try again in a minute."
+                    case .failed(let status):
+                        problem = "The project's server answered \(status). Try again later."
+                    }
+                } catch {
+                    problem = "Could not reach the project's server. Check the connection "
+                        + "and try again."
                 }
-            } catch {
-                problem = "Could not reach the project's server. Check the connection "
-                    + "and try again."
+                if reports.count > 1, !stored.isEmpty {
+                    problem = (problem ?? "") + " \(stored.count) of \(reports.count) "
+                        + "runs were sent."
+                }
+                return
             }
+            dismiss()
         }
     }
 }

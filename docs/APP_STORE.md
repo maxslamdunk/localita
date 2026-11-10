@@ -57,6 +57,9 @@ limit. Build 1.0 (2) passed Beta App Review by 2026-10-30.
 >   Settings → General → Picture in Picture (it is on unless you turned it off).
 > - Settings → Models → Benchmark, if you have 15 minutes with the phone on a
 >   table. Sending the result is optional.
+> - On an iPhone with 12 GB of memory, such as an iPhone 17 Pro: Run Settings
+>   Sweep on the same screen, about 80 minutes on a charger. It shows which
+>   memory settings suit that iPhone.
 >
 > If the app closes by itself, please say what you were doing and which
 > iPhone you have.

@@ -14,8 +14,11 @@ import Foundation
 public struct BenchmarkReport: Codable, Equatable, Sendable {
     /// Bumped when a field changes meaning, so a reader can tell old reports.
     /// Format 2 added `submissionID` and, per case, the footer lines and the
-    /// memory figures; a format 1 report reads with those nil.
-    public static let currentFormat = 2
+    /// memory figures; a format 1 report reads with those nil. Format 3 added
+    /// the skip threshold and early reads to `settings`, which format 2 left
+    /// at the build's defaults unrecorded, and `sweep`; a format 2 report
+    /// reads with those nil.
+    public static let currentFormat = 3
 
     public enum Outcome: Codable, Equatable, Sendable {
         /// Still running, or the process ended before the run did.
@@ -73,9 +76,16 @@ public struct BenchmarkReport: Codable, Equatable, Sendable {
         public var topK: Int
         public var topP: Float
         public var seed: UInt64
+        /// The `miss:<t>` expert-skip threshold, 0 when skipping was off. It
+        /// changes the output. Nil in format 2, whose builds used their
+        /// default unrecorded: off up to 1.0 (4), 0.08 from 1.0 (5).
+        public var expertSkipThreshold: Double?
+        /// Early expert reads per layer, 0 when off. Nil in format 2 (one).
+        public var earlyExpertReads: Int?
 
         public init(maxContext: Int, maxNewTokens: Int, expertCacheSlots: Int,
-                    temperature: Float, topK: Int, topP: Float, seed: UInt64) {
+                    temperature: Float, topK: Int, topP: Float, seed: UInt64,
+                    expertSkipThreshold: Double?, earlyExpertReads: Int?) {
             self.maxContext = maxContext
             self.maxNewTokens = maxNewTokens
             self.expertCacheSlots = expertCacheSlots
@@ -83,6 +93,29 @@ public struct BenchmarkReport: Codable, Equatable, Sendable {
             self.topK = topK
             self.topP = topP
             self.seed = seed
+            self.expertSkipThreshold = expertSkipThreshold
+            self.earlyExpertReads = earlyExpertReads
+        }
+    }
+
+    /// Which run of a settings sweep this is (`BenchmarkSweep`).
+    public struct Sweep: Codable, Equatable, Sendable {
+        /// The first run's `id`, shared by every run of the sweep, so the runs
+        /// can be put together again wherever they end up.
+        public var id: String
+        /// 1-based, in run order.
+        public var index: Int
+        public var count: Int
+        /// A random UUID shared by every run of the sweep, made when it starts.
+        /// Like `submissionID` it is the sender's alone: quoting it is how a
+        /// whole sweep is removed, so the public export leaves it out.
+        public var submissionID: String
+
+        public init(id: String, index: Int, count: Int, submissionID: String) {
+            self.id = id
+            self.index = index
+            self.count = count
+            self.submissionID = submissionID
         }
     }
 
@@ -164,6 +197,8 @@ public struct BenchmarkReport: Codable, Equatable, Sendable {
     public var device: DeviceInfo
     public var model: ModelInfo
     public var settings: RunSettings
+    /// Set when the run is one of a settings sweep's.
+    public var sweep: Sweep?
     /// The cases the run was asked for, in order; `cases` holds those done.
     public var plannedCases: [String]
     public var cases: [CaseResult]
@@ -172,7 +207,7 @@ public struct BenchmarkReport: Codable, Equatable, Sendable {
     public var sentAt: Date?
 
     public init(id: String, started: Date, device: DeviceInfo, model: ModelInfo,
-                settings: RunSettings, plannedCases: [String]) {
+                settings: RunSettings, plannedCases: [String], sweep: Sweep? = nil) {
         self.format = Self.currentFormat
         self.id = id
         self.submissionID = UUID().uuidString
@@ -182,6 +217,7 @@ public struct BenchmarkReport: Codable, Equatable, Sendable {
         self.device = device
         self.model = model
         self.settings = settings
+        self.sweep = sweep
         self.plannedCases = plannedCases
         self.cases = []
         self.sentAt = nil
@@ -214,7 +250,9 @@ public enum BenchmarkCooldown {
 
     public static func isDone(elapsed: TimeInterval,
                               runStart: ProcessInfo.ThermalState,
-                              now: ProcessInfo.ThermalState) -> Bool {
+                              now: ProcessInfo.ThermalState,
+                              minimum: TimeInterval = Self.minimum,
+                              maximum: TimeInterval = Self.maximum) -> Bool {
         if elapsed >= maximum { return true }
         return elapsed >= minimum && now.rawValue <= runStart.rawValue
     }
@@ -231,8 +269,9 @@ public enum BenchmarkCooldown {
 }
 
 /// Benchmark runs on disk: one folder per run under `root`, holding
-/// `report.json` and the run's logs. The folders are what a person shares,
-/// so everything about a run stays in its own.
+/// `report.json` and the run's logs, so everything about a run stays in its
+/// own. Nothing offers the folders for sharing: a run leaves the phone only
+/// through `BenchmarkSubmission`.
 public struct BenchmarkStore: Sendable {
     public static let reportFileName = "report.json"
 
@@ -288,18 +327,6 @@ public struct BenchmarkStore: Sendable {
         .sorted { $0.started > $1.started }
     }
 
-    /// The run's files, report first, for sharing.
-    public func files(for id: String) -> [URL] {
-        let folder = folder(for: id)
-        let names = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
-        return names.sorted { lhs, rhs in
-            if lhs == Self.reportFileName { return true }
-            if rhs == Self.reportFileName { return false }
-            return lhs < rhs
-        }
-        .map { folder.appendingPathComponent($0) }
-    }
-
     /// Records that the run was sent, in its own report.
     public func markSent(_ id: String, at date: Date) throws {
         let decoder = JSONDecoder()
@@ -342,9 +369,13 @@ public struct BenchmarkSubmission: Sendable {
         self.session = session
     }
 
-    /// Only a report in the Worker's format can be sent; it refuses others.
+    /// The formats the Worker accepts. Format 2 stays, so a run made before
+    /// an update can still be sent after it.
+    public static let sendableFormats = [2, BenchmarkReport.currentFormat]
+
+    /// Only a report in a format the Worker takes can be sent; it refuses others.
     public static func canSend(_ report: BenchmarkReport) -> Bool {
-        report.format == BenchmarkReport.currentFormat
+        sendableFormats.contains(report.format)
     }
 
     /// The report as sent: without `sentAt`, which is the phone's own note.
