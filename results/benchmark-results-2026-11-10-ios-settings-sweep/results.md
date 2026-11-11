@@ -1,7 +1,7 @@
 # Results: slots and expert skipping on an iPhone 18 Pro
 
 Scored against [`predictions.md`](predictions.md), committed first in
-`bb1f7e4`. The sweep is report `20261111T061352Z`: seven runs from a tester's
+`0202785`. The sweep is report `20261111T061352Z`: seven runs from a tester's
 iPhone 18 Pro, sent to the Worker on 2026-11-11 at 07:16Z and exported into
 [`benchmark-submissions/submissions.jsonl`](../../benchmark-submissions/submissions.jsonl).
 [`summarize.py`](summarize.py) prints every figure below from that file, saved
@@ -46,7 +46,7 @@ choice, like the 32-slot default, is the user's.
 
 - **Device:** iPhone 18 Pro (`iPhone19,2`), 12 GB (12,195,266,560 B), iOS
   27.2.1, storage capacity unknown. A tester's phone, not ours.
-- **Build:** app 1.0 (6), from `a6de4fa`. Report format 3.
+- **Build:** app 1.0 (6), from `c414fa3`. Report format 3.
 - **Protocol:** the in-app Settings sweep, in the order of the predictions'
   table. Early reads stayed at one per layer, and every report's settings
   match its row. Each case loads the model fresh.

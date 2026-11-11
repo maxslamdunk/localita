@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from summarize import CASES, load, parse  # noqa: E402
 
-SHA = "a6de4fa"
+SHA = "c414fa3"
 
 
 def skip_name(t):
