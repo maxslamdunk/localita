@@ -1,0 +1,31 @@
+#!/bin/bash
+#SBATCH --job-name=skip-smoke
+#SBATCH --partition=gpu
+#SBATCH --gpus=1
+#SBATCH --cpus-per-task=16
+#SBATCH --time=01:30:00
+
+# The simulation's checks before the full arms, on one H100:
+#  1. the local tests (scalar port against batched sim, Swift cases);
+#  2. teacher-forcing the phone's skip-A/B replies, against their footers;
+#  3. a short benchmark at miss:0.08, for throughput and memory.
+# WORK (the work dir holding containers/, models/ and skip/) is passed with
+# --export; the partition and log path on the sbatch command line.
+set -uo pipefail
+S=$WORK/skip
+C=$WORK/containers/vllm-0.32.0-cu129.sif
+M=$WORK/models/default-mlx-4bit-as-bf16
+export HF_HOME=$WORK/hf HF_HUB_OFFLINE=1 HF_DATASETS_OFFLINE=1 XDG_CACHE_HOME=$WORK/cache
+# shim/torchcodec stands in for the image's CUDA 13 torchcodec, which cannot load.
+export APPTAINERENV_PYTHONPATH=$WORK/shim:$S/jobs APPTAINERENV_PYTHONUSERBASE=$WORK/pyuser
+OUT=$S/results/smoke-$SLURM_JOB_ID
+mkdir -p "$OUT"
+nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
+py() { apptainer exec --nv -B "$WORK" "$C" python3 "$@"; }
+
+cd "$S/jobs"
+py test_skipsim.py "$S/guess.bin" || exit 1
+py teacher.py "$M" "$S/guess.bin" "$S/phone-logs" "$S/prompts" "$OUT/teacher.json"
+MMLU_LIMIT=4 GSM8K_LIMIT=64 py eval.py smoke-0.08 "$M" "$S/guess.bin" "$OUT" 0.08 24 "${BATCH:-64}"
+nvidia-smi --query-gpu=memory.used --format=csv
+ls -la "$OUT"

@@ -1,0 +1,21 @@
+#!/bin/bash
+#SBATCH --job-name=skip-arm
+#SBATCH --partition=gpu
+#SBATCH --gpus=1
+#SBATCH --cpus-per-task=16
+#SBATCH --time=06:00:00
+
+# One arm of the skip-accuracy benchmark on one H100. Passed with --export:
+# WORK, LABEL, THRESHOLD (0 = off), SLOTS, BATCH.
+set -uo pipefail
+S=$WORK/skip
+C=$WORK/containers/vllm-0.32.0-cu129.sif
+M=$WORK/models/default-mlx-4bit-as-bf16
+export HF_HOME=$WORK/hf HF_HUB_OFFLINE=1 HF_DATASETS_OFFLINE=1 XDG_CACHE_HOME=$WORK/cache
+export APPTAINERENV_PYTHONPATH=$WORK/shim:$S/jobs APPTAINERENV_PYTHONUSERBASE=$WORK/pyuser
+OUT=$S/results/arms
+mkdir -p "$OUT"
+nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
+cd "$S/jobs"
+apptainer exec --nv -B "$WORK" "$C" python3 eval.py "$LABEL" "$M" "$S/guess.bin" "$OUT" \
+    "$THRESHOLD" "$SLOTS" "$BATCH"
