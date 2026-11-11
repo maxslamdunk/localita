@@ -15,6 +15,7 @@ set -uo pipefail
 S=$WORK/skip
 C=$WORK/containers/vllm-0.32.0-cu129.sif
 M=$WORK/models/default-mlx-4bit-as-bf16
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export HF_HOME=$WORK/hf HF_HUB_OFFLINE=1 HF_DATASETS_OFFLINE=1 XDG_CACHE_HOME=$WORK/cache
 # shim/torchcodec stands in for the image's CUDA 13 torchcodec, which cannot load.
 export APPTAINERENV_PYTHONPATH=$WORK/shim:$S/jobs APPTAINERENV_PYTHONUSERBASE=$WORK/pyuser
@@ -25,7 +26,7 @@ py() { apptainer exec --nv -B "$WORK" "$C" python3 "$@"; }
 
 cd "$S/jobs"
 py test_skipsim.py "$S/guess.bin" || exit 1
-py teacher.py "$M" "$S/guess.bin" "$S/phone-logs" "$S/prompts" "$OUT/teacher.json"
-MMLU_LIMIT=4 GSM8K_LIMIT=64 py eval.py smoke-0.08 "$M" "$S/guess.bin" "$OUT" 0.08 24 "${BATCH:-64}"
+[ "${TEACHER:-1}" = 1 ] && py teacher.py "$M" "$S/guess.bin" "$S/phone-logs" "$S/prompts" "$OUT/teacher.json"
+SELF_CHECK=1 MMLU_LIMIT=${MMLU_LIMIT:-4} GSM8K_LIMIT=${GSM8K_LIMIT:-64} py eval.py smoke-0.08 "$M" "$S/guess.bin" "$OUT" 0.08 24 "${BATCH:-64}"
 nvidia-smi --query-gpu=memory.used --format=csv
 ls -la "$OUT"

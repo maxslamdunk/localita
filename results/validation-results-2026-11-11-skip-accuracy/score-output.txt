@@ -1,0 +1,61 @@
+## Accuracy
+
+| Run | Arm | n | Accuracy, % | No answer | Mean reply, tokens |
+| --- | --- | --- | --- | --- | --- |
+| mmlu_pro | vllm | 2002 | 77.97 | 95 | — |
+| mmlu_pro | off | 2002 | 77.47 | 106 | 653 |
+| mmlu_pro | 0.08 | 2002 | 76.92 | 111 | 662 |
+| mmlu_pro | 0.10 | 2002 | 77.22 | 112 | 662 |
+| gsm8k | vllm | 1319 | 94.16 | 6 | — |
+| gsm8k | off | 1319 | 94.31 | 8 | 256 |
+| gsm8k | 0.08 | 1319 | 93.25 | 11 | 258 |
+| gsm8k | 0.10 | 1319 | 93.86 | 10 | 260 |
+
+## Paired differences, points
+
+| Run | Comparison | n | Difference | 95% interval | Gained / lost | McNemar p |
+| --- | --- | --- | --- | --- | --- | --- |
+| mmlu_pro | 0.08 − off | 2002 | -0.55 | -1.67 to +0.57 | 60 / 71 | 0.382 |
+| mmlu_pro | 0.10 − off | 2002 | -0.25 | -1.39 to +0.89 | 65 / 70 | 0.731 |
+| mmlu_pro | 0.10 − 0.08 | 2002 | +0.30 | -0.88 to +1.47 | 75 / 69 | 0.677 |
+| mmlu_pro | off − vllm | 2002 | -0.50 | -1.56 to +0.56 | 54 / 64 | 0.407 |
+| gsm8k | 0.08 − off | 1319 | -1.06 | -1.76 to -0.37 | 4 / 18 | 0.004 |
+| gsm8k | 0.10 − off | 1319 | -0.45 | -1.15 to +0.24 | 8 / 14 | 0.286 |
+| gsm8k | 0.10 − 0.08 | 1319 | +0.61 | -0.12 to +1.33 | 16 / 8 | 0.152 |
+| gsm8k | off − vllm | 1319 | +0.15 | -0.36 to +0.67 | 7 / 5 | 0.774 |
+
+## Prompt identity
+
+- mmlu_pro: off against vllm: 2002 of 2002 prompt hashes equal
+- mmlu_pro: 0.08 against vllm: 2002 of 2002 prompt hashes equal
+- mmlu_pro: 0.10 against vllm: 2002 of 2002 prompt hashes equal
+- gsm8k: off against vllm: 1319 of 1319 prompt hashes equal
+- gsm8k: 0.08 against vllm: 1319 of 1319 prompt hashes equal
+- gsm8k: 0.10 against vllm: 1319 of 1319 prompt hashes equal
+
+## Simulated cache, per decode forward
+
+| Run | Arm | Hit rate, % | Foreground reads/token | Early reads used/token | Dropped/layer | Dropped weight/layer | Prefill reads/question |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| mmlu_pro | off | 77.0 | 36.37 | 18.72 | 0.000 | 0.0000 | 3244 |
+| mmlu_pro | 0.08 | 82.8 | 22.40 | 18.86 | 0.524 | 0.0310 | 3244 |
+| mmlu_pro | 0.10 | 86.3 | 13.69 | 19.08 | 0.882 | 0.0624 | 3244 |
+| gsm8k | off | 75.1 | 39.97 | 19.75 | 0.000 | 0.0000 | 3168 |
+| gsm8k | 0.08 | 81.2 | 25.23 | 20.01 | 0.571 | 0.0339 | 3168 |
+| gsm8k | 0.10 | 85.2 | 15.44 | 20.15 | 0.974 | 0.0693 | 3168 |
+
+## GSM8K by numeric value (after the fact, not predicted)
+
+| Arm | Strict-match answer equal in value, % | Answers written with a decimal point |
+| --- | --- | --- |
+| off | 96.21 | 27 |
+| 0.08 | 95.75 | 35 |
+| 0.10 | 96.29 | 34 |
+| vllm | 96.44 | 33 |
+
+| Comparison | Difference | 95% interval | Gained / lost | McNemar p |
+| --- | --- | --- | --- | --- |
+| 0.08 − off | -0.45 | -1.01 to +0.10 | 4 / 10 | 0.180 |
+| 0.10 − off | +0.08 | -0.50 to +0.65 | 8 / 7 | 1.000 |
+| 0.10 − 0.08 | +0.53 | -0.08 to +1.14 | 12 / 5 | 0.143 |
+| off − vllm | -0.23 | -0.62 to +0.17 | 2 / 5 | 0.453 |

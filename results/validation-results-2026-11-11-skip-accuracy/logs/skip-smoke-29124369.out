@@ -1,0 +1,192 @@
+name, memory.total [MiB], driver_version
+NVIDIA H100, 95830 MiB, 615.71.09
+swift cases: ok
+random traces: ok, {'prefill_reads': 18125, 'req': 460800, 'hits': 419730, 'early_issued': 43200, 'early_used': 2827, 'dropped': 50871, 'dropped_mass': 3032, 'layer_steps': 57600}
+select: ok
+guess: ok, |w| mean 0.008715400472283363
+Loading weights:   0%|          | 0/1013 [00:00<?, ?it/s]Loading weights:   0%|          | 1/1013 [00:00<12:48,  1.32it/s]Loading weights:   0%|          | 2/1013 [00:02<24:59,  1.48s/it]Loading weights:   0%|          | 4/1013 [00:04<19:52,  1.18s/it]Loading weights:   2%|▏         | 24/1013 [00:04<02:01,  8.12it/s]Loading weights:   3%|▎         | 32/1013 [00:06<02:22,  6.89it/s]Loading weights:   4%|▍         | 39/1013 [00:06<01:44,  9.30it/s]Loading weights:   4%|▍         | 45/1013 [00:06<01:35, 10.12it/s]Loading weights:   5%|▍         | 49/1013 [00:08<02:55,  5.50it/s]Loading weights:   6%|▋         | 65/1013 [00:09<01:24, 11.19it/s]Loading weights:   7%|▋         | 71/1013 [00:10<02:09,  7.25it/s]Loading weights:   9%|▉         | 89/1013 [00:11<01:19, 11.61it/s]Loading weights:   9%|▉         | 93/1013 [00:12<01:37,  9.43it/s]Loading weights:  11%|█         | 112/1013 [00:13<01:04, 13.99it/s]Loading weights:  11%|█▏        | 115/1013 [00:14<01:29, 10.03it/s]Loading weights:  13%|█▎        | 127/1013 [00:14<01:00, 14.56it/s]Loading weights:  13%|█▎        | 131/1013 [00:15<01:13, 11.94it/s]Loading weights:  13%|█▎        | 134/1013 [00:15<01:39,  8.80it/s]Loading weights:  14%|█▎        | 137/1013 [00:17<02:13,  6.57it/s]Loading weights:  15%|█▌        | 154/1013 [00:17<00:59, 14.34it/s]Loading weights:  16%|█▌        | 160/1013 [00:18<01:34,  9.04it/s]Loading weights:  17%|█▋        | 177/1013 [00:18<00:52, 15.91it/s]Loading weights:  18%|█▊        | 183/1013 [00:20<01:22, 10.02it/s]Loading weights:  19%|█▉        | 193/1013 [00:20<00:59, 13.80it/s]Loading weights:  20%|█▉        | 199/1013 [00:21<01:14, 10.95it/s]Loading weights:  20%|██        | 203/1013 [00:22<01:33,  8.67it/s]Loading weights:  22%|██▏       | 218/1013 [00:22<00:54, 14.51it/s]Loading weights:  22%|██▏       | 222/1013 [00:23<01:22,  9.55it/s]Loading weights:  22%|██▏       | 225/1013 [00:24<01:44,  7.51it/s]Loading weights:  24%|██▎       | 240/1013 [00:25<00:59, 13.00it/s]Loading weights:  24%|██▍       | 244/1013 [00:25<01:03, 12.07it/s]Loading weights:  24%|██▍       | 247/1013 [00:27<01:50,  6.91it/s]Loading weights:  26%|██▌       | 264/1013 [00:27<00:55, 13.47it/s]Loading weights:  26%|██▋       | 268/1013 [00:28<01:26,  8.57it/s]Loading weights:  27%|██▋       | 277/1013 [00:28<01:02, 11.78it/s]Loading weights:  28%|██▊       | 283/1013 [00:29<00:56, 13.00it/s]Loading weights:  28%|██▊       | 287/1013 [00:30<01:12,  9.96it/s]Loading weights:  29%|██▊       | 290/1013 [00:31<01:56,  6.21it/s]Loading weights:  30%|███       | 307/1013 [00:31<00:51, 13.77it/s]Loading weights:  31%|███       | 313/1013 [00:32<01:15,  9.28it/s]Loading weights:  33%|███▎      | 330/1013 [00:33<00:41, 16.49it/s]Loading weights:  33%|███▎      | 337/1013 [00:34<01:05, 10.38it/s]Loading weights:  34%|███▍      | 348/1013 [00:34<00:45, 14.70it/s]Loading weights:  35%|███▍      | 354/1013 [00:36<01:22,  7.98it/s]Loading weights:  37%|███▋      | 373/1013 [00:36<00:44, 14.45it/s]Loading weights:  38%|███▊      | 380/1013 [00:38<00:59, 10.63it/s]Loading weights:  39%|███▉      | 395/1013 [00:38<00:38, 16.16it/s]Loading weights:  40%|███▉      | 402/1013 [00:40<00:57, 10.71it/s]Loading weights:  40%|████      | 409/1013 [00:40<00:46, 13.04it/s]Loading weights:  41%|████      | 414/1013 [00:40<00:43, 13.63it/s]Loading weights:  41%|████▏     | 418/1013 [00:41<00:51, 11.44it/s]Loading weights:  42%|████▏     | 421/1013 [00:41<01:12,  8.21it/s]Loading weights:  43%|████▎     | 437/1013 [00:42<00:35, 16.42it/s]Loading weights:  44%|████▎     | 442/1013 [00:44<01:21,  6.99it/s]Loading weights:  45%|████▌     | 457/1013 [00:44<00:47, 11.75it/s]Loading weights:  46%|████▌     | 462/1013 [00:50<02:24,  3.82it/s]Loading weights:  47%|████▋     | 481/1013 [00:50<01:12,  7.38it/s]Loading weights:  48%|████▊     | 489/1013 [00:51<01:15,  6.93it/s]Loading weights:  50%|████▉     | 505/1013 [00:51<00:46, 10.95it/s]Loading weights:  51%|█████     | 512/1013 [00:53<00:57,  8.66it/s]Loading weights:  52%|█████▏    | 524/1013 [00:53<00:43, 11.34it/s]Loading weights:  52%|█████▏    | 529/1013 [00:55<01:05,  7.34it/s]Loading weights:  54%|█████▍    | 547/1013 [00:55<00:36, 12.77it/s]Loading weights:  55%|█████▍    | 553/1013 [00:57<00:47,  9.66it/s]Loading weights:  56%|█████▋    | 570/1013 [00:57<00:34, 12.99it/s]Loading weights:  57%|█████▋    | 574/1013 [00:58<00:42, 10.38it/s]Loading weights:  58%|█████▊    | 585/1013 [00:58<00:30, 13.87it/s]Loading weights:  58%|█████▊    | 591/1013 [00:59<00:27, 15.52it/s]Loading weights:  59%|█████▊    | 595/1013 [01:00<00:53,  7.77it/s]Loading weights:  60%|██████    | 612/1013 [01:01<00:29, 13.69it/s]Loading weights:  61%|██████    | 616/1013 [01:02<00:41,  9.54it/s]Loading weights:  63%|██████▎   | 636/1013 [01:02<00:21, 17.37it/s]Loading weights:  63%|██████▎   | 641/1013 [01:04<00:34, 10.77it/s]Loading weights:  64%|██████▍   | 649/1013 [01:04<00:26, 13.79it/s]Loading weights:  65%|██████▍   | 654/1013 [01:04<00:28, 12.64it/s]Loading weights:  65%|██████▌   | 659/1013 [01:04<00:23, 15.00it/s]Loading weights:  66%|██████▌   | 670/1013 [01:04<00:15, 22.49it/s]Loading weights:  67%|██████▋   | 680/1013 [01:05<00:13, 25.13it/s]Loading weights:  68%|██████▊   | 685/1013 [01:05<00:12, 25.89it/s]Loading weights:  69%|██████▊   | 696/1013 [01:05<00:10, 30.28it/s]Loading weights:  70%|███████   | 710/1013 [01:06<00:08, 35.41it/s]Loading weights:  73%|███████▎  | 736/1013 [01:06<00:04, 61.65it/s]Loading weights:  75%|███████▌  | 763/1013 [01:06<00:02, 92.34it/s]Loading weights:  79%|███████▊  | 797/1013 [01:06<00:01, 135.36it/s]Loading weights:  81%|████████  | 817/1013 [01:06<00:01, 109.78it/s]Loading weights:  82%|████████▏ | 834/1013 [01:06<00:01, 109.52it/s]Loading weights:  85%|████████▍ | 857/1013 [01:07<00:01, 98.84it/s] Loading weights:  88%|████████▊ | 895/1013 [01:07<00:00, 143.46it/s]Loading weights:  91%|█████████ | 918/1013 [01:07<00:00, 148.51it/s]Loading weights:  92%|█████████▏| 937/1013 [01:07<00:00, 139.44it/s]Loading weights:  94%|█████████▍| 954/1013 [01:07<00:00, 130.70it/s]Loading weights:  97%|█████████▋| 982/1013 [01:07<00:00, 129.46it/s]Loading weights:  98%|█████████▊| 997/1013 [01:07<00:00, 132.09it/s]Loading weights: 100%|██████████| 1013/1013 [01:08<00:00, 14.89it/s]
+load 74 s, Gemma4ForConditionalGeneration
+{"log": "decode-long-A1-2026-11-08T045142Z.log", "skip": "off", "prompt_tokens": 3015, "reply_tokens": 585, "seconds": 83.5, "phone": {"case": "long-synthesis", "prompt_tokens": 3015, "skip": "off", "new": 585, "stop": "endOfTurn", "forwards": 584, "hit_rate": 73.2, "reads_per_tok": 71.54, "early_used_per_tok": 21.79, "prefill_reads": 3478, "dropped_per_layer": null, "dropped_mass_per_layer": null, "foreground_per_tok": 42.53000000000001}, "sim": {"forwards": 584, "hit_rate": 73.33190639269407, "reads_per_tok": 71.23801369863014, "early_used_per_tok": 21.76541095890411, "foreground_per_tok": 42.238013698630134, "prefill_reads": 3481.0, "dropped_per_layer": 0.0, "dropped_mass_per_layer": 0.0, "top1_agrees_with_phone": 0.9692307692307692}}
+{"log": "decode-long-B1-2026-11-08T045933Z.log", "skip": "miss:0.08", "prompt_tokens": 3015, "reply_tokens": 589, "seconds": 74.3, "phone": {"case": "long-synthesis", "prompt_tokens": 3015, "skip": "miss:0.08", "new": 589, "stop": "endOfTurn", "forwards": 588, "hit_rate": 79.0, "reads_per_tok": 57.22, "early_used_per_tok": 22.07, "prefill_reads": 3478, "dropped_per_layer": 0.538, "dropped_mass_per_layer": 0.0319, "foreground_per_tok": 28.32999999999999}, "sim": {"forwards": 588, "hit_rate": 78.99022108843538, "reads_per_tok": 57.316326530612244, "early_used_per_tok": 22.107142857142858, "foreground_per_tok": 28.316326530612244, "prefill_reads": 3481.0, "dropped_per_layer": 0.5348072562358277, "dropped_mass_per_layer": 0.03166508378422462, "top1_agrees_with_phone": 0.967741935483871}}
+{"log": "decode-medium-A1-2026-11-08T042221Z.log", "skip": "off", "prompt_tokens": 430, "reply_tokens": 728, "seconds": 115.5, "phone": {"case": "medium-review", "prompt_tokens": 430, "skip": "off", "new": 728, "stop": "endOfTurn", "forwards": 727, "hit_rate": 76.7, "reads_per_tok": 64.65, "early_used_per_tok": 20.17, "prefill_reads": 2773, "dropped_per_layer": null, "dropped_mass_per_layer": null, "foreground_per_tok": 35.74999999999999}, "sim": {"forwards": 727, "hit_rate": 76.77040348464007, "reads_per_tok": 64.62173314993123, "early_used_per_tok": 20.1292984869326, "foreground_per_tok": 35.621733149931224, "prefill_reads": 2783.0, "dropped_per_layer": 0.0, "dropped_mass_per_layer": 0.0, "top1_agrees_with_phone": 0.9464285714285714}}
+{"log": "decode-medium-B1-2026-11-08T042953Z.log", "skip": "miss:0.08", "prompt_tokens": 430, "reply_tokens": 733, "seconds": 91.0, "phone": {"case": "medium-review", "prompt_tokens": 430, "skip": "miss:0.08", "new": 733, "stop": "endOfTurn", "forwards": 732, "hit_rate": 81.5, "reads_per_tok": 52.58, "early_used_per_tok": 20.8, "prefill_reads": 2773, "dropped_per_layer": 0.486, "dropped_mass_per_layer": 0.029, "foreground_per_tok": 23.600000000000012}, "sim": {"forwards": 732, "hit_rate": 81.54200819672131, "reads_per_tok": 52.52049180327869, "early_used_per_tok": 20.778688524590162, "foreground_per_tok": 23.520491803278688, "prefill_reads": 2783.0, "dropped_per_layer": 0.48925318761384334, "dropped_mass_per_layer": 0.029154635685557952, "top1_agrees_with_phone": 0.9713506139154161}}
+{"log": "decode-short-A1-2026-11-08T035545Z.log", "skip": "off", "prompt_tokens": 61, "reply_tokens": 522, "seconds": 79.1, "phone": {"case": "short-explanation", "prompt_tokens": 61, "skip": "off", "new": 522, "stop": "endOfTurn", "forwards": 521, "hit_rate": 79.4, "reads_per_tok": 59.06, "early_used_per_tok": 19.4, "prefill_reads": 2171, "dropped_per_layer": null, "dropped_mass_per_layer": null, "foreground_per_tok": 30.039999999999992}, "sim": {"forwards": 521, "hit_rate": 79.34181062060141, "reads_per_tok": 59.20345489443378, "early_used_per_tok": 19.37619961612284, "foreground_per_tok": 30.203454894433783, "prefill_reads": 2163.0, "dropped_per_layer": 0.0, "dropped_mass_per_layer": 0.0, "top1_agrees_with_phone": 0.9693486590038314}}
+{"log": "decode-short-B1-2026-11-08T040237Z.log", "skip": "miss:0.08", "prompt_tokens": 61, "reply_tokens": 500, "seconds": 62.1, "phone": {"case": "short-explanation", "prompt_tokens": 61, "skip": "miss:0.08", "new": 500, "stop": "endOfTurn", "forwards": 499, "hit_rate": 84.8, "reads_per_tok": 46.33, "early_used_per_tok": 19.17, "prefill_reads": 2171, "dropped_per_layer": 0.438, "dropped_mass_per_layer": 0.0257, "foreground_per_tok": 17.310000000000002}, "sim": {"forwards": 499, "hit_rate": 84.8004342017368, "reads_per_tok": 46.312625250501, "early_used_per_tok": 19.16633266533066, "foreground_per_tok": 17.312625250501004, "prefill_reads": 2163.0, "dropped_per_layer": 0.43881095524382097, "dropped_mass_per_layer": 0.02567610160634917, "top1_agrees_with_phone": 0.974}}
+              case       arm |       hit %  reads   used     fg  drop/L  mass/L  pf rd   tok
+    long-synthesis       off | phone   73.2  71.54  21.79  42.53   0.000  0.0000   3478   585
+    long-synthesis       off |   sim   73.3  71.24  21.77  42.24   0.000  0.0000   3481   585
+                             | prompt tokens 3015 (phone 3015), teacher-forced top-1 agreement 96.9%
+    long-synthesis miss:0.08 | phone   79.0  57.22  22.07  28.33   0.538  0.0319   3478   589
+    long-synthesis miss:0.08 |   sim   79.0  57.32  22.11  28.32   0.535  0.0317   3481   589
+                             | prompt tokens 3015 (phone 3015), teacher-forced top-1 agreement 96.8%
+     medium-review       off | phone   76.7  64.65  20.17  35.75   0.000  0.0000   2773   728
+     medium-review       off |   sim   76.8  64.62  20.13  35.62   0.000  0.0000   2783   728
+                             | prompt tokens 430 (phone 430), teacher-forced top-1 agreement 94.6%
+     medium-review miss:0.08 | phone   81.5  52.58  20.80  23.60   0.486  0.0290   2773   733
+     medium-review miss:0.08 |   sim   81.5  52.52  20.78  23.52   0.489  0.0292   2783   733
+                             | prompt tokens 430 (phone 430), teacher-forced top-1 agreement 97.1%
+ short-explanation       off | phone   79.4  59.06  19.40  30.04   0.000  0.0000   2171   522
+ short-explanation       off |   sim   79.3  59.20  19.38  30.20   0.000  0.0000   2163   522
+                             | prompt tokens 61 (phone 61), teacher-forced top-1 agreement 96.9%
+ short-explanation miss:0.08 | phone   84.8  46.33  19.17  17.31   0.438  0.0257   2171   500
+ short-explanation miss:0.08 |   sim   84.8  46.31  19.17  17.31   0.439  0.0257   2163   500
+                             | prompt tokens 61 (phone 61), teacher-forced top-1 agreement 97.4%
+Loading weights:   0%|          | 0/1013 [00:00<?, ?it/s]Loading weights:   0%|          | 1/1013 [00:00<02:44,  6.16it/s]Loading weights:   0%|          | 2/1013 [00:00<05:51,  2.88it/s]Loading weights:   0%|          | 3/1013 [00:00<04:26,  3.79it/s]Loading weights:   2%|▏         | 25/1013 [00:01<00:25, 38.98it/s]Loading weights:   3%|▎         | 30/1013 [00:01<00:34, 28.26it/s]Loading weights:   5%|▍         | 47/1013 [00:01<00:21, 44.53it/s]Loading weights:   5%|▌         | 53/1013 [00:01<00:28, 33.99it/s]Loading weights:   7%|▋         | 69/1013 [00:02<00:29, 31.91it/s]Loading weights:   9%|▉         | 91/1013 [00:02<00:19, 47.36it/s]Loading weights:  10%|▉         | 97/1013 [00:02<00:24, 37.08it/s]Loading weights:  11%|█         | 113/1013 [00:03<00:19, 46.35it/s]Loading weights:  12%|█▏        | 119/1013 [00:03<00:24, 36.04it/s]Loading weights:  13%|█▎        | 134/1013 [00:03<00:19, 44.94it/s]Loading weights:  14%|█▍        | 140/1013 [00:04<00:24, 35.50it/s]Loading weights:  15%|█▌        | 155/1013 [00:04<00:18, 45.26it/s]Loading weights:  16%|█▌        | 161/1013 [00:04<00:23, 35.70it/s]Loading weights:  18%|█▊        | 178/1013 [00:04<00:17, 47.32it/s]Loading weights:  18%|█▊        | 184/1013 [00:05<00:22, 36.64it/s]Loading weights:  20%|█▉        | 199/1013 [00:05<00:17, 45.75it/s]Loading weights:  20%|██        | 205/1013 [00:05<00:23, 34.98it/s]Loading weights:  22%|██▏       | 222/1013 [00:05<00:16, 47.25it/s]Loading weights:  23%|██▎       | 228/1013 [00:06<00:21, 36.66it/s]Loading weights:  24%|██▍       | 244/1013 [00:06<00:22, 34.33it/s]Loading weights:  26%|██▌       | 265/1013 [00:06<00:15, 47.92it/s]Loading weights:  27%|██▋       | 271/1013 [00:07<00:19, 38.22it/s]Loading weights:  28%|██▊       | 287/1013 [00:07<00:15, 47.54it/s]Loading weights:  29%|██▉       | 293/1013 [00:07<00:19, 37.44it/s]Loading weights:  31%|███       | 309/1013 [00:07<00:14, 47.61it/s]Loading weights:  31%|███       | 315/1013 [00:08<00:18, 37.02it/s]Loading weights:  33%|███▎      | 331/1013 [00:08<00:14, 47.71it/s]Loading weights:  33%|███▎      | 337/1013 [00:08<00:18, 37.00it/s]Loading weights:  35%|███▍      | 353/1013 [00:09<00:19, 34.53it/s]Loading weights:  37%|███▋      | 375/1013 [00:09<00:12, 49.53it/s]Loading weights:  38%|███▊      | 382/1013 [00:09<00:15, 40.32it/s]Loading weights:  39%|███▉      | 396/1013 [00:10<00:17, 34.79it/s]Loading weights:  41%|████▏     | 418/1013 [00:10<00:12, 49.03it/s]Loading weights:  42%|████▏     | 425/1013 [00:10<00:14, 40.40it/s]Loading weights:  43%|████▎     | 440/1013 [00:11<00:11, 48.48it/s]Loading weights:  44%|████▍     | 447/1013 [00:11<00:14, 39.32it/s]Loading weights:  46%|████▌     | 462/1013 [00:11<00:15, 34.86it/s]Loading weights:  48%|████▊     | 484/1013 [00:12<00:10, 49.35it/s]Loading weights:  48%|████▊     | 491/1013 [00:12<00:12, 40.38it/s]Loading weights:  50%|████▉     | 506/1013 [00:12<00:14, 35.95it/s]Loading weights:  52%|█████▏    | 527/1013 [00:13<00:10, 48.29it/s]Loading weights:  53%|█████▎    | 534/1013 [00:13<00:11, 39.96it/s]Loading weights:  54%|█████▍    | 549/1013 [00:13<00:09, 47.94it/s]Loading weights:  55%|█████▍    | 555/1013 [00:14<00:12, 37.86it/s]Loading weights:  56%|█████▋    | 571/1013 [00:14<00:12, 35.18it/s]Loading weights:  59%|█████▊    | 593/1013 [00:14<00:08, 49.66it/s]Loading weights:  59%|█████▉    | 600/1013 [00:15<00:10, 40.67it/s]Loading weights:  61%|██████    | 614/1013 [00:15<00:08, 47.68it/s]Loading weights:  61%|██████    | 620/1013 [00:15<00:10, 37.78it/s]Loading weights:  63%|██████▎   | 637/1013 [00:15<00:07, 49.10it/s]Loading weights:  63%|██████▎   | 643/1013 [00:16<00:09, 38.11it/s]Loading weights:  71%|███████   | 719/1013 [00:16<00:02, 132.60it/s]Loading weights:  81%|████████  | 816/1013 [00:16<00:00, 263.67it/s]Loading weights:  90%|████████▉ | 909/1013 [00:16<00:00, 383.66it/s]Loading weights: 100%|█████████▉| 1010/1013 [00:16<00:00, 496.77it/s]Loading weights: 100%|██████████| 1013/1013 [00:16<00:00, 61.28it/s] 
+[smoke-0.08] load 23 s; threshold 0.08, 24 slots, batch 64; Gemma4ForConditionalGeneration
+generation_kwargs: {'temperature': 0} specified through cli, these settings will update set parameters in yaml tasks. Ensure 'do_sample=True' for non-greedy decoding!
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /scratch/<user>/gemma-qat-eval/hf/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Nov  8 14:28:25 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /scratch/<user>/gemma-qat-eval/hf/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Nov  8 14:28:25 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /scratch/<user>/gemma-qat-eval/hf/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Nov  8 14:28:25 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /scratch/<user>/gemma-qat-eval/hf/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Nov  8 14:28:25 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /scratch/<user>/gemma-qat-eval/hf/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Nov  8 14:28:25 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /scratch/<user>/gemma-qat-eval/hf/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Nov  8 14:28:25 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /scratch/<user>/gemma-qat-eval/hf/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Nov  8 14:28:25 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /scratch/<user>/gemma-qat-eval/hf/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Nov  8 14:28:25 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /scratch/<user>/gemma-qat-eval/hf/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Nov  8 14:28:25 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /scratch/<user>/gemma-qat-eval/hf/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Nov  8 14:28:25 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /scratch/<user>/gemma-qat-eval/hf/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Nov  8 14:28:25 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /scratch/<user>/gemma-qat-eval/hf/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Nov  8 14:28:25 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /scratch/<user>/gemma-qat-eval/hf/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Nov  8 14:28:25 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at /scratch/<user>/gemma-qat-eval/hf/datasets/TIGER-Lab___mmlu-pro/default/0.0.0/b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Sun Nov  8 14:28:25 2026).
+  0%|          | 0/4 [00:00<?, ?it/s] 25%|██▌       | 1/4 [00:00<00:01,  1.98it/s]100%|██████████| 4/4 [00:00<00:00,  7.85it/s]
+  0%|          | 0/4 [00:00<?, ?it/s]100%|██████████| 4/4 [00:00<00:00, 696.61it/s]
+  0%|          | 0/4 [00:00<?, ?it/s]100%|██████████| 4/4 [00:00<00:00, 676.04it/s]
+  0%|          | 0/4 [00:00<?, ?it/s]100%|██████████| 4/4 [00:00<00:00, 693.88it/s]
+  0%|          | 0/4 [00:00<?, ?it/s]100%|██████████| 4/4 [00:00<00:00, 674.19it/s]
+  0%|          | 0/4 [00:00<?, ?it/s]100%|██████████| 4/4 [00:00<00:00, 690.16it/s]
+  0%|          | 0/4 [00:00<?, ?it/s]100%|██████████| 4/4 [00:00<00:00, 642.36it/s]
+  0%|          | 0/4 [00:00<?, ?it/s]100%|██████████| 4/4 [00:00<00:00, 693.22it/s]
+  0%|          | 0/4 [00:00<?, ?it/s]100%|██████████| 4/4 [00:00<00:00, 673.97it/s]
+  0%|          | 0/4 [00:00<?, ?it/s]100%|██████████| 4/4 [00:00<00:00, 692.90it/s]
+  0%|          | 0/4 [00:00<?, ?it/s]100%|██████████| 4/4 [00:00<00:00, 689.46it/s]
+  0%|          | 0/4 [00:00<?, ?it/s]100%|██████████| 4/4 [00:00<00:00, 675.93it/s]
+  0%|          | 0/4 [00:00<?, ?it/s]100%|██████████| 4/4 [00:00<00:00, 693.88it/s]
+  0%|          | 0/4 [00:00<?, ?it/s]100%|██████████| 4/4 [00:00<00:00, 675.17it/s]
+Running generate_until requests:   0%|          | 0/56 [00:00<?, ?it/s][W1111 14:26:21.868737575 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 11041505280 bytes (free: 10653466624, total: 99996401664).
+[W1111 14:26:21.090284622 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 11041505280 bytes (free: 6146686976, total: 99996401664).
+[W1111 14:26:21.090654101 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 11041505280 bytes (free: 6146686976, total: 99996401664).
+Traceback (most recent call last):
+  File "/scratch/<user>/gemma-qat-eval/skip/jobs/eval.py", line 89, in <module>
+    r = simple_evaluate(model=lm, tasks=tasks, limit=limit, apply_chat_template=True,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/<user>/gemma-qat-eval/pyuser/lib/python3.12/site-packages/lm_eval/utils.py", line 580, in _wrapper
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/scratch/<user>/gemma-qat-eval/pyuser/lib/python3.12/site-packages/lm_eval/evaluator.py", line 363, in simple_evaluate
+    results = evaluate(
+              ^^^^^^^^^
+  File "/scratch/<user>/gemma-qat-eval/pyuser/lib/python3.12/site-packages/lm_eval/utils.py", line 580, in _wrapper
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/scratch/<user>/gemma-qat-eval/pyuser/lib/python3.12/site-packages/lm_eval/evaluator.py", line 600, in evaluate
+    resps = getattr(lm, reqtype)(cloned_reqs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/<user>/gemma-qat-eval/pyuser/lib/python3.12/site-packages/lm_eval/models/huggingface.py", line 1669, in generate_until
+    cont = self._model_generate(
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/<user>/gemma-qat-eval/skip/jobs/eval.py", line 60, in _model_generate
+    out = super()._model_generate(context, max_length, stop, **generation_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/<user>/gemma-qat-eval/pyuser/lib/python3.12/site-packages/lm_eval/models/huggingface.py", line 1182, in _model_generate
+    return self.model.generate(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/transformers/generation/utils.py", line 2982, in generate
+    result = decoding_method(
+             ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/transformers/generation/utils.py", line 3182, in _sample
+    outputs = self._prefill(
+              ^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/transformers/generation/utils.py", line 4293, in _prefill
+    return self(**model_inputs, return_dict=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/transformers/utils/generic.py", line 943, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/transformers/models/gemma4/modeling_gemma4.py", line 2590, in forward
+    outputs = self.model(
+              ^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/transformers/utils/generic.py", line 1081, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/transformers/utils/generic.py", line 943, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/transformers/models/gemma4/modeling_gemma4.py", line 2417, in forward
+    outputs = self.language_model(
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/transformers/utils/generic.py", line 1081, in wrapper
+    output = func(self, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/transformers/utils/output_capturing.py", line 287, in wrapper
+    outputs = func(self, *args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/transformers/models/gemma4/modeling_gemma4.py", line 1683, in forward
+    hidden_states = decoder_layer(
+                    ^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/transformers/modeling_layers.py", line 110, in __call__
+    return super().__call__(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/transformers/models/gemma4/modeling_gemma4.py", line 1412, in forward
+    hidden_states_2 = self.experts(hidden_states_2, top_k_index, top_k_weights)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/transformers/integrations/moe.py", line 590, in forward
+    return experts_forward(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/transformers/integrations/moe.py", line 489, in grouped_mm_experts_forward
+    weighted_out = weighted_out[inv_perm]  # (S, hidden_dim)
+                   ~~~~~~~~~~~~^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 10.28 GiB. GPU 0 has a total capacity of 93.13 GiB of which 5.72 GiB is free. Including non-PyTorch memory, this process has 87.39 GiB memory in use. Of the allocated memory 75.39 GiB is allocated by PyTorch, and 11.33 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+Running generate_until requests:   0%|          | 0/56 [00:10<?, ?it/s]
+memory.used [MiB]
+0 MiB
+total 17
+drwxr-x---. 2 <user> <user> 4096 Nov 11 14:23 .
+drwxr-x---. 3 <user> <user> 4096 Nov 11 14:11 ..
+-rw-r-----. 1 <user> <user> 5173 Nov 11 14:23 teacher.json

@@ -231,6 +231,17 @@ class CacheSim:
         # When a list: after each decode forward, the running totals [B, len(STAT_KEYS)].
         self.snapshots = None
 
+    @classmethod
+    def cat(cls, sims):
+        """One sim from several, rows in order (for prefill run in row groups)."""
+        out = sims[0]
+        for name in ("slot_expert", "slot_last", "count", "pending", "alive"):
+            setattr(out, name, torch.cat([getattr(s, name) for s in sims], 0))
+        out.stats = {k: torch.cat([s.stats[k] for s in sims], 0) for k in STAT_KEYS}
+        out.clock = max(s.clock for s in sims)
+        out.B = sum(s.B for s in sims)
+        return out
+
     def select(self, rows):
         """Keep only `rows` (a LongTensor of row indices), in that order."""
         for name in ("slot_expert", "slot_last", "count", "pending", "alive"):
@@ -358,6 +369,8 @@ class CacheSim:
         st["dropped_mass"] += a * torch.where(drop, p, 0.0).sum(1).double()
         st["layer_steps"] += a
         self.pending[:, layer] = -1
+        # Rows where anything was dropped; the others keep the router's own weights.
+        self.last_changed = drop.any(1)
 
         if self.guess is not None and router_input is not None and layer + 1 < self.NL:
             scores = router_input.float() @ self.guess[layer + 1].T  # [B, E]
@@ -402,7 +415,10 @@ class SimRouter(torch.nn.Module):
         p = p / p.sum(1, keepdim=True)
         router_input = self.router.norm(hidden_states) if sim.guess is not None else None
         out, w = sim.decode_layer(self.layer, index, p, self.router.per_expert_scale, router_input)
-        return probs, w.to(weights.dtype), out
+        # Where nothing was dropped, keep HF's weights bit for bit: recomputing
+        # them can move the last bit, enough to flip a greedy near-tie.
+        w = torch.where(sim.last_changed[:, None], w.to(weights.dtype), weights)
+        return probs, w, out
 
 
 class SimState:
@@ -414,8 +430,76 @@ class SimState:
         self.token_valid = None
 
 
+class ChunkedExperts(torch.nn.Module):
+    """Runs a layer's experts over at most `chunk` tokens at a time. Each
+    token's expert output depends on that token alone, so this changes memory,
+    not results; a whole batch's prefill otherwise needs tens of GB at once."""
+
+    def __init__(self, experts, chunk=8192):
+        super().__init__()
+        self.experts = experts
+        self.chunk = chunk
+
+    def forward(self, hidden_states, top_k_index, top_k_weights):
+        n = hidden_states.shape[0]
+        if n <= self.chunk:
+            return self.experts(hidden_states, top_k_index, top_k_weights)
+        return torch.cat([self.experts(hidden_states[i:i + self.chunk], top_k_index[i:i + self.chunk],
+                                       top_k_weights[i:i + self.chunk])
+                          for i in range(0, n, self.chunk)])
+
+
+def chunk_sdpa_by_rows(rows=8):
+    """Makes HF's "sdpa" attention run a multi-token query (a prompt) over at
+    most `rows` sequences at a time. Rows attend only to themselves, so the
+    output is the same; the memory for 64 long prompts at once is not."""
+    from transformers import AttentionInterface
+    from transformers.integrations.sdpa_attention import sdpa_attention_forward
+
+    def forward(module, query, key, value, attention_mask, **kwargs):
+        B = query.shape[0]
+        if query.shape[2] == 1 or B <= rows:
+            return sdpa_attention_forward(module, query, key, value, attention_mask, **kwargs)
+        outs = []
+        for i in range(0, B, rows):
+            mask = attention_mask
+            if mask is not None and mask.shape[0] == B:
+                mask = mask[i:i + rows]
+            out, _ = sdpa_attention_forward(module, query[i:i + rows], key[i:i + rows],
+                                            value[i:i + rows], mask, **kwargs)
+            outs.append(out)
+        return torch.cat(outs, 0), None
+
+    AttentionInterface.register("sdpa", forward)
+
+
+def compact_cache(cache):
+    """A sliding-window layer keeps its last tokens as a view of the whole
+    prompt's K/V, which keeps all of it allocated. Copy views out."""
+    for layer in cache.layers:
+        for name in ("keys", "values"):
+            t = getattr(layer, name, None)
+            if t is not None and t.untyped_storage().nbytes() > t.numel() * t.element_size():
+                setattr(layer, name, t.clone())
+    return cache
+
+
+def merge_caches(caches):
+    """One HF DynamicCache from several of equal length, rows in order, a
+    layer at a time so that only one layer is ever held twice."""
+    base = caches[0]
+    for i, layer in enumerate(base.layers):
+        layer.keys = torch.cat([c.layers[i].keys for c in caches], 0)
+        layer.values = torch.cat([c.layers[i].values for c in caches], 0)
+        for c in caches[1:]:
+            c.layers[i].keys = c.layers[i].values = None
+    return base
+
+
 def install(model):
-    """Wraps every decoder layer's router; returns the shared state."""
+    """Wraps every decoder layer's router, and its experts in token chunks,
+    and chunks prompt attention by rows; returns the shared state."""
+    chunk_sdpa_by_rows()
     state = SimState()
     layers = None
     for name, module in model.named_modules():
@@ -425,4 +509,5 @@ def install(model):
     assert layers is not None, "decoder layers not found"
     for i, layer in enumerate(layers):
         layer.router = SimRouter(layer.router, i, state)
+        layer.experts = ChunkedExperts(layer.experts)
     return state

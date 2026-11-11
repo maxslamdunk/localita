@@ -19,7 +19,7 @@ capacity and memory cost.
 | Fresh preallocated expert artifact | Unexecuted hypothesis |
 | Next-layer early read from the hidden state | Production since 2026-10-03, with the fitted guess: about +17–20% tok/s on iPhone at +11–18% bytes/token |
 | LFU count aging (decay and a reset per conversation) | Production; +23% tok/s over an 11-chat session on iPhone, nothing on a fresh single prompt |
-| Cache-conditional expert skipping (drop a low-weight expert only when it misses) | **iOS default since 2026-11-08** (a quality spend; off on macOS); −39% waited-for reads at half the KL of one INT4 rounding (Mac); +18 to +33% tok/s on iPhone, 47 of 50 graded problems in both arms, [CACHE-12](#cache-12) |
+| Cache-conditional expert skipping (drop a low-weight expert only when it misses) | **iOS default since 2026-11-08** (a quality spend; off on macOS); −39% waited-for reads at half the KL of one INT4 rounding (Mac); +18 to +33% tok/s on iPhone, 47 of 50 graded problems in both arms; simulated on 3,321 questions, −0.55 MMLU-Pro and −1.06 GSM8K points at 0.08, −0.25 and −0.45 at 0.10, [CACHE-12](#cache-12) |
 
 ## Cache policy and capacity
 
@@ -333,6 +333,20 @@ capacity and memory cost.
   - It cannot resolve a loss of 1–3 problems in 50, and it covers English
     arithmetic only.
   - See `results/validation-results-2026-11-08-ios-expert-skip-accuracy/results.md`.
+- **Graded answers in a GPU simulation of the app (2026-11-11, 3,321
+  questions):**
+  - HF transformers on one H100, with the app's cache, early read and skip
+    rule ported. Teacher-forcing the phone's own replies, it matched the
+    phone's footers to 0.13 hit-rate points and 0.7% in drops per layer.
+  - MMLU-Pro (2,002): `0.08` −0.55 points (−1.67 to +0.57), `0.10` −0.25
+    (−1.39 to +0.89).
+  - GSM8K (1,319), strict match: `0.08` **−1.06** (−1.76 to −0.37,
+    p 0.004), `0.10` −0.45 (−1.15 to +0.24). Of `0.08`'s 18 losses, 8 are
+    right answers written as "16.00", and by value it is −0.45 (p 0.18).
+  - `0.10` was no worse than `0.08` on either task. Both thresholds change
+    most replies, and which questions flip looks like a draw.
+  - Both are well under one INT4 rounding's −3.75 MMLU-Pro points.
+  - See `results/validation-results-2026-11-11-skip-accuracy/results.md`.
 - **Decision (2026-11-08, the user's):** `miss:0.08` is the iOS default, and
   the iOS Settings sheet offers Off, 0.08 and 0.10. 0.10 is not measured on
   the phone. macOS stays off. Recorded in `docs/IOS_PORT.md`, "The rule that

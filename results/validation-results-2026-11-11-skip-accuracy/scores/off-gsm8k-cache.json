@@ -1,0 +1,20 @@
+{
+ "prefill_reads": 4178235.0,
+ "req": 80670960.0,
+ "hits": 60596359.0,
+ "early_issued": 9747741.0,
+ "early_used": 6637885.0,
+ "dropped": 0.0,
+ "dropped_mass": 0.0,
+ "layer_steps": 10083870.0,
+ "new_tokens": 337448.0,
+ "prompt_tokens": 1570299.0,
+ "missing_records": 0,
+ "hit_rate": 75.1154554253476,
+ "foreground_per_tok": 39.97487869240678,
+ "early_used_per_tok": 19.748028286758952,
+ "dropped_per_layer": 0.0,
+ "dropped_mass_per_layer": 0.0,
+ "generated_tokens": 337448,
+ "tokens_per_second": 110.93315054045027
+}

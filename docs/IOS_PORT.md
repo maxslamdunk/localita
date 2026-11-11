@@ -954,7 +954,11 @@ down that you paid for it.
     Graded free generation on the phone found no loss: 47 of 50 GSM-Symbolic
     P2 problems both ways
     (`results/validation-results-2026-11-08-ios-expert-skip-accuracy/`). That
-    test cannot see a loss of 1–3 problems in 50.
+    test cannot see a loss of 1–3 problems in 50. A GPU simulation of the
+    app on 3,321 questions put 0.08 at −0.55 MMLU-Pro points (not
+    significant) and −1.06 GSM8K points (p 0.004, about half of it answers
+    written as "16.00"), and 0.10 at −0.25 and −0.45, neither significant
+    (`results/validation-results-2026-11-11-skip-accuracy/`).
   - **The choice is the user's:** Settings → Expert reads → Skip unlikely
     experts offers Off, 0.08 and 0.10. The user asked for 0.10 to be offered
     without a phone measurement. On the M1 it cut 62% of the waited-for reads

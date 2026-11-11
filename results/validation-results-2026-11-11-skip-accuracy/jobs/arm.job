@@ -6,16 +6,21 @@
 #SBATCH --time=06:00:00
 
 # One arm of the skip-accuracy benchmark on one H100. Passed with --export:
-# WORK, LABEL, THRESHOLD (0 = off), SLOTS, BATCH.
+# WORK, LABEL, THRESHOLD (0 = off), SLOTS, BATCH, and optionally ONLY (eval.py).
 set -uo pipefail
 S=$WORK/skip
 C=$WORK/containers/vllm-0.32.0-cu129.sif
 M=$WORK/models/default-mlx-4bit-as-bf16
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export HF_HOME=$WORK/hf HF_HUB_OFFLINE=1 HF_DATASETS_OFFLINE=1 XDG_CACHE_HOME=$WORK/cache
 export APPTAINERENV_PYTHONPATH=$WORK/shim:$S/jobs APPTAINERENV_PYTHONUSERBASE=$WORK/pyuser
+# The QAT study's vLLM replies for this model set the batch order (eval.py).
+V=$WORK/results/bench-28997220
+export APPTAINERENV_EXPECTED_LENGTHS=$V/default-mmlu_pro-samples.jsonl,$V/default-gsm8k-samples.jsonl
 OUT=$S/results/arms
 mkdir -p "$OUT"
 nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
 cd "$S/jobs"
+export APPTAINERENV_ONLY=${ONLY:-}
 apptainer exec --nv -B "$WORK" "$C" python3 eval.py "$LABEL" "$M" "$S/guess.bin" "$OUT" \
     "$THRESHOLD" "$SLOTS" "$BATCH"
