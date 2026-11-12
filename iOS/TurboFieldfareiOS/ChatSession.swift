@@ -64,12 +64,13 @@ enum ChatSession {
             // is what reopens what the store writes.
             settingsPersistenceEnabled: true)
         // Slot count is *not* set here on purpose — it comes from
-        // `MacAppSettings`, which tracks `RuntimeConfiguration
-        // .productionExpertCacheSlots` and so resolves to 24 on iOS. That is
-        // memory-funded speed, not a free win: slots are per layer, and 24
-        // rests at about 3.3 GB in this app against about 4.1 GB at 32, which
-        // left no room for the photo picker (2026-09-24). A settings file saved
-        // before then keeps the count it holds.
+        // `MacAppSettings`, whose default is `AppRuntimeOptions
+        // .defaultExpertCacheSlots`: 24 on an 8 GB iPhone, 32 on a 12 GB one.
+        // That is memory-funded speed, not a free win: slots are per layer,
+        // and on the iPhone 17 24 rests at about 3.3 GB in this app against
+        // about 4.1 GB at 32, which left no room for the photo picker
+        // (2026-09-24). Each new build resets the count to that default
+        // (`MacAppSettings.lastAppBuild`).
         // After init, which is when the settings file is applied. The file does
         // not carry the chunk size, and `applyPersistedSettings` rebuilds the
         // options without it, back to the shared 128. It runs again only from

@@ -944,6 +944,23 @@ down that you paid for it.
 
 **Quality spends recorded so far:**
 
+- **2026-11-12: each new TestFlight build resets the speed and generation
+  settings**, by the user's decision, from build 8. When a build other than
+  the one that last opened the settings file opens it, context, expert slots,
+  early reads, the file-cache bypass, skipping, temperature, Top-K and Top-P
+  go back to a fresh install's values (`MacAppSettings.lastAppBuild`,
+  `resetSpeedAndGeneration`). These are the fields Reset to Defaults resets.
+  - **Why:** a tester who changed one of these without knowing what it does
+    gets slow or worse replies and never connects the two, and the
+    leftovers outlast the defaults they came from: an iPhone 17 could still be
+    on 32 slots from before 2026-11-10, when 32 was offered there. A reset per
+    build bounds that to one build, and testers report each build at its
+    defaults.
+  - **Kept:** text size, the Return key, Picture in Picture, the welcome
+    examples, loading on launch. Their effect is visible. Chats and the model
+    are not in the file.
+  - **Before the App Store release,** decide whether to keep it: people there
+    will not expect an update to undo their settings. The Mac never resets.
 - **2026-11-12: expert skipping `miss:0.10` is the iOS default, replacing
   0.08, and the app uses 32 expert slots on 12 GB iPhones**, by the user's
   decision.
@@ -959,10 +976,9 @@ down that you paid for it.
     cases (code, other languages, sampled replies) carry more risk. 32 slots
     do not change the output; they cost about 0.8 GB, with 2.4 GB still
     available on the iPhone 18 Pro and nothing killed.
-  - **Existing installs:** a settings file holding the old defaults (0.08,
-    and 24 slots on a 12 GB phone) moves to the new ones once
-    (`MacAppSettings.adoptCurrentDefaults`). Off, 16 slots and other choices
-    are kept.
+  - **Existing installs:** in build 7, a settings file holding the old
+    defaults (0.08, and 24 slots on a 12 GB phone) moved to the new ones
+    once. From build 8 every new build resets these settings (the next entry).
   - **Still to do:** an iPhone 17 A/B of 0.08 against 0.10.
   - macOS is unchanged: skipping off, 16 slots.
 - **2026-11-08: expert skipping `miss:0.08` is the iOS default** (replaced by

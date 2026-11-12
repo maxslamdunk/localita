@@ -554,7 +554,8 @@ struct SettingsView: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Temperature 0.20, Top-K 64, Top-P 0.95, 8K context and "
-                     + "24 expert slots. If context or slots change, the model "
+                     + "\(AppRuntimeOptions.defaultExpertCacheSlots(physicalMemoryBytes: DeviceMemory.bytes)) "
+                     + "expert slots. If context or slots change, the model "
                      + "needs a reload.")
             }
         } footer: {

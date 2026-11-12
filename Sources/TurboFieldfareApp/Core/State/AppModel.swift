@@ -1184,7 +1184,9 @@ public final class AppModel {
     ///
     /// The defaults come from `MacAppSettings()`, which is where a new settings
     /// file gets them, so a reset cannot drift from a first launch. That
-    /// includes the platform's slot count: 32 on iOS, 16 on macOS. Context and
+    /// includes the device's slot count: 16 on macOS, 24 on iOS, 32 on a 12 GB
+    /// iPhone. The fields are `MacAppSettings.resetSpeedAndGeneration`'s,
+    /// which a new iOS build applies on its own. Context and
     /// slots are part of the loaded runtime, so if they change, the model needs
     /// a reload (`hasStaleLoadedRuntime`), as with any other change to them.
     public func resetSettingsToDefaults() {

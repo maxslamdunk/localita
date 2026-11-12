@@ -27,74 +27,148 @@ import TurboFieldfare
         #endif
     }
 
-    private static let twelveGB: UInt64 = 12_195_266_560  // an iPhone 18 Pro
-    private static let eightGB: UInt64 = 8_044_216_320    // an iPhone 17
-
-    /// Revision 1: an iPhone file written with the old defaults moves to 0.10
-    /// and, on a 12 GB phone, 32 slots.
-    @Test func oldIOSDefaultsMoveToTheNewOnes() {
-        var settings = MacAppSettings(defaultsRevision: 0, expertCacheSlots: 24,
-                                      expertSkipThreshold: 0.08)
-        settings.adoptCurrentDefaults(physicalMemoryBytes: Self.twelveGB, onIOS: true)
-        #expect(settings.expertSkipThreshold == 0.10)
-        #expect(settings.expertCacheSlots == 32)
-        #expect(settings.defaultsRevision == MacAppSettings.currentDefaultsRevision)
+    /// Every setting away from its default: the speed and generation ones
+    /// a new build resets, and the preferences it keeps.
+    private static func changed(lastAppBuild: String?) -> MacAppSettings {
+        MacAppSettings(lastAppBuild: lastAppBuild,
+                       contextTokens: AppContextLengthOption.fourK.tokens,
+                       expertCacheSlots: 24,
+                       temperature: 0.9, topKEnabled: false, topK: 32,
+                       topPEnabled: false, topP: 0.8,
+                       newlineShortcut: .shiftReturn, showPromptExamples: false,
+                       textSize: .larger, sidebarVisible: false, inspectorVisible: false,
+                       loadModelOnLaunch: true, backgroundGeneration: false,
+                       earlyExpertReads: 2,
+                       expertReadsBypassFileCache: !PreadExpertStreamer.readsBypassFileCacheByDefault,
+                       expertSkipThreshold: 0.08)
     }
 
-    @Test func anEightGBPhoneKeeps24Slots() {
-        var settings = MacAppSettings(defaultsRevision: 0, expertCacheSlots: 24,
-                                      expertSkipThreshold: 0.08)
-        settings.adoptCurrentDefaults(physicalMemoryBytes: Self.eightGB, onIOS: true)
-        #expect(settings.expertSkipThreshold == 0.10)
-        #expect(settings.expertCacheSlots == 24)
+    private func modelDirectory(in root: URL) -> URL {
+        root.appendingPathComponent("gemma4.gturbo", isDirectory: true)
     }
 
-    /// Off and 16 slots were never defaults on iOS, so they were chosen.
-    @Test func chosenValuesSurviveTheRevision() {
-        var settings = MacAppSettings(defaultsRevision: 0, expertCacheSlots: 16,
-                                      expertSkipThreshold: 0)
-        settings.adoptCurrentDefaults(physicalMemoryBytes: Self.twelveGB, onIOS: true)
-        #expect(settings.expertSkipThreshold == 0)
-        #expect(settings.expertCacheSlots == 16)
+    private func expectSpeedAndGenerationAreDefaults(_ s: MacAppSettings) {
+        let d = MacAppSettings()
+        #expect(s.contextTokens == d.contextTokens)
+        #expect(s.expertCacheSlots == d.expertCacheSlots)
+        #expect(s.temperature == d.temperature)
+        #expect(s.topKEnabled == d.topKEnabled)
+        #expect(s.topK == d.topK)
+        #expect(s.topPEnabled == d.topPEnabled)
+        #expect(s.topP == d.topP)
+        #expect(s.earlyExpertReads == d.earlyExpertReads)
+        #expect(s.expertReadsBypassFileCache == d.expertReadsBypassFileCache)
+        #expect(s.expertSkipThreshold == d.expertSkipThreshold)
     }
 
-    /// The Mac's defaults did not change: its values stay, the revision is stamped.
-    @Test func aMacFileOnlyGetsTheRevisionStamped() {
-        var settings = MacAppSettings(defaultsRevision: 0, expertCacheSlots: 24,
-                                      expertSkipThreshold: 0.08)
-        settings.adoptCurrentDefaults(physicalMemoryBytes: Self.twelveGB, onIOS: false)
-        #expect(settings.expertSkipThreshold == 0.08)
-        #expect(settings.expertCacheSlots == 24)
-        #expect(settings.defaultsRevision == MacAppSettings.currentDefaultsRevision)
+    private func expectPreferencesKept(_ s: MacAppSettings) {
+        let c = Self.changed(lastAppBuild: nil)
+        #expect(s.newlineShortcut == c.newlineShortcut)
+        #expect(s.showPromptExamples == c.showPromptExamples)
+        #expect(s.textSize == c.textSize)
+        #expect(s.sidebarVisible == c.sidebarVisible)
+        #expect(s.inspectorVisible == c.inspectorVisible)
+        #expect(s.loadModelOnLaunch == c.loadModelOnLaunch)
+        #expect(s.backgroundGeneration == c.backgroundGeneration)
     }
 
-    /// A file from before revisions has no key; loading it moves the old
-    /// defaults once and saves, and a value chosen afterwards is kept.
-    @Test func aFileWithoutARevisionIsUpgradedOnceOnLoad() throws {
+    /// The TestFlight rule: a file another build last opened gets speed and
+    /// generation back to the defaults, keeps the preferences, records the
+    /// new build and is saved, so the reset happens once.
+    @Test func aNewBuildResetsSpeedAndGenerationOnce() throws {
         let root = try makeTemporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let model = root.appendingPathComponent("gemma4.gturbo", isDirectory: true)
+        let model = modelDirectory(in: root)
+        try MacAppSettingsFileStore.save(Self.changed(lastAppBuild: "7"), forModelDirectory: model)
+
+        let loaded = MacAppSettingsFileStore.loadOrCreate(forModelDirectory: model, appBuild: "8")
+        expectSpeedAndGenerationAreDefaults(loaded)
+        expectPreferencesKept(loaded)
+        #expect(loaded.lastAppBuild == "8")
+        let saved = try JSONDecoder().decode(
+            MacAppSettings.self,
+            from: Data(contentsOf: MacAppSettingsFileStore.fileURL(forModelDirectory: model)))
+        #expect(saved == loaded)
+
+        // A choice made on build 8 lasts while build 8 runs.
+        var chosen = saved
+        chosen.expertSkipThreshold = 0
+        try MacAppSettingsFileStore.save(chosen, forModelDirectory: model)
+        #expect(MacAppSettingsFileStore.loadOrCreate(forModelDirectory: model, appBuild: "8")
+            == chosen)
+    }
+
+    /// A file written before the build was recorded (build 7 and earlier).
+    @Test func aFileWithoutABuildIsReset() throws {
+        let root = try makeTemporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let model = modelDirectory(in: root)
         let url = MacAppSettingsFileStore.fileURL(forModelDirectory: model)
-        let old = MacAppSettings(expertCacheSlots: 24, expertSkipThreshold: 0.08)
-        var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(old)) as! [String: Any]
-        json.removeValue(forKey: "defaultsRevision")
+        var json = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(Self.changed(lastAppBuild: "7"))) as! [String: Any]
+        json.removeValue(forKey: "lastAppBuild")
+        // What build 7 wrote: its one-time revision key, unknown to this build.
+        json["defaultsRevision"] = 1
         try JSONSerialization.data(withJSONObject: json).write(to: url)
 
-        let loaded = MacAppSettingsFileStore.loadOrCreate(
-            forModelDirectory: model, physicalMemoryBytes: Self.twelveGB, onIOS: true)
-        #expect(loaded.expertSkipThreshold == 0.10)
-        #expect(loaded.expertCacheSlots == 32)
-        let saved = try JSONDecoder().decode(MacAppSettings.self, from: Data(contentsOf: url))
-        #expect(saved.defaultsRevision == MacAppSettings.currentDefaultsRevision)
+        let loaded = MacAppSettingsFileStore.loadOrCreate(forModelDirectory: model, appBuild: "8")
+        expectSpeedAndGenerationAreDefaults(loaded)
+        expectPreferencesKept(loaded)
+        #expect(loaded.lastAppBuild == "8")
+    }
 
-        var chosen = saved
-        chosen.expertSkipThreshold = 0.08
-        chosen.expertCacheSlots = 24
-        try MacAppSettingsFileStore.save(chosen, forModelDirectory: model)
-        let reloaded = MacAppSettingsFileStore.loadOrCreate(
-            forModelDirectory: model, physicalMemoryBytes: Self.twelveGB, onIOS: true)
-        #expect(reloaded.expertSkipThreshold == 0.08)
-        #expect(reloaded.expertCacheSlots == 24)
+    @Test func theSameBuildKeepsEverything() throws {
+        let root = try makeTemporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let model = modelDirectory(in: root)
+        let file = Self.changed(lastAppBuild: "8")
+        try MacAppSettingsFileStore.save(file, forModelDirectory: model)
+        #expect(MacAppSettingsFileStore.loadOrCreate(forModelDirectory: model, appBuild: "8") == file)
+    }
+
+    /// The Mac has no build to compare (`currentAppBuild` is nil) and never resets.
+    @Test func theMacNeverResets() throws {
+        #if !os(iOS)
+        #expect(MacAppSettings.currentAppBuild == nil)
+        #endif
+        let root = try makeTemporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let model = modelDirectory(in: root)
+        let file = Self.changed(lastAppBuild: "7")
+        try MacAppSettingsFileStore.save(file, forModelDirectory: model)
+        #expect(MacAppSettingsFileStore.loadOrCreate(forModelDirectory: model, appBuild: nil) == file)
+    }
+
+    /// A fresh install records its build, so its first update is the first reset.
+    @Test func aNewFileRecordsTheBuild() throws {
+        let root = try makeTemporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let model = modelDirectory(in: root)
+        let created = MacAppSettingsFileStore.loadOrCreate(forModelDirectory: model, appBuild: "8")
+        #expect(created.lastAppBuild == "8")
+        let saved = try JSONDecoder().decode(
+            MacAppSettings.self,
+            from: Data(contentsOf: MacAppSettingsFileStore.fileURL(forModelDirectory: model)))
+        #expect(saved.lastAppBuild == "8")
+    }
+
+    /// The Reset to Defaults button and a new build reset the same fields.
+    @Test @MainActor func theResetButtonAndANewBuildAgree() throws {
+        let root = try makeTemporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let model = modelDirectory(in: root)
+        try FileManager.default.createDirectory(at: model, withIntermediateDirectories: true)
+        let file = Self.changed(lastAppBuild: nil)
+        try MacAppSettingsFileStore.save(file, forModelDirectory: model)
+
+        let app = AppModel(modelDirectory: model, settingsPersistenceEnabled: true)
+        app.resetSettingsToDefaults()
+        let byButton = try JSONDecoder().decode(
+            MacAppSettings.self,
+            from: Data(contentsOf: MacAppSettingsFileStore.fileURL(forModelDirectory: model)))
+        var byBuild = file
+        byBuild.resetSpeedAndGeneration()
+        #expect(byButton == byBuild)
     }
 
     @Test func settingsFileLivesBesideModelDirectory() {

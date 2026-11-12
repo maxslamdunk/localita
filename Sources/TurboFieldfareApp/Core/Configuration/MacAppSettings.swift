@@ -4,17 +4,29 @@ import TurboFieldfare
 struct MacAppSettings: Codable, Equatable, Sendable {
     static let fileName = "mac-app-settings.json"
     static let currentVersion = 3
-    /// Raised when a default changes and files written under the old default
-    /// should move to the new one (`adoptCurrentDefaults`). A key of its own,
-    /// not the version, because upstream's version 4 already means something
-    /// else, and an older build ignores a key it does not know.
-    static let currentDefaultsRevision = 1
+
+    /// This build's number (`CFBundleVersion`) on iOS; nil on the Mac, which
+    /// never resets on an update.
+    static let currentAppBuild: String? = {
+        #if os(iOS)
+        return Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+        #else
+        return nil
+        #endif
+    }()
 
     var version: Int = currentVersion
-    var defaultsRevision: Int = currentDefaultsRevision
+    /// The iOS build that last opened this file. When another build opens it,
+    /// the speed and generation settings go back to their defaults
+    /// (`resetSpeedAndGeneration`), the user's decision of 2026-11-12 while
+    /// the app is on TestFlight: someone who changed a setting without knowing
+    /// what it does is back on the defaults with the next build. A key of its
+    /// own, not the version, because upstream's version 4 already means
+    /// something else, and an older build ignores a key it does not know.
+    var lastAppBuild: String? = currentAppBuild
     var contextTokens: Int = AppContextLengthOption.eightK.tokens
-    /// The platform's production default, **not** a literal. 16 on macOS and 32
-    /// on iOS, where 32 measured +59 / +56 / +34% over 16 on the iPhone 17.
+    /// The platform's production default, **not** a literal: 16 on macOS, 24
+    /// on iOS, and 32 on a 12 GB iPhone.
     /// A hardcoded 16 here is indistinguishable from a deliberate choice once
     /// it reaches `AppModel.runtimeOptions`, so it silently held the phone at
     /// the old value while the constant claimed otherwise — the same drift
@@ -57,7 +69,7 @@ struct MacAppSettings: Codable, Equatable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case version
-        case defaultsRevision
+        case lastAppBuild
         case contextTokens
         case expertCacheSlots
         case temperature
@@ -86,7 +98,7 @@ struct MacAppSettings: Codable, Equatable, Sendable {
     }
 
     init(version: Int = currentVersion,
-         defaultsRevision: Int = currentDefaultsRevision,
+         lastAppBuild: String? = currentAppBuild,
          contextTokens: Int = AppContextLengthOption.eightK.tokens,
          expertCacheSlots: Int = AppRuntimeOptions.defaultExpertCacheSlots(
              physicalMemoryBytes: ProcessInfo.processInfo.physicalMemory),
@@ -109,7 +121,7 @@ struct MacAppSettings: Codable, Equatable, Sendable {
          expertReadsBypassFileCache: Bool = PreadExpertStreamer.readsBypassFileCacheByDefault,
          expertSkipThreshold: Double = AppRuntimeOptions.defaultExpertSkipThreshold) {
         self.version = version
-        self.defaultsRevision = defaultsRevision
+        self.lastAppBuild = lastAppBuild
         self.contextTokens = contextTokens
         self.expertCacheSlots = expertCacheSlots
         self.temperature = temperature
@@ -135,9 +147,9 @@ struct MacAppSettings: Codable, Equatable, Sendable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         version = try container.decode(Int.self, forKey: .version)
-        // A file from before revisions holds every value as it was written,
-        // defaults included, so it starts at 0 and `adoptCurrentDefaults` runs.
-        defaultsRevision = try container.decodeIfPresent(Int.self, forKey: .defaultsRevision) ?? 0
+        // Absent in a file from before build 8, which then counts as another
+        // build's and is reset once.
+        lastAppBuild = try container.decodeIfPresent(String.self, forKey: .lastAppBuild)
         contextTokens = try container.decode(Int.self, forKey: .contextTokens)
         expertCacheSlots = try container.decode(Int.self, forKey: .expertCacheSlots)
         temperature = try container.decode(Double.self, forKey: .temperature)
@@ -196,27 +208,24 @@ struct MacAppSettings: Codable, Equatable, Sendable {
             forKey: .expertSkipThreshold) ?? AppRuntimeOptions.defaultExpertSkipThreshold
     }
 
-    /// Moves values an older build wrote as its own defaults to today's, once.
-    ///
-    /// Revision 1 (2026-11-12, the user's decision), on iOS only: skipping
-    /// 0.08 becomes 0.10, and on a 12 GB iPhone 24 slots become 32. A file
-    /// stores every value it was created with, so the old defaults cannot be
-    /// told apart from the same values chosen on purpose; as with
-    /// `backgroundGeneration`, they are read as defaults. Off, 16 slots and
-    /// anything else were chosen and are kept. The Mac's defaults did not
-    /// change, so a Mac file only gets the revision stamped.
-    mutating func adoptCurrentDefaults(physicalMemoryBytes: UInt64,
-                                       onIOS: Bool = AppRuntimeOptions.isIOS) {
-        if defaultsRevision < 1 && onIOS {
-            if expertSkipThreshold == 0.08 {
-                expertSkipThreshold = 0.10
-            }
-            if expertCacheSlots == 24
-                && BenchmarkSweep.isOffered(physicalMemoryBytes: physicalMemoryBytes) {
-                expertCacheSlots = 32
-            }
-        }
-        defaultsRevision = Self.currentDefaultsRevision
+    /// Puts the settings that change speed, memory or the replies back to a
+    /// fresh install's: context, expert slots, early reads, the file-cache
+    /// bypass, skipping and sampling. Display and behaviour preferences (text
+    /// size, the Return key, Picture in Picture, the welcome examples, loading
+    /// on launch, the window layout) stay, since their effect is visible.
+    /// The same fields as `AppModel.resetSettingsToDefaults`, which a test holds.
+    mutating func resetSpeedAndGeneration() {
+        let defaults = MacAppSettings()
+        contextTokens = defaults.contextTokens
+        expertCacheSlots = defaults.expertCacheSlots
+        temperature = defaults.temperature
+        topKEnabled = defaults.topKEnabled
+        topK = defaults.topK
+        topPEnabled = defaults.topPEnabled
+        topP = defaults.topP
+        earlyExpertReads = defaults.earlyExpertReads
+        expertReadsBypassFileCache = defaults.expertReadsBypassFileCache
+        expertSkipThreshold = defaults.expertSkipThreshold
     }
 
     func isValid() -> Bool {
@@ -245,8 +254,7 @@ enum MacAppSettingsFileStore {
 
     static func loadOrCreate(forModelDirectory modelDirectory: URL,
                              fileManager: FileManager = .default,
-                             physicalMemoryBytes: UInt64 = ProcessInfo.processInfo.physicalMemory,
-                             onIOS: Bool = AppRuntimeOptions.isIOS) -> MacAppSettings {
+                             appBuild: String? = MacAppSettings.currentAppBuild) -> MacAppSettings {
         let fileURL = fileURL(forModelDirectory: modelDirectory)
         if fileManager.fileExists(atPath: fileURL.path) {
             do {
@@ -272,15 +280,16 @@ enum MacAppSettingsFileStore {
                     // choice, and rewriting one here would silently discard it.
                     settings.version = MacAppSettings.currentVersion
                 }
-                // Unlike the version above, this does rewrite values: only
-                // ones an older build wrote as its defaults (`adoptCurrentDefaults`).
-                let needsDefaults = settings.defaultsRevision < MacAppSettings.currentDefaultsRevision
-                if needsDefaults {
-                    settings.adoptCurrentDefaults(physicalMemoryBytes: physicalMemoryBytes,
-                                                  onIOS: onIOS)
+                // Unlike the version above, this does rewrite values: on iOS,
+                // a file another build last opened gets its speed and
+                // generation settings reset (`lastAppBuild`).
+                let isNewBuild = appBuild != nil && settings.lastAppBuild != appBuild
+                if isNewBuild {
+                    settings.resetSpeedAndGeneration()
+                    settings.lastAppBuild = appBuild
                 }
                 guard settings.isValid() else { throw InvalidSettings() }
-                if needsMigration || needsDefaults {
+                if needsMigration || isNewBuild {
                     try? save(settings, forModelDirectory: modelDirectory,
                               fileManager: fileManager)
                 }
@@ -290,7 +299,8 @@ enum MacAppSettingsFileStore {
             }
         }
 
-        let settings = MacAppSettings()
+        var settings = MacAppSettings()
+        settings.lastAppBuild = appBuild
         try? save(settings, forModelDirectory: modelDirectory, fileManager: fileManager)
         return settings
     }
