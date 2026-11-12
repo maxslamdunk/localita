@@ -11,6 +11,19 @@
   <strong>A 26-billion-parameter AI model that runs entirely on your iPhone.</strong>
 </p>
 
+<h2 align="center">Gemma 4 26B-A4B at about 20 tokens/s on an iPhone 18 Pro</h2>
+
+<p align="center">
+  <sub>On the phone itself, at the app's default settings for 12 GB iPhones.
+  <a href="#how-fast-is-it">How it was measured</a></sub>
+</p>
+
+<p align="center">
+  <a href="https://testflight.apple.com/join/2CPVFQuU"><img alt="Download for iPhone on TestFlight" src="https://img.shields.io/badge/Download_for_iPhone-TestFlight-0D96F6?style=for-the-badge&logo=apple&logoColor=white"></a>
+  <br>
+  <sub>Needs the TestFlight app from the App Store.</sub>
+</p>
+
 <p align="center">
   <img alt="iOS 26 or later" src="https://img.shields.io/badge/iOS-26%2B-000000?logo=apple&logoColor=white">
   <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white">
@@ -38,8 +51,8 @@ leave it, and once the model is downloaded the app works without a connection.
 > Localita is in public beta on TestFlight:
 > **[join the beta](https://testflight.apple.com/join/2CPVFQuU)** from an
 > iPhone with TestFlight installed. It is not on the App Store yet. It has been
-> developed and tested on one phone, an iPhone 17 (see
-> [Build it](#build-it) for what it needs, or to build it yourself).
+> developed on an iPhone 17, and benchmarked on an iPhone 18 Pro by a tester
+> (see [Build it](#build-it) for what it needs, or to build it yourself).
 
 <p align="center">
   <img src="docs/assets/localita-chat.png" alt="A chat in Localita: Gemma 4 explains pointwise and uniform convergence, with rendered math" width="250">
@@ -71,37 +84,28 @@ leave it, and once the model is downloaded the app works without a connection.
 
 ## How fast is it?
 
-Measured on an iPhone 17 (8 GB) with iOS 26.6, using the app's own benchmark
-at default settings, on 2026-10-13, with the phone cool (`nominal`) on every
-case. Source: [`results/validation-results-2026-10-13-ios-in-app-benchmark/`](results/validation-results-2026-10-13-ios-in-app-benchmark/results.md),
-second run.
-
-| Prompt | Prompt length | Reply speed | Time before the reply starts | App memory, peak |
-| --- | ---: | ---: | ---: | ---: |
-| Short question | 61 tokens | 6.3 tokens/s | 11.5 s | 3.1 GB |
-| Medium review | 430 tokens | 5.6 tokens/s | 11.5 s | 3.2 GB |
-| Long synthesis | 3,015 tokens | 5.2 tokens/s | 68 s | 3.4 GB |
-
-That is roughly reading pace: slower than a cloud chatbot, and that's the
-trade. Expect about 8% variation between runs of the same prompt. When the
-phone gets hot, iOS slows it by about 12%. Every run the project has
-recorded is in [`MEASUREMENTS.md`](MEASUREMENTS.md).
-
-### More memory, and expert skipping
-
 ![Decode speed on an iPhone 18 Pro at 24 and 32 expert slots with expert skipping off, at 0.08 and at 0.10, beside MMLU-Pro and GSM8K accuracy for the same three skip settings](docs/figures/skip-speed-accuracy/skip-speed-accuracy.png)
 
-On an iPhone 18 Pro (12 GB), two settings raise the speed: more memory for
-the expert cache (32 slots per layer, the default on 12 GB phones), and expert
-skipping. Skipping drops an expert only when the router gives it little
-weight and it is not already in memory, so using it would mean waiting for a
-storage read. It is on by default on iOS at 0.10, and Settings offers Off,
-0.08 and 0.10.
+On an iPhone 18 Pro (12 GB), Localita writes about 20 tokens per second at
+its default settings, averaged over three prompts of 61, 430 and 3,015
+tokens. Two settings raise the speed: more memory for the expert cache (32
+slots per layer, the default on 12 GB phones), and expert skipping.
+Skipping drops an expert only when the router gives it little weight and it
+is not already in memory, so using it would mean waiting for a storage read.
+It is on by default on iOS at 0.10, and Settings offers Off, 0.08 and 0.10.
 
 On 3,321 graded questions, run in a GPU simulation of the app, skipping moved
 accuracy by about a point or less. The one change larger than chance, −1.06
 points on GSM8K at 0.08, is about half right answers marked wrong for their
-format. The speeds are one run per setting. Sources:
+format. The speeds are one run per setting. Expect about 8% variation
+between runs, and about 12% less when the phone gets hot.
+
+An 8 GB iPhone is slower: its storage is slower, and it has room for 24
+slots. On an iPhone 17, with skipping at 0.08, replies came at 8.0 / 6.9 /
+6.4 tokens per second for the same three prompts
+([`results/benchmark-results-2026-11-08-ios-expert-skip/`](results/benchmark-results-2026-11-08-ios-expert-skip/results.md)).
+Every run the project has recorded is in [`MEASUREMENTS.md`](MEASUREMENTS.md).
+Sources for the figure:
 [`results/benchmark-results-2026-11-10-ios-settings-sweep/`](results/benchmark-results-2026-11-10-ios-settings-sweep/results.md)
 and [`results/validation-results-2026-11-11-skip-accuracy/`](results/validation-results-2026-11-11-skip-accuracy/results.md).
 
@@ -147,7 +151,7 @@ repository adds:
 - **Expert-cache counts that age**, so the cache follows the current chat
   rather than earlier ones: 23% faster over a session of 11 prompts.
 - **Expert reads that skip the OS file cache**: 4–8% faster.
-- **Expert skipping** ([above](#more-memory-and-expert-skipping)), which drops
+- **Expert skipping** ([above](#how-fast-is-it)), which drops
   a low-weight expert that would need a storage read: 18–33% faster on the
   iPhone 17, with accuracy within about a point.
 - **24 expert slots per layer** on the phone instead of 16: 21–37% faster.
