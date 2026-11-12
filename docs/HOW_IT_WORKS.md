@@ -108,7 +108,8 @@ Without any cache, each token would read 806.1 MB (30 layers × 8 experts ×
 3,358,720 bytes). The cache cuts that to between a quarter and a third. More
 slots catch more, but each 8 extra slots per layer cost about 0.8 GB of
 memory. 32 slots were faster but left too little room for the rest of the
-phone, such as the photo picker, so the default is 24.
+phone, such as the photo picker, so the default is 24. On phones with 12 GB,
+Settings also offers 32.
 
 ## Reading ahead: the early expert read
 
@@ -128,6 +129,28 @@ It reads more bytes, about 11–18% more per token, and is still about 17–20%
 faster, because those extra bytes are read while nothing else is happening.
 A second early read per layer was tried and is slower on the phone, because
 one read already fills the idle window.
+
+## Skipping an expert
+
+The router gives each of a token's 8 experts a weight, and the weights are
+flat: even the top expert averages only about a quarter of the total. When a
+low-weight expert is not in the cache and was not read early, the phone can
+leave it out instead of waiting about 2 ms for storage. The other experts'
+weights are scaled up to fill its share. The top-ranked expert is never left
+out, and an expert already in memory is always used.
+
+The threshold sets what "low weight" means. The iPhone default is 0.08: an
+expert with under 8% of the token's routing weight is left out if it would
+need a read. On the iPhone 17 that made decoding 18–33% faster. Settings
+offers Off, 0.08 and 0.10. On an iPhone 18 Pro, with one run per setting,
+0.10 was faster again:
+
+| 24 slots, mean of three prompts | Off | 0.08 | 0.10 |
+| --- | --- | --- | --- |
+| Tokens per second | 12.0 | 15.2 | 17.4 |
+
+Leaving experts out changes the replies, so it was measured for quality
+([below](#keeping-the-output-right)). The macOS app keeps it off.
 
 ## Reading a prompt: prefill
 
@@ -178,12 +201,25 @@ file cache, and cache aging all produced byte-identical text to the runs
 without them.
 
 Changes that trade quality for speed are measured for quality, and only the
-user makes one a default. One is on by default on the iPhone: when an expert
-the router barely uses would have to be read from storage, the phone leaves it
-out. That made decoding 18–33% faster. The replies change slightly. On 50
-graded math word problems, it got as many right as the runs without it: 47.
-Settings can turn it off, or raise its threshold for more speed, untested on
-the phone.
+user makes one a default. [Skipping experts](#skipping-an-expert) is the one
+on by default on the iPhone, and it changes the replies slightly. The phone is
+too slow to grade thousands of answers, so the app's cache and skipping were
+simulated on a GPU. The simulation was checked against the phone first.
+Replaying the phone's own replies, it found the same experts in memory as the
+phone, within 0.13 percentage points. Then it answered the same questions at
+each setting:
+
+| | Off | 0.08 | 0.10 |
+| --- | --- | --- | --- |
+| MMLU-Pro, 2,002 questions | 77.5% | 76.9% | 77.2% |
+| GSM8K, 1,319 math word problems | 94.3% | 93.3% | 93.9% |
+
+Only one change is larger than chance would explain: −1.06 percentage points
+on GSM8K at 0.08. About half of it is right answers the grader marked wrong
+for their format, such as "16.00" for 16. Both tests ask for short answers in
+English, answered without sampling. Code, other languages and sampled replies
+are not tested yet. See
+[`results/validation-results-2026-11-11-skip-accuracy/`](../results/validation-results-2026-11-11-skip-accuracy/results.md).
 
 ## Read next
 
