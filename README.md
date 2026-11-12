@@ -87,6 +87,24 @@ trade. Expect about 8% variation between runs of the same prompt. When the
 phone gets hot, iOS slows it by about 12%. Every run the project has
 recorded is in [`MEASUREMENTS.md`](MEASUREMENTS.md).
 
+### More memory, and expert skipping
+
+![Decode speed on an iPhone 18 Pro at 24 and 32 expert slots with expert skipping off, at 0.08 and at 0.10, beside MMLU-Pro and GSM8K accuracy for the same three skip settings](docs/figures/skip-speed-accuracy/skip-speed-accuracy.png)
+
+On an iPhone 18 Pro (12 GB), two settings raise the speed: more memory for
+the expert cache (32 slots per layer, offered on 12 GB phones), and expert
+skipping. Skipping drops an expert only when the router gives it little
+weight and it is not already in memory, so using it would mean waiting for a
+storage read. It is on by default on iOS at 0.08, and Settings offers Off,
+0.08 and 0.10.
+
+On 3,321 graded questions, run in a GPU simulation of the app, skipping moved
+accuracy by about a point or less. The one change larger than chance, −1.06
+points on GSM8K at 0.08, is about half right answers marked wrong for their
+format. The speeds are one run per setting. Sources:
+[`results/benchmark-results-2026-11-10-ios-settings-sweep/`](results/benchmark-results-2026-11-10-ios-settings-sweep/results.md)
+and [`results/validation-results-2026-11-11-skip-accuracy/`](results/validation-results-2026-11-11-skip-accuracy/results.md).
+
 ## How it fits on a phone
 
 Gemma 4 26B-A4B is a mixture-of-experts model. It has 26 billion parameters,
@@ -129,6 +147,9 @@ repository adds:
 - **Expert-cache counts that age**, so the cache follows the current chat
   rather than earlier ones: 23% faster over a session of 11 prompts.
 - **Expert reads that skip the OS file cache**: 4–8% faster.
+- **Expert skipping** ([above](#more-memory-and-expert-skipping)), which drops
+  a low-weight expert that would need a storage read: 18–33% faster on the
+  iPhone 17, with accuracy within about a point.
 - **24 expert slots per layer** on the phone instead of 16: 21–37% faster.
 - **1,024-token prefill chunks** on the phone instead of 256: 71% less read
   for a long prompt.
