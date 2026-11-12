@@ -944,8 +944,29 @@ down that you paid for it.
 
 **Quality spends recorded so far:**
 
-- **2026-11-08: expert skipping `miss:0.08` is the iOS default**, by the
-  user's decision. In decode it drops a routed expert that would be a
+- **2026-11-12: expert skipping `miss:0.10` is the iOS default, replacing
+  0.08, and the app uses 32 expert slots on 12 GB iPhones**, by the user's
+  decision.
+  - **What it buys:** on an iPhone 18 Pro, 0.10 was 13–15% faster than 0.08
+    at 24 and at 32 slots, and 32 slots +10 to +22% over 24 at 0.08, one run
+    per setting (`results/benchmark-results-2026-11-10-ios-settings-sweep/`).
+    0.10's speed on the iPhone 17 is unmeasured.
+  - **What it costs:** graded in a GPU simulation of the app, 0.10 was −0.25
+    MMLU-Pro and −0.45 GSM8K points against off, neither significant, and no
+    worse than 0.08 (`results/validation-results-2026-11-11-skip-accuracy/`).
+    On the M1 it cost 0.94× the KL of one INT4 rounding, against 0.55× for
+    0.08. It skips about 1.7 times as many experts as 0.08, so the untested
+    cases (code, other languages, sampled replies) carry more risk. 32 slots
+    do not change the output; they cost about 0.8 GB, with 2.4 GB still
+    available on the iPhone 18 Pro and nothing killed.
+  - **Existing installs:** a settings file holding the old defaults (0.08,
+    and 24 slots on a 12 GB phone) moves to the new ones once
+    (`MacAppSettings.adoptCurrentDefaults`). Off, 16 slots and other choices
+    are kept.
+  - **Still to do:** an iPhone 17 A/B of 0.08 against 0.10.
+  - macOS is unchanged: skipping off, 16 slots.
+- **2026-11-08: expert skipping `miss:0.08` is the iOS default** (replaced by
+  0.10 on 2026-11-12), by the user's decision. In decode it drops a routed expert that would be a
   foreground read and that the router weighs under 0.08.
   - **What it buys:** +32.9 / +18.2 / +26.0% tok/s on the iPhone 17
     (`results/benchmark-results-2026-11-08-ios-expert-skip/`).

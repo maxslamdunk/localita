@@ -18,8 +18,9 @@ enum DeviceMemory {
 
     /// Whether Settings offers 32 expert slots and the Benchmark offers the
     /// settings sweep, which runs at 32: 12 GB phones, which report about
-    /// 12.2–12.3 billion bytes. On an 8 GB iPhone 17, 32 slots left no room
-    /// for the photo picker and, with the early read, was slower than 24.
+    /// 12.2–12.3 billion bytes, and where 32 is the default since 2026-11-12.
+    /// On an 8 GB iPhone 17, 32 slots left no room for the photo picker and,
+    /// with the early read, was slower than 24.
     static let offersLargeExpertCache = BenchmarkSweep.isOffered(physicalMemoryBytes: bytes)
 
     static var warning: String? {

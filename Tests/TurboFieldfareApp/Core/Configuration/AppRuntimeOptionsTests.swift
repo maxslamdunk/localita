@@ -165,6 +165,18 @@ import TurboFieldfare
 
     /// Off maps to no policy, a threshold to `miss:<t>`, and changing it makes
     /// a loaded session stale.
+    /// 32 slots on a 12 GB iPhone, the platform constant everywhere else.
+    @Test func slotDefaultFollowsThePhonesMemory() {
+        #expect(AppRuntimeOptions.defaultExpertCacheSlots(
+            physicalMemoryBytes: 12_195_266_560, onIOS: true) == 32)
+        #expect(AppRuntimeOptions.defaultExpertCacheSlots(
+            physicalMemoryBytes: 8_044_216_320, onIOS: true)
+            == RuntimeConfiguration.productionExpertCacheSlots)
+        #expect(AppRuntimeOptions.defaultExpertCacheSlots(
+            physicalMemoryBytes: 17_179_869_184, onIOS: false)
+            == RuntimeConfiguration.productionExpertCacheSlots)
+    }
+
     @Test(arguments: [0.0, 0.08, 0.10])
     func expertSkipChoicesMapToRuntime(_ threshold: Double) throws {
         let options = AppRuntimeOptions(expertSkipThreshold: threshold)

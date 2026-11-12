@@ -56,13 +56,35 @@ public struct AppRuntimeOptions: Equatable, Sendable {
     /// two. Two measured slower on the iPhone 17 and faster on the M1; it is
     /// offered for other devices, whose storage may serve reads differently.
     public static let allowedEarlyExpertReads = [0, 1, 2]
-    /// Expert-skip thresholds the app offers: 0 (off), 0.08 (the default on
-    /// iOS) or 0.10. Only 0.08 is measured on the phone; 0.10 cost about one
-    /// INT4 rounding of KL on the M1, nearly twice 0.08's, and is left for the
-    /// user to try.
+    /// Expert-skip thresholds the app offers: 0 (off), 0.08 or 0.10 (the
+    /// default on iOS since 2026-11-12). Graded accuracy did not tell 0.08 and
+    /// 0.10 apart (`results/validation-results-2026-11-11-skip-accuracy/`).
     public static let allowedExpertSkipThresholds = [0.0] + RuntimeConfiguration.allowedExpertSkipMissThresholds
     public static let defaultExpertSkipThreshold =
         RuntimeConfiguration.productionExpertSkipMissThreshold ?? 0
+
+    /// Whether this build is the iPhone app, for defaults that differ by
+    /// platform and are tested from the Mac through a parameter.
+    public static let isIOS: Bool = {
+        #if os(iOS)
+        return true
+        #else
+        return false
+        #endif
+    }()
+
+    /// The app's expert slots for a device: 32 on a 12 GB iPhone (since
+    /// 2026-11-12, the user's decision), otherwise the platform's production
+    /// constant, 24 on iOS and 16 on macOS. On an iPhone 18 Pro, 32 was +10
+    /// to +22% tok/s over 24 at skip 0.08, peaked 0.79–0.82 GB higher and left
+    /// 2.4 GB available (`results/benchmark-results-2026-11-10-ios-settings-sweep/`).
+    /// The runtime constant stays 24, so the harness and CLI keep their
+    /// protocol; only the app chooses by memory.
+    public static func defaultExpertCacheSlots(physicalMemoryBytes: UInt64,
+                                               onIOS: Bool = isIOS) -> Int {
+        onIOS && BenchmarkSweep.isOffered(physicalMemoryBytes: physicalMemoryBytes)
+            ? 32 : RuntimeConfiguration.productionExpertCacheSlots
+    }
 
     public var expertCacheSlots: Int
     public var expertCachePolicy: AppExpertCachePolicy

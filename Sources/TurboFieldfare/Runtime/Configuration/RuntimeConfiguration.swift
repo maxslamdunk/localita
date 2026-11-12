@@ -120,17 +120,21 @@ public struct RuntimeConfiguration: Sendable, Equatable {
     /// `TURBO_FIELDFARE_EXPERT_SKIP` overrides it.
     public let expertSkipMissThreshold: Double?
 
-    /// **0.08 on iOS since 2026-11-08, off on macOS.** On the iPhone 17,
-    /// `miss:0.08` gave **+32.9 / +18.2 / +26.0% tok/s**
-    /// (`results/benchmark-results-2026-11-08-ios-expert-skip/`) and solved
-    /// 47 of 50 GSM-Symbolic P2 problems, as off did
-    /// (`results/validation-results-2026-11-08-ios-expert-skip-accuracy/`).
-    /// On the M1 it cost 0.55× the KL of one INT4 rounding
+    /// **0.10 on iOS since 2026-11-12 (0.08 from 2026-11-08), off on macOS.**
+    /// The user's decision. On 3,321 graded questions in a GPU simulation of
+    /// the app, 0.10 was no worse than 0.08 (+0.30 MMLU-Pro, +0.61 GSM8K
+    /// points) and −0.25 / −0.45 against off, neither significant
+    /// (`results/validation-results-2026-11-11-skip-accuracy/`). On an iPhone
+    /// 18 Pro it was 13–15% faster than 0.08, one run per setting
+    /// (`results/benchmark-results-2026-11-10-ios-settings-sweep/`). Its speed
+    /// on the iPhone 17 is unmeasured; 0.08 gave +32.9 / +18.2 / +26.0% tok/s
+    /// there (`results/benchmark-results-2026-11-08-ios-expert-skip/`). On the
+    /// M1, 0.10 cost 0.94× the KL of one INT4 rounding, 0.08 0.55×
     /// (`results/research-results-2026-10-04-lossy-experts/`). The Mac has no
     /// speed A/B, so it stays off there.
     public static let productionExpertSkipMissThreshold: Double? = {
         #if os(iOS)
-        return 0.08
+        return 0.10
         #else
         return nil
         #endif

@@ -109,7 +109,7 @@ Without any cache, each token would read 806.1 MB (30 layers × 8 experts ×
 slots catch more, but each 8 extra slots per layer cost about 0.8 GB of
 memory. 32 slots were faster but left too little room for the rest of the
 phone, such as the photo picker, so the default is 24. On phones with 12 GB,
-Settings also offers 32.
+which have the room, the default is 32.
 
 ## Reading ahead: the early expert read
 
@@ -139,11 +139,11 @@ leave it out instead of waiting about 2 ms for storage. The other experts'
 weights are scaled up to fill its share. The top-ranked expert is never left
 out, and an expert already in memory is always used.
 
-The threshold sets what "low weight" means. The iPhone default is 0.08: an
-expert with under 8% of the token's routing weight is left out if it would
-need a read. On the iPhone 17 that made decoding 18–33% faster. Settings
-offers Off, 0.08 and 0.10. On an iPhone 18 Pro, with one run per setting,
-0.10 was faster again:
+The threshold sets what "low weight" means. The iPhone default is 0.10: an
+expert with under 10% of the token's routing weight is left out if it would
+need a read. At 0.08, the earlier default, decoding on the iPhone 17 was
+18–33% faster. Settings offers Off, 0.08 and 0.10. On an iPhone 18 Pro, with
+one run per setting, 0.10 was faster again:
 
 | 24 slots, mean of three prompts | Off | 0.08 | 0.10 |
 | --- | --- | --- | --- |

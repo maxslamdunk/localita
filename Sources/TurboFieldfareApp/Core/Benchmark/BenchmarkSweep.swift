@@ -16,9 +16,11 @@ public struct BenchmarkConfiguration: Equatable, Sendable {
         self.earlyExpertReads = earlyExpertReads
     }
 
-    /// What a chat runs at unless Settings changed it.
+    /// What a chat runs at unless Settings changed it: on a 12 GB iPhone,
+    /// 32 slots since 2026-11-12. Each report records its slot count.
     public static var standard: BenchmarkConfiguration {
-        .init(expertCacheSlots: RuntimeConfiguration.productionExpertCacheSlots,
+        .init(expertCacheSlots: AppRuntimeOptions.defaultExpertCacheSlots(
+                  physicalMemoryBytes: ProcessInfo.processInfo.physicalMemory),
               expertSkipThreshold: RuntimeConfiguration.productionExpertSkipMissThreshold ?? 0,
               earlyExpertReads: 1)
     }

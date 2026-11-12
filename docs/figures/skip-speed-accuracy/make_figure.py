@@ -38,8 +38,8 @@ ACC = {  # accuracy % from correct counts, and the paired change against off in 
               "0.10": (100 * 1238 / 1319, "−0.45")},
 }
 ARMS = ["off", "0.08", "0.10"]
-ARM_LABEL = {"off": "Skipping off", "0.08": "Skip threshold 0.08 (default)",
-             "0.10": "Skip threshold 0.10"}
+ARM_LABEL = {"off": "Skipping off", "0.08": "Skip threshold 0.08",
+             "0.10": "Skip threshold 0.10 (default)"}
 
 # ---- theme ------------------------------------------------------------------
 if LIGHT:
@@ -161,9 +161,9 @@ for g, slots in enumerate((24, 32)):
             label(left, x, v, f"+{100 * (v / base - 1):.0f}%", 25, fontsize=13,
                   color=T["muted"])
 left.set_xticks([1, 5])
-left.set_xticklabels([f"24 expert slots  ·  {MEMORY[24]} of memory",
-                      f"32 expert slots  ·  {MEMORY[32]} of memory"],
-                     fontsize=15, color=T["ink2"])
+left.set_xticklabels([f"24 expert slots  ·  {MEMORY[24]} of memory\ndefault on 8 GB iPhones",
+                      f"32 expert slots  ·  {MEMORY[32]} of memory\ndefault on 12 GB iPhones"],
+                     fontsize=15, color=T["ink2"], linespacing=1.3)
 left.tick_params(axis="x", pad=12)
 left.set_title("Decode speed on the phone, tokens per second", loc="left", fontsize=17,
                fontweight="bold", color=T["ink"], pad=18)

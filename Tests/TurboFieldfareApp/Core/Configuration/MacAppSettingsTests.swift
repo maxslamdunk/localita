@@ -20,12 +20,81 @@ import TurboFieldfare
     /// what actually guards this on either platform.
     @Test func slotDefaultTracksThePlatformConstant() {
         #expect(MacAppSettings().expertCacheSlots
-            == RuntimeConfiguration.productionExpertCacheSlots)
-        #if os(iOS)
-        #expect(MacAppSettings().expertCacheSlots == 32)
-        #else
+            == AppRuntimeOptions.defaultExpertCacheSlots(
+                physicalMemoryBytes: ProcessInfo.processInfo.physicalMemory))
+        #if !os(iOS)
         #expect(MacAppSettings().expertCacheSlots == 16)
         #endif
+    }
+
+    private static let twelveGB: UInt64 = 12_195_266_560  // an iPhone 18 Pro
+    private static let eightGB: UInt64 = 8_044_216_320    // an iPhone 17
+
+    /// Revision 1: an iPhone file written with the old defaults moves to 0.10
+    /// and, on a 12 GB phone, 32 slots.
+    @Test func oldIOSDefaultsMoveToTheNewOnes() {
+        var settings = MacAppSettings(defaultsRevision: 0, expertCacheSlots: 24,
+                                      expertSkipThreshold: 0.08)
+        settings.adoptCurrentDefaults(physicalMemoryBytes: Self.twelveGB, onIOS: true)
+        #expect(settings.expertSkipThreshold == 0.10)
+        #expect(settings.expertCacheSlots == 32)
+        #expect(settings.defaultsRevision == MacAppSettings.currentDefaultsRevision)
+    }
+
+    @Test func anEightGBPhoneKeeps24Slots() {
+        var settings = MacAppSettings(defaultsRevision: 0, expertCacheSlots: 24,
+                                      expertSkipThreshold: 0.08)
+        settings.adoptCurrentDefaults(physicalMemoryBytes: Self.eightGB, onIOS: true)
+        #expect(settings.expertSkipThreshold == 0.10)
+        #expect(settings.expertCacheSlots == 24)
+    }
+
+    /// Off and 16 slots were never defaults on iOS, so they were chosen.
+    @Test func chosenValuesSurviveTheRevision() {
+        var settings = MacAppSettings(defaultsRevision: 0, expertCacheSlots: 16,
+                                      expertSkipThreshold: 0)
+        settings.adoptCurrentDefaults(physicalMemoryBytes: Self.twelveGB, onIOS: true)
+        #expect(settings.expertSkipThreshold == 0)
+        #expect(settings.expertCacheSlots == 16)
+    }
+
+    /// The Mac's defaults did not change: its values stay, the revision is stamped.
+    @Test func aMacFileOnlyGetsTheRevisionStamped() {
+        var settings = MacAppSettings(defaultsRevision: 0, expertCacheSlots: 24,
+                                      expertSkipThreshold: 0.08)
+        settings.adoptCurrentDefaults(physicalMemoryBytes: Self.twelveGB, onIOS: false)
+        #expect(settings.expertSkipThreshold == 0.08)
+        #expect(settings.expertCacheSlots == 24)
+        #expect(settings.defaultsRevision == MacAppSettings.currentDefaultsRevision)
+    }
+
+    /// A file from before revisions has no key; loading it moves the old
+    /// defaults once and saves, and a value chosen afterwards is kept.
+    @Test func aFileWithoutARevisionIsUpgradedOnceOnLoad() throws {
+        let root = try makeTemporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let model = root.appendingPathComponent("gemma4.gturbo", isDirectory: true)
+        let url = MacAppSettingsFileStore.fileURL(forModelDirectory: model)
+        let old = MacAppSettings(expertCacheSlots: 24, expertSkipThreshold: 0.08)
+        var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(old)) as! [String: Any]
+        json.removeValue(forKey: "defaultsRevision")
+        try JSONSerialization.data(withJSONObject: json).write(to: url)
+
+        let loaded = MacAppSettingsFileStore.loadOrCreate(
+            forModelDirectory: model, physicalMemoryBytes: Self.twelveGB, onIOS: true)
+        #expect(loaded.expertSkipThreshold == 0.10)
+        #expect(loaded.expertCacheSlots == 32)
+        let saved = try JSONDecoder().decode(MacAppSettings.self, from: Data(contentsOf: url))
+        #expect(saved.defaultsRevision == MacAppSettings.currentDefaultsRevision)
+
+        var chosen = saved
+        chosen.expertSkipThreshold = 0.08
+        chosen.expertCacheSlots = 24
+        try MacAppSettingsFileStore.save(chosen, forModelDirectory: model)
+        let reloaded = MacAppSettingsFileStore.loadOrCreate(
+            forModelDirectory: model, physicalMemoryBytes: Self.twelveGB, onIOS: true)
+        #expect(reloaded.expertSkipThreshold == 0.08)
+        #expect(reloaded.expertCacheSlots == 24)
     }
 
     @Test func settingsFileLivesBesideModelDirectory() {

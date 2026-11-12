@@ -92,10 +92,10 @@ recorded is in [`MEASUREMENTS.md`](MEASUREMENTS.md).
 ![Decode speed on an iPhone 18 Pro at 24 and 32 expert slots with expert skipping off, at 0.08 and at 0.10, beside MMLU-Pro and GSM8K accuracy for the same three skip settings](docs/figures/skip-speed-accuracy/skip-speed-accuracy.png)
 
 On an iPhone 18 Pro (12 GB), two settings raise the speed: more memory for
-the expert cache (32 slots per layer, offered on 12 GB phones), and expert
+the expert cache (32 slots per layer, the default on 12 GB phones), and expert
 skipping. Skipping drops an expert only when the router gives it little
 weight and it is not already in memory, so using it would mean waiting for a
-storage read. It is on by default on iOS at 0.08, and Settings offers Off,
+storage read. It is on by default on iOS at 0.10, and Settings offers Off,
 0.08 and 0.10.
 
 On 3,321 graded questions, run in a GPU simulation of the app, skipping moved

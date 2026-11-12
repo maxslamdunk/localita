@@ -43,7 +43,7 @@ import Testing
 
     @Test func productionThresholdIsPlatformSplit() {
         #if os(iOS)
-        #expect(RuntimeConfiguration.productionExpertSkipMissThreshold == 0.08)
+        #expect(RuntimeConfiguration.productionExpertSkipMissThreshold == 0.10)
         #else
         #expect(RuntimeConfiguration.productionExpertSkipMissThreshold == nil)
         #endif

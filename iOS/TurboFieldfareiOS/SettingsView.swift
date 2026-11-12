@@ -55,13 +55,20 @@ struct SettingsView: View {
     static let contextOptions: [AppContextLengthOption] = [.fourK, .eightK]
 
     /// Slot counts this phone offers, with what each costs in memory against
-    /// the default. No speeds: the only measured ones are an iPhone 17's from
-    /// 2026-09-16, before the early read, and with it 32 slots was slower than
-    /// 24 there. 32 is offered only on 12 GB phones (`DeviceMemory`).
-    static let slotOptions: [(slots: Int, label: String)] = [
-        (16, "16 · −0.8 GB"),
-        (24, "24 · default"),
-    ] + (DeviceMemory.offersLargeExpertCache ? [(32, "32 · +0.8 GB")] : [])
+    /// this phone's default. No speeds: on the iPhone 17, 32 slots with the
+    /// early read was slower than 24 (unmeasured). 32 is offered only on 12 GB
+    /// phones (`DeviceMemory`), and is their default since 2026-11-12
+    /// (`AppRuntimeOptions.defaultExpertCacheSlots`).
+    static let slotOptions: [(slots: Int, label: String)] = {
+        let slots = [16, 24] + (DeviceMemory.offersLargeExpertCache ? [32] : [])
+        let standard = AppRuntimeOptions.defaultExpertCacheSlots(physicalMemoryBytes: DeviceMemory.bytes)
+        return slots.map { count in
+            let steps = (count - standard) / 8  // each 8 slots per layer is about 0.8 GB
+            let label = steps == 0 ? "\(count) · default"
+                : "\(count) · \(steps > 0 ? "+" : "−")\(String(format: "%.1f", 0.8 * Double(abs(steps)))) GB"
+            return (count, label)
+        }
+    }()
 
     var body: some View {
         // One stack around both tabs, not one per tab: with a bar per tab,
@@ -309,10 +316,11 @@ struct SettingsView: View {
     /// (`results/benchmark-results-2026-10-08-ios-early-read-x2/`); skipping
     /// the file cache gave +6 to +8% where GPU speed matched
     /// (`results/benchmark-results-2026-10-03-ios-expert-read-nocache/`).
-    /// Skipping unlikely experts at 0.08 gave +18 to +33% and solved as many
-    /// graded problems as off (`results/benchmark-results-2026-11-08-ios-expert-skip/`,
-    /// `results/validation-results-2026-11-08-ios-expert-skip-accuracy/`); 0.10 is
-    /// offered unmeasured on the phone, at the user's request. The in-app
+    /// Skipping unlikely experts at 0.08 gave +18 to +33% on the iPhone 17
+    /// (`results/benchmark-results-2026-11-08-ios-expert-skip/`). 0.10, the
+    /// default since 2026-11-12, was faster again on an iPhone 18 Pro, and on
+    /// 3,321 graded questions neither moved accuracy beyond about a point
+    /// (`results/validation-results-2026-11-11-skip-accuracy/`). The in-app
     /// benchmark ignores all three and runs the defaults.
     private var expertReadsSection: some View {
         Section {
@@ -339,8 +347,8 @@ struct SettingsView: View {
 
             described("Leave out an expert the model barely uses when it would "
                       + "have to be read from storage. Faster, and changes the "
-                      + "replies slightly. 0.08 kept answers as accurate in tests; "
-                      + "0.10 is faster again but untested on the phone.") {
+                      + "replies slightly: in tests, 0.08 and 0.10 both kept "
+                      + "accuracy within about a point, and 0.10 is faster.") {
                 Picker("Skip unlikely experts", selection: Binding {
                     model.runtimeOptions.expertSkipThreshold
                 } set: { model.setExpertSkipThreshold($0) }) {

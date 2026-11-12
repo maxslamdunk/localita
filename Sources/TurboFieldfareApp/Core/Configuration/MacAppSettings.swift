@@ -4,8 +4,14 @@ import TurboFieldfare
 struct MacAppSettings: Codable, Equatable, Sendable {
     static let fileName = "mac-app-settings.json"
     static let currentVersion = 3
+    /// Raised when a default changes and files written under the old default
+    /// should move to the new one (`adoptCurrentDefaults`). A key of its own,
+    /// not the version, because upstream's version 4 already means something
+    /// else, and an older build ignores a key it does not know.
+    static let currentDefaultsRevision = 1
 
     var version: Int = currentVersion
+    var defaultsRevision: Int = currentDefaultsRevision
     var contextTokens: Int = AppContextLengthOption.eightK.tokens
     /// The platform's production default, **not** a literal. 16 on macOS and 32
     /// on iOS, where 32 measured +59 / +56 / +34% over 16 on the iPhone 17.
@@ -14,7 +20,9 @@ struct MacAppSettings: Codable, Equatable, Sendable {
     /// the old value while the constant claimed otherwise — the same drift
     /// `HarnessSettings` was fixed for, reaching the app by a second route.
     /// No macOS behaviour change: the constant *is* 16 there.
-    var expertCacheSlots: Int = RuntimeConfiguration.productionExpertCacheSlots
+    /// On a 12 GB iPhone, 32 (`AppRuntimeOptions.defaultExpertCacheSlots`).
+    var expertCacheSlots: Int = AppRuntimeOptions.defaultExpertCacheSlots(
+        physicalMemoryBytes: ProcessInfo.processInfo.physicalMemory)
     var temperature: Double = 0.2
     var topKEnabled: Bool = true
     var topK: Int = 64
@@ -43,12 +51,13 @@ struct MacAppSettings: Codable, Equatable, Sendable {
     var earlyExpertReads: Int = 1
     /// `F_NOCACHE` on expert reads; the platform default, on iOS only.
     var expertReadsBypassFileCache: Bool = PreadExpertStreamer.readsBypassFileCacheByDefault
-    /// Expert skipping: 0 (off), 0.08 or 0.10; the platform default, 0.08 on
+    /// Expert skipping: 0 (off), 0.08 or 0.10; the platform default, 0.10 on
     /// iOS. A file from before the setting starts on the default.
     var expertSkipThreshold: Double = AppRuntimeOptions.defaultExpertSkipThreshold
 
     private enum CodingKeys: String, CodingKey {
         case version
+        case defaultsRevision
         case contextTokens
         case expertCacheSlots
         case temperature
@@ -77,8 +86,10 @@ struct MacAppSettings: Codable, Equatable, Sendable {
     }
 
     init(version: Int = currentVersion,
+         defaultsRevision: Int = currentDefaultsRevision,
          contextTokens: Int = AppContextLengthOption.eightK.tokens,
-         expertCacheSlots: Int = RuntimeConfiguration.productionExpertCacheSlots,
+         expertCacheSlots: Int = AppRuntimeOptions.defaultExpertCacheSlots(
+             physicalMemoryBytes: ProcessInfo.processInfo.physicalMemory),
          temperature: Double = 0.2,
          topKEnabled: Bool = true,
          topK: Int = 64,
@@ -98,6 +109,7 @@ struct MacAppSettings: Codable, Equatable, Sendable {
          expertReadsBypassFileCache: Bool = PreadExpertStreamer.readsBypassFileCacheByDefault,
          expertSkipThreshold: Double = AppRuntimeOptions.defaultExpertSkipThreshold) {
         self.version = version
+        self.defaultsRevision = defaultsRevision
         self.contextTokens = contextTokens
         self.expertCacheSlots = expertCacheSlots
         self.temperature = temperature
@@ -123,6 +135,9 @@ struct MacAppSettings: Codable, Equatable, Sendable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         version = try container.decode(Int.self, forKey: .version)
+        // A file from before revisions holds every value as it was written,
+        // defaults included, so it starts at 0 and `adoptCurrentDefaults` runs.
+        defaultsRevision = try container.decodeIfPresent(Int.self, forKey: .defaultsRevision) ?? 0
         contextTokens = try container.decode(Int.self, forKey: .contextTokens)
         expertCacheSlots = try container.decode(Int.self, forKey: .expertCacheSlots)
         temperature = try container.decode(Double.self, forKey: .temperature)
@@ -181,6 +196,29 @@ struct MacAppSettings: Codable, Equatable, Sendable {
             forKey: .expertSkipThreshold) ?? AppRuntimeOptions.defaultExpertSkipThreshold
     }
 
+    /// Moves values an older build wrote as its own defaults to today's, once.
+    ///
+    /// Revision 1 (2026-11-12, the user's decision), on iOS only: skipping
+    /// 0.08 becomes 0.10, and on a 12 GB iPhone 24 slots become 32. A file
+    /// stores every value it was created with, so the old defaults cannot be
+    /// told apart from the same values chosen on purpose; as with
+    /// `backgroundGeneration`, they are read as defaults. Off, 16 slots and
+    /// anything else were chosen and are kept. The Mac's defaults did not
+    /// change, so a Mac file only gets the revision stamped.
+    mutating func adoptCurrentDefaults(physicalMemoryBytes: UInt64,
+                                       onIOS: Bool = AppRuntimeOptions.isIOS) {
+        if defaultsRevision < 1 && onIOS {
+            if expertSkipThreshold == 0.08 {
+                expertSkipThreshold = 0.10
+            }
+            if expertCacheSlots == 24
+                && BenchmarkSweep.isOffered(physicalMemoryBytes: physicalMemoryBytes) {
+                expertCacheSlots = 32
+            }
+        }
+        defaultsRevision = Self.currentDefaultsRevision
+    }
+
     func isValid() -> Bool {
         AppContextLengthOption.allCases.contains { $0.tokens == contextTokens }
             && AppRuntimeOptions.allowedSlotCounts.contains(expertCacheSlots)
@@ -206,7 +244,9 @@ enum MacAppSettingsFileStore {
     }
 
     static func loadOrCreate(forModelDirectory modelDirectory: URL,
-                             fileManager: FileManager = .default) -> MacAppSettings {
+                             fileManager: FileManager = .default,
+                             physicalMemoryBytes: UInt64 = ProcessInfo.processInfo.physicalMemory,
+                             onIOS: Bool = AppRuntimeOptions.isIOS) -> MacAppSettings {
         let fileURL = fileURL(forModelDirectory: modelDirectory)
         if fileManager.fileExists(atPath: fileURL.path) {
             do {
@@ -232,8 +272,15 @@ enum MacAppSettingsFileStore {
                     // choice, and rewriting one here would silently discard it.
                     settings.version = MacAppSettings.currentVersion
                 }
+                // Unlike the version above, this does rewrite values: only
+                // ones an older build wrote as its defaults (`adoptCurrentDefaults`).
+                let needsDefaults = settings.defaultsRevision < MacAppSettings.currentDefaultsRevision
+                if needsDefaults {
+                    settings.adoptCurrentDefaults(physicalMemoryBytes: physicalMemoryBytes,
+                                                  onIOS: onIOS)
+                }
                 guard settings.isValid() else { throw InvalidSettings() }
-                if needsMigration {
+                if needsMigration || needsDefaults {
                     try? save(settings, forModelDirectory: modelDirectory,
                               fileManager: fileManager)
                 }

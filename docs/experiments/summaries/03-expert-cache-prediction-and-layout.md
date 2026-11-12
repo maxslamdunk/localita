@@ -351,6 +351,9 @@ capacity and memory cost.
   the iOS Settings sheet offers Off, 0.08 and 0.10. 0.10 is not measured on
   the phone. macOS stays off. Recorded in `docs/IOS_PORT.md`, "The rule that
   keeps the split honest".
+- **Decision (2026-11-12, the user's):** `miss:0.10` replaces 0.08 as the
+  iOS default, on the graded result above and an iPhone 18 Pro sweep where it
+  was 13–15% faster. Its speed on the iPhone 17 is unmeasured.
 - **Lesson:** A lossy change can be priced against the quantization the
   project already accepts. Measure it with a teacher-forced KL meter against
   a one-rounding yardstick, not by eye and not against "no change".
